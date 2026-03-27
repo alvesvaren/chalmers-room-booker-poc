@@ -1,0 +1,352 @@
+[
+  {
+    "id": "501",
+    "name": "EG-3207A",
+    "equipment": "Avdelad med draperi, Whiteboard",
+    "campus": "Johanneberg",
+    "capacity": 4
+  },
+  {
+    "id": "502",
+    "name": "EG-3207B",
+    "equipment": "Whiteboard",
+    "campus": "Johanneberg",
+    "capacity": 4
+  },
+  {
+    "id": "504",
+    "name": "EG-3209A",
+    "equipment": "Whiteboard",
+    "campus": "Johanneberg",
+    "capacity": 4
+  },
+  {
+    "id": "505",
+    "name": "EG-3209B",
+    "equipment": "Whiteboard",
+    "campus": "Johanneberg",
+    "capacity": 4
+  },
+  {
+    "id": "508",
+    "name": "EG-3211A",
+    "equipment": "Whiteboard",
+    "campus": "Johanneberg",
+    "capacity": 4
+  },
+  {
+    "id": "509",
+    "name": "EG-3211B",
+    "equipment": "Whiteboard",
+    "campus": "Johanneberg",
+    "capacity": 4
+  },
+  {
+    "id": "510",
+    "name": "EG-3213A",
+    "equipment": "Whiteboard",
+    "campus": "Johanneberg",
+    "capacity": 4
+  },
+  {
+    "id": "511",
+    "name": "EG-3213B",
+    "equipment": "Whiteboard",
+    "campus": "Johanneberg",
+    "capacity": 4
+  },
+  {
+    "id": "512",
+    "name": "EG-3215A",
+    "equipment": "Whiteboard",
+    "campus": "Johanneberg",
+    "capacity": 4
+  },
+  {
+    "id": "513",
+    "name": "EG-3215B",
+    "equipment": "Whiteboard",
+    "campus": "Johanneberg",
+    "capacity": 4
+  },
+  {
+    "id": "574",
+    "name": "EG-4205A",
+    "equipment": "Whiteboard",
+    "campus": "Johanneberg",
+    "capacity": 6
+  },
+  {
+    "id": "575",
+    "name": "EG-4205B",
+    "equipment": "Whiteboard",
+    "campus": "Johanneberg",
+    "capacity": 6
+  },
+  {
+    "id": "576",
+    "name": "EG-4207A",
+    "equipment": "Whiteboard",
+    "campus": "Johanneberg",
+    "capacity": 6
+  },
+  {
+    "id": "577",
+    "name": "EG-4207B",
+    "equipment": "Whiteboard",
+    "campus": "Johanneberg",
+    "capacity": 6
+  },
+  {
+    "id": "663",
+    "name": "EG-6205A",
+    "equipment": "Whiteboard",
+    "campus": "Johanneberg",
+    "capacity": 4
+  },
+  {
+    "id": "664",
+    "name": "EG-6205B",
+    "equipment": "Whiteboard",
+    "campus": "Johanneberg",
+    "capacity": 4
+  },
+  {
+    "id": "665",
+    "name": "EG-6207A",
+    "equipment": "Whiteboard",
+    "campus": "Johanneberg",
+    "capacity": 4
+  },
+  {
+    "id": "666",
+    "name": "EG-6207B",
+    "equipment": "Whiteboard",
+    "campus": "Johanneberg",
+    "capacity": 4
+  },
+  {
+    "id": "544",
+    "name": "F4051",
+    "equipment": "Whiteboard",
+    "campus": "Johanneberg",
+    "capacity": 2
+  },
+  {
+    "id": "545",
+    "name": "F4052",
+    "equipment": "Whiteboard",
+    "campus": "Johanneberg",
+    "capacity": 4
+  },
+  {
+    "id": "546",
+    "name": "F4053",
+    "equipment": "Whiteboard",
+    "campus": "Johanneberg",
+    "capacity": 4
+  },
+  {
+    "id": "547",
+    "name": "F4054",
+    "equipment": "Whiteboard",
+    "campus": "Johanneberg",
+    "capacity": 4
+  },
+  {
+    "id": "548",
+    "name": "F4055",
+    "equipment": "Whiteboard",
+    "campus": "Johanneberg",
+    "capacity": 4
+  },
+  {
+    "id": "549",
+    "name": "F4056",
+    "equipment": "Whiteboard",
+    "campus": "Johanneberg",
+    "capacity": 4
+  },
+  {
+    "id": "550",
+    "name": "F4057",
+    "equipment": "Whiteboard",
+    "campus": "Johanneberg",
+    "capacity": 4
+  },
+  {
+    "id": "551",
+    "name": "F4058",
+    "equipment": "Whiteboard",
+    "campus": "Johanneberg",
+    "capacity": 4
+  },
+  {
+    "id": "554",
+    "name": "F4113",
+    "equipment": "Whiteboard",
+    "campus": "Johanneberg",
+    "capacity": 8
+  },
+  {
+    "id": "557",
+    "name": "F4115",
+    "equipment": "Whiteboard",
+    "campus": "Johanneberg",
+    "capacity": 8
+  },
+  {
+    "id": "16068",
+    "name": "F5153",
+    "equipment": "Whiteboard",
+    "campus": "Johanneberg",
+    "capacity": 6
+  },
+  {
+    "id": "16067",
+    "name": "F5154",
+    "equipment": "Whiteboard",
+    "campus": "Johanneberg",
+    "capacity": 6
+  },
+  {
+    "id": "800",
+    "name": "Ideläran-G2515",
+    "equipment": "Whiteboard",
+    "campus": "Johanneberg",
+    "capacity": 6
+  },
+  {
+    "id": "801",
+    "name": "Ideläran-G2516",
+    "equipment": "Whiteboard",
+    "campus": "Johanneberg",
+    "capacity": 6
+  },
+  {
+    "id": "802",
+    "name": "Ideläran-G3503",
+    "equipment": "Whiteboard",
+    "campus": "Johanneberg",
+    "capacity": 6
+  },
+  {
+    "id": "803",
+    "name": "Ideläran-G3504",
+    "equipment": "Whiteboard",
+    "campus": "Johanneberg",
+    "capacity": 6
+  },
+  {
+    "id": "805",
+    "name": "Ideläran-G3506",
+    "equipment": "Whiteboard",
+    "campus": "Johanneberg",
+    "capacity": 6
+  },
+  {
+    "id": "792",
+    "name": "Ideläran-G3507",
+    "equipment": "Whiteboard",
+    "campus": "Johanneberg",
+    "capacity": 6
+  },
+  {
+    "id": "793",
+    "name": "Ideläran-G3508",
+    "equipment": "Whiteboard",
+    "campus": "Johanneberg",
+    "capacity": 6
+  },
+  {
+    "id": "294",
+    "name": "K-G1198",
+    "equipment": "Data-projektor, Whiteboard",
+    "campus": "Johanneberg",
+    "capacity": 16
+  },
+  {
+    "id": "487",
+    "name": "KG31",
+    "equipment": "",
+    "campus": "Johanneberg",
+    "capacity": 10
+  },
+  {
+    "id": "488",
+    "name": "KG32",
+    "equipment": "",
+    "campus": "Johanneberg",
+    "capacity": 8
+  },
+  {
+    "id": "486",
+    "name": "KG33",
+    "equipment": "Whiteboard",
+    "campus": "Johanneberg",
+    "capacity": 8
+  },
+  {
+    "id": "485",
+    "name": "KG34",
+    "equipment": "Whiteboard",
+    "campus": "Johanneberg",
+    "capacity": 8
+  },
+  {
+    "id": "484",
+    "name": "KG35",
+    "equipment": "",
+    "campus": "Johanneberg",
+    "capacity": 10
+  },
+  {
+    "id": "298",
+    "name": "M1203A",
+    "equipment": "Whiteboard",
+    "campus": "Johanneberg",
+    "capacity": 6
+  },
+  {
+    "id": "299",
+    "name": "M1203B",
+    "equipment": "Whiteboard",
+    "campus": "Johanneberg",
+    "capacity": 6
+  },
+  {
+    "id": "300",
+    "name": "M1203C",
+    "equipment": "Whiteboard",
+    "campus": "Johanneberg",
+    "capacity": 6
+  },
+  {
+    "id": "301",
+    "name": "M1203D",
+    "equipment": "Whiteboard",
+    "campus": "Johanneberg",
+    "capacity": 6
+  },
+  {
+    "id": "302",
+    "name": "M1203E",
+    "equipment": "Whiteboard",
+    "campus": "Johanneberg",
+    "capacity": 6
+  },
+  {
+    "id": "304",
+    "name": "M1204",
+    "equipment": "Whiteboard",
+    "campus": "Johanneberg",
+    "capacity": 6
+  },
+  {
+    "id": "305",
+    "name": "M1205",
+    "equipment": "Whiteboard",
+    "campus": "Johanneberg",
+    "capacity": 6
+  }
+]

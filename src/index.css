@@ -1,0 +1,106 @@
+@import "tailwindcss";
+
+:root {
+  --te-bg: #f4f1eb;
+  --te-surface: #fdfcfa;
+  --te-elevated: #ffffff;
+  --te-border: #e2ddd4;
+  --te-text: #1c1917;
+  --te-text-muted: #57534e;
+  --te-accent: #0d5c5c;
+  --te-accent-hover: #094747;
+  --te-accent-muted: rgba(13, 92, 92, 0.12);
+  --te-danger: #b91c1c;
+  --te-danger-bg: rgba(185, 28, 28, 0.08);
+  --te-success: #047857;
+  --te-busy: #94a3b8;
+  --te-busy-strong: #64748b;
+  --te-free-hover: rgba(13, 92, 92, 0.06);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --te-bg: #121110;
+    --te-surface: #1a1918;
+    --te-elevated: #222120;
+    --te-border: #3f3d3a;
+    --te-text: #f5f5f4;
+    --te-text-muted: #a8a29e;
+    --te-accent: #5eead4;
+    --te-accent-hover: #99f6e4;
+    --te-accent-muted: rgba(94, 234, 212, 0.12);
+    --te-danger: #fca5a5;
+    --te-danger-bg: rgba(252, 165, 165, 0.1);
+    --te-success: #6ee7b7;
+    --te-busy: #64748b;
+    --te-busy-strong: #94a3b8;
+    --te-free-hover: rgba(94, 234, 212, 0.08);
+  }
+}
+
+@theme {
+  --font-display: "Fraunces", "Georgia", serif;
+  --font-sans: "Source Sans 3", system-ui, sans-serif;
+
+  --color-te-bg: var(--te-bg);
+  --color-te-surface: var(--te-surface);
+  --color-te-elevated: var(--te-elevated);
+  --color-te-border: var(--te-border);
+  --color-te-text: var(--te-text);
+  --color-te-muted: var(--te-text-muted);
+  --color-te-accent: var(--te-accent);
+  --color-te-accent-hover: var(--te-accent-hover);
+  --color-te-accent-muted: var(--te-accent-muted);
+  --color-te-danger: var(--te-danger);
+  --color-te-danger-bg: var(--te-danger-bg);
+  --color-te-success: var(--te-success);
+  --color-te-busy: var(--te-busy);
+  --color-te-busy-strong: var(--te-busy-strong);
+  --color-te-free-hover: var(--te-free-hover);
+}
+
+@layer utilities {
+  .font-display {
+    font-family: var(--font-display);
+  }
+}
+
+@layer base {
+  body {
+    margin: 0;
+    font-family: var(--font-sans);
+    background-color: var(--te-bg);
+    color: var(--te-text);
+    background-image: radial-gradient(
+      ellipse 120% 80% at 50% -20%,
+      var(--te-accent-muted),
+      transparent 55%
+    );
+    min-height: 100svh;
+  }
+}
+
+@keyframes te-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.te-reveal {
+  animation: te-fade-up 0.45s ease-out both;
+}
+
+.te-reveal-delay-1 {
+  animation-delay: 0.06s;
+}
+.te-reveal-delay-2 {
+  animation-delay: 0.12s;
+}
+.te-reveal-delay-3 {
+  animation-delay: 0.18s;
+}
