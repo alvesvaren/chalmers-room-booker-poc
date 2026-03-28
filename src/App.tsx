@@ -172,6 +172,11 @@ export default function App() {
     cancelMutation.mutate({ path: { id } })
   }
 
+  function isRoomBookable(room: Room) {
+    const rw = roomWithBookingsFor(room, bookingsQuery.data?.rooms)
+    return firstFreeGapInWeek(rw, weekStart, weekEnd) != null
+  }
+
   return (
     <div className="min-h-svh antialiased text-te-text">
       <div className="w-full max-w-none px-4 py-8 sm:px-6 lg:px-8 xl:px-10 2xl:px-12">
@@ -247,6 +252,7 @@ export default function App() {
                 <RoomsTab
                   roomsQuery={roomsQuery}
                   onBookRoom={handleBookRoomFromDirectory}
+                  isRoomBookable={isRoomBookable}
                 />
               ) : null}
               {activeTab === 'mine' ? (
@@ -283,6 +289,7 @@ export default function App() {
           createBookingMutation.reset()
         }}
         initial={bookingInitial}
+        scheduleRooms={bookingsQuery.data?.rooms}
         onSubmit={(body) =>
           createBookingMutation.mutate(
             { body },

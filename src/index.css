@@ -107,3 +107,26 @@
 .te-reveal-delay-3 {
   animation-delay: 0.18s;
 }
+
+@keyframes te-booking-preview-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 1px var(--te-accent),
+      0 0 12px var(--te-accent-muted),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    filter: brightness(1);
+  }
+  50% {
+    box-shadow:
+      0 0 0 3px var(--te-accent-muted),
+      0 0 28px color-mix(in oklab, var(--te-accent) 40%, transparent),
+      inset 0 1px 0 rgba(255, 255, 255, 0.14);
+    filter: brightness(1.04);
+  }
+}
+
+.te-booking-preview-bar {
+  animation: te-booking-preview-pulse 2.2s ease-in-out infinite;
+  will-change: box-shadow, filter;
+}

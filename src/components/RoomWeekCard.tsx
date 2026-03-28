@@ -1,14 +1,25 @@
-import { useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import type { RoomWithBookings } from '../client/types.gen'
 import { getRoomRating } from '../lib/roomRatings'
 import {
   buildRoomWeekTimeline,
+  firstFreeGapInWeek,
   formatLocalDate,
   formatLocalTime,
+  splitFreeGapForDisplay,
   type TimeInterval,
   intervalToPercent,
 } from '../lib/weekTimeline'
 import { Button } from './ui/Button'
+
+function useTickingNow(intervalMs: number) {
+  const [now, setNow] = useState(() => new Date())
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(new Date()), intervalMs)
+    return () => window.clearInterval(id)
+  }, [intervalMs])
+  return now
+}
 
 export function RoomWeekCard({
   room,
@@ -24,7 +35,14 @@ export function RoomWeekCard({
   onBookRoom: (room: RoomWithBookings) => void
 }) {
   const [open, setOpen] = useState(true)
+  const now = useTickingNow(60_000)
   const days = buildRoomWeekTimeline(room, weekStart, weekEndExclusive)
+  const nextBookableGap = firstFreeGapInWeek(
+    room,
+    weekStart,
+    weekEndExclusive,
+    now,
+  )
   const rr = getRoomRating(room.name)
 
   return (
@@ -79,7 +97,15 @@ export function RoomWeekCard({
         <Button
           variant="primary"
           className="w-full shrink-0 touch-manipulation py-2.5 text-sm font-semibold sm:w-auto sm:px-5"
-          onClick={() => onBookRoom(room)}
+          disabled={!nextBookableGap}
+          title={
+            !nextBookableGap
+              ? 'Ingen ledig tid kvar denna vecka från och med nu'
+              : undefined
+          }
+          onClick={() => {
+            if (nextBookableGap) onBookRoom(room)
+          }}
         >
           Boka
         </Button>
@@ -108,26 +134,49 @@ export function RoomWeekCard({
                 <span className="hidden sm:inline">{day.weekdayShort}</span>
               </div>
               <div className="relative h-9 overflow-hidden rounded-lg bg-te-border/25">
-                {day.free.map((g, i) => {
-                  const { leftPct, widthPct } = intervalToPercent(
-                    g,
-                    day.displayStart,
-                    day.displayEnd,
-                  )
-                  const label = `${formatLocalTime(g.start)}–${formatLocalTime(g.end)}`
-                  return (
-                    <button
-                      key={`f-${i}`}
-                      type="button"
-                      title={`Book ${label}`}
-                      className="absolute inset-y-1 z-0 rounded border border-te-accent/25 bg-te-free-hover hover:bg-te-accent-muted"
-                      style={{
-                        left: `${leftPct}%`,
-                        width: `${Math.max(widthPct, 1.2)}%`,
-                      }}
-                      onClick={() => onPickFree(room, g)}
-                    />
-                  )
+                {day.free.flatMap((g, i) => {
+                  const { past, future } = splitFreeGapForDisplay(g, now)
+                  const els: ReactNode[] = []
+                  if (past) {
+                    const { leftPct, widthPct } = intervalToPercent(
+                      past,
+                      day.displayStart,
+                      day.displayEnd,
+                    )
+                    els.push(
+                      <div
+                        key={`${day.dateStr}-past-${i}`}
+                        title="Passerad tid"
+                        className="pointer-events-none absolute inset-y-1 z-0 rounded border border-te-border/40 bg-te-border/50"
+                        style={{
+                          left: `${leftPct}%`,
+                          width: `${Math.max(widthPct, 0.6)}%`,
+                        }}
+                      />,
+                    )
+                  }
+                  if (future) {
+                    const { leftPct, widthPct } = intervalToPercent(
+                      future,
+                      day.displayStart,
+                      day.displayEnd,
+                    )
+                    const label = `${formatLocalTime(future.start)}–${formatLocalTime(future.end)}`
+                    els.push(
+                      <button
+                        key={`${day.dateStr}-fut-${i}`}
+                        type="button"
+                        title={`Boka ${label}`}
+                        className="absolute inset-y-1 z-0 rounded border border-te-accent/25 bg-te-free-hover hover:bg-te-accent-muted"
+                        style={{
+                          left: `${leftPct}%`,
+                          width: `${Math.max(widthPct, 1.2)}%`,
+                        }}
+                        onClick={() => onPickFree(room, future)}
+                      />,
+                    )
+                  }
+                  return els
                 })}
                 {day.busy.map((b, i) => {
                   const { leftPct, widthPct } = intervalToPercent(
@@ -135,11 +184,15 @@ export function RoomWeekCard({
                     day.displayStart,
                     day.displayEnd,
                   )
+                  const range = `${formatLocalTime(b.start)}–${formatLocalTime(b.end)}`
+                  const title = b.label
+                    ? `Upptagen ${range} · ${b.label}`
+                    : `Upptagen ${range}`
                   return (
                     <div
                       key={`b-${i}`}
-                      title={b.label ? `Upptagen · ${b.label}` : 'Upptagen'}
-                      className="pointer-events-none absolute inset-y-1 z-10 rounded-sm bg-te-busy-strong/85 shadow-inner"
+                      title={title}
+                      className="absolute inset-y-1 z-10 rounded-sm bg-te-busy-strong/85 shadow-inner pointer-events-auto cursor-default"
                       style={{
                         left: `${leftPct}%`,
                         width: `${Math.max(widthPct, 0.6)}%`,
@@ -152,7 +205,8 @@ export function RoomWeekCard({
           ))}
 
           <p className="text-[11px] text-te-muted">
-            Grön = ledig tid (klicka för att boka). Grå block = upptaget.
+            Ljusgrön = ledig tid framåt (klicka för att boka). Mörkgrå =
+            passerad ledig tid. Mättad grå = upptaget.
           </p>
 
           <ul className="sr-only">

@@ -11,9 +11,11 @@ type SortKey = 'rating' | 'name' | 'campus' | 'capacity'
 export function RoomsTab({
   roomsQuery,
   onBookRoom,
+  isRoomBookable,
 }: {
   roomsQuery: UseQueryResult<Array<Room>, unknown>
   onBookRoom: (room: Room) => void
+  isRoomBookable: (room: Room) => boolean
 }) {
   const [search, setSearch] = useState('')
   const [campusPick, setCampusPick] = useState('')
@@ -200,6 +202,12 @@ export function RoomsTab({
                   <Button
                     variant="primary"
                     className="mt-5 w-full touch-manipulation py-2.5 text-sm"
+                    disabled={!isRoomBookable(room)}
+                    title={
+                      !isRoomBookable(room)
+                        ? 'Ingen ledig tid kvar denna vecka från och med nu'
+                        : undefined
+                    }
                     onClick={() => onBookRoom(room)}
                   >
                     Boka detta rum

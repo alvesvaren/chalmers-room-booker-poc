@@ -72,6 +72,36 @@ function mergeIntervals(intervals: TimeInterval[]): TimeInterval[] {
   return out
 }
 
+/** Busy segments clipped to the visible window and merged (for timeline-style blocks). */
+export function busyIntervalsForWindow(
+  windowStart: Date,
+  windowEnd: Date,
+  segments: TimeInterval[],
+): TimeInterval[] {
+  const clipped = segments
+    .filter((b) => b.end > windowStart && b.start < windowEnd)
+    .map((b) => ({
+      start: new Date(
+        Math.max(b.start.getTime(), windowStart.getTime()),
+      ) as Date,
+      end: new Date(
+        Math.min(b.end.getTime(), windowEnd.getTime()),
+      ) as Date,
+    }))
+    .filter((b) => b.end > b.start)
+  return mergeIntervals(clipped)
+}
+
+/** Free gaps inside [windowStart, windowEnd) given busy wall-clock segments (any length). */
+export function freeSlotsInWindow(
+  windowStart: Date,
+  windowEnd: Date,
+  segments: TimeInterval[],
+): TimeInterval[] {
+  const busy = busyIntervalsForWindow(windowStart, windowEnd, segments)
+  return subtractBusyFromWindow(windowStart, windowEnd, busy)
+}
+
 function subtractBusyFromWindow(
   windowStart: Date,
   windowEnd: Date,
@@ -98,6 +128,49 @@ function subtractBusyFromWindow(
     gaps.push({ start: new Date(cursor), end: new Date(windowEnd.getTime()) })
   }
   return gaps.filter((g) => g.end.getTime() - g.start.getTime() >= MIN_GAP_MS)
+}
+
+/** Trim interval to only the part at or after `now`. Null if nothing usable remains. */
+export function clipIntervalToFuture(
+  interval: TimeInterval,
+  now: Date = new Date(),
+): TimeInterval | null {
+  const startMs = Math.max(interval.start.getTime(), now.getTime())
+  const endMs = interval.end.getTime()
+  if (endMs - startMs < MIN_GAP_MS) return null
+  return { start: new Date(startMs), end: new Date(endMs) }
+}
+
+/**
+ * Split a free gap for the timeline: past (already elapsed) vs future (bookable).
+ * If the remainder before gap.end is shorter than MIN_GAP_MS, the whole gap is treated as past.
+ */
+export function splitFreeGapForDisplay(
+  gap: TimeInterval,
+  now: Date,
+): { past: TimeInterval | null; future: TimeInterval | null } {
+  const i0 = gap.start.getTime()
+  const i1 = gap.end.getTime()
+  const n = now.getTime()
+  if (i1 <= n) {
+    return { past: gap, future: null }
+  }
+  if (i0 >= n) {
+    const future = clipIntervalToFuture(gap, now)
+    if (!future) return { past: gap, future: null }
+    return { past: null, future }
+  }
+  const future = clipIntervalToFuture(
+    { start: new Date(n), end: gap.end },
+    now,
+  )
+  if (!future) {
+    return { past: gap, future: null }
+  }
+  return {
+    past: { start: gap.start, end: new Date(n) },
+    future,
+  }
 }
 
 function startOfDayWithHour(d: Date, hour: number) {
@@ -233,11 +306,15 @@ export function toBookingDraft(
   }
 }
 
-/** First free gap in the visible week for default booking prefill from Rooms tab. */
+/**
+ * First free gap in the visible week that still has time left from `now` onward
+ * (not in the past, not overlapping busy — same as free segments).
+ */
 export function firstFreeGapInWeek(
   room: RoomWithBookings,
   weekStart: Date,
   weekEndExclusive: Date,
+  now: Date = new Date(),
 ): TimeInterval | null {
   const days = buildRoomWeekTimeline(
     room,
@@ -247,13 +324,10 @@ export function firstFreeGapInWeek(
     DEFAULT_DAY_END_H,
   )
   for (const d of days) {
-    if (d.free.length > 0) {
-      return d.free[0]
+    for (const g of d.free) {
+      const clipped = clipIntervalToFuture(g, now)
+      if (clipped) return clipped
     }
   }
-  const fallback = new Date(weekStart)
-  fallback.setHours(DEFAULT_DAY_START_H + 1, 0, 0, 0)
-  const end = new Date(fallback)
-  end.setHours(fallback.getHours() + 1)
-  return { start: fallback, end }
+  return null
 }
