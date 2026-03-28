@@ -23,7 +23,7 @@ export function SignInPanel({
   submitError: unknown | null;
 }) {
   const inputClass =
-    "w-full rounded-lg border border-te-border bg-te-elevated px-3 py-2.5 text-sm text-te-text outline-none transition-shadow placeholder:text-te-muted/70 focus:border-te-accent focus:ring-2 focus:ring-te-accent/20";
+    "w-full rounded-lg border border-te-border bg-te-elevated px-3 py-2.5 text-base text-te-text outline-none transition-shadow placeholder:text-te-muted/70 focus:border-te-accent focus:ring-2 focus:ring-te-accent/20 sm:text-sm";
 
   return (
     <section className='te-reveal rounded-2xl border border-te-border bg-te-surface p-6 shadow-sm sm:p-8'>

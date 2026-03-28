@@ -163,7 +163,7 @@ export function RoomsTab({
 
   const filterGrid = "grid w-full grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3";
   const fieldClass =
-    "min-w-0 w-full rounded-lg border border-te-border bg-te-elevated px-3 py-2.5 text-sm outline-none focus:border-te-accent focus:ring-2 focus:ring-te-accent/20 sm:py-2";
+    "min-w-0 w-full rounded-lg border border-te-border bg-te-elevated px-3 py-2.5 text-base outline-none focus:border-te-accent focus:ring-2 focus:ring-te-accent/20 sm:py-2 sm:text-sm";
   const roomGridClass = "grid gap-3 sm:gap-4 [grid-template-columns:repeat(auto-fill,minmax(min(100%,17rem),1fr))]";
 
   const slotPanelClass =

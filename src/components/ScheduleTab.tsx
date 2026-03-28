@@ -106,7 +106,7 @@ export function ScheduleTab({
 
   const filterGrid = "grid w-full grid-cols-1 gap-3 sm:grid-cols-2";
   const inputClass =
-    "min-w-0 w-full rounded-lg border border-te-border bg-te-elevated px-3 py-2.5 text-sm text-te-text outline-none focus:border-te-accent focus:ring-2 focus:ring-te-accent/20 sm:py-2";
+    "min-w-0 w-full rounded-lg border border-te-border bg-te-elevated px-3 py-2.5 text-base text-te-text outline-none focus:border-te-accent focus:ring-2 focus:ring-te-accent/20 sm:py-2 sm:text-sm";
   const scheduleGridClass = "grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(min(100%,26rem),1fr))]";
 
   return (

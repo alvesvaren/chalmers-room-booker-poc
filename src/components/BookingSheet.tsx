@@ -400,7 +400,7 @@ function BookingSheetForm({
   }
 
   const inputClass =
-    "w-full rounded-lg border border-te-border bg-te-elevated px-3 py-2 text-sm text-te-text outline-none transition-shadow placeholder:text-te-muted/70 focus:border-te-accent focus:ring-2 focus:ring-te-accent/20";
+    "w-full rounded-lg border border-te-border bg-te-elevated px-3 py-2 text-base text-te-text outline-none transition-shadow placeholder:text-te-muted/70 focus:border-te-accent focus:ring-2 focus:ring-te-accent/20 sm:text-sm";
 
   return (
     <div
@@ -609,7 +609,7 @@ function BookingSheetForm({
             <label className='grid gap-1 text-sm'>
               <span className='font-medium text-te-text'>Starttid</span>
               <input
-                className={inputClass + " font-mono text-xs"}
+                className={inputClass + " font-mono text-base sm:text-xs"}
                 value={startTime}
                 onChange={e => setStartTime(e.target.value)}
                 onBlur={commitManualTimes}
@@ -621,7 +621,7 @@ function BookingSheetForm({
             <label className='grid gap-1 text-sm'>
               <span className='font-medium text-te-text'>Sluttid</span>
               <input
-                className={inputClass + " font-mono text-xs"}
+                className={inputClass + " font-mono text-base sm:text-xs"}
                 value={endTime}
                 onChange={e => setEndTime(e.target.value)}
                 onBlur={commitManualTimes}
@@ -638,7 +638,7 @@ function BookingSheetForm({
             {showAdvanced ? (
               <label className='mt-2 grid gap-1 text-sm'>
                 <span className='text-te-muted'>Rums-id (API)</span>
-                <input className={inputClass + " font-mono text-xs"} value={roomId} onChange={e => setRoomId(e.target.value)} required />
+                <input className={inputClass + " font-mono text-base sm:text-xs"} value={roomId} onChange={e => setRoomId(e.target.value)} required />
               </label>
             ) : null}
           </div>
