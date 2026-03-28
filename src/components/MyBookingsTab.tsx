@@ -1,8 +1,8 @@
-import type { Booking } from '../client/types.gen'
-import type { UseQueryResult } from '@tanstack/react-query'
-import { errorMessage } from '../lib/errors'
-import { Button } from './ui/Button'
-import { Skeleton } from './ui/Skeleton'
+import type { UseQueryResult } from "@tanstack/react-query";
+import type { Booking } from "../client/types.gen";
+import { errorMessage } from "../lib/errors";
+import { Button } from "./ui/Button";
+import { Skeleton } from "./ui/Skeleton";
 
 export function MyBookingsTab({
   myBookingsQuery,
@@ -10,64 +10,42 @@ export function MyBookingsTab({
   onCancelRequest,
   cancelError,
 }: {
-  myBookingsQuery: UseQueryResult<Array<Booking>, unknown>
-  cancelMutation: { isPending: boolean }
-  onCancelRequest: (id: string) => void
-  cancelError: unknown | null
+  myBookingsQuery: UseQueryResult<Array<Booking>, unknown>;
+  cancelMutation: { isPending: boolean };
+  onCancelRequest: (id: string) => void;
+  cancelError: unknown | null;
 }) {
   return (
-    <div className="te-reveal te-reveal-delay-1 space-y-6">
+    <div className='te-reveal te-reveal-delay-1 space-y-6'>
       <div>
-        <h2 className="font-display text-xl font-semibold text-te-text">
-          Mina bokningar
-        </h2>
-        <p className="mt-1 text-sm text-te-muted">
-          Avboka eller skapa nya bokningar via flikarna Schema och Rum.
-        </p>
+        <h2 className='font-display text-xl font-semibold text-te-text'>Mina bokningar</h2>
+        <p className='mt-1 text-sm text-te-muted'>Avboka eller skapa nya bokningar via flikarna Schema och Rum.</p>
       </div>
 
-      {myBookingsQuery.isError ? (
-        <p className="text-sm text-te-danger">
-          {errorMessage(myBookingsQuery.error)}
-        </p>
-      ) : null}
+      {myBookingsQuery.isError ? <p className='text-sm text-te-danger'>{errorMessage(myBookingsQuery.error)}</p> : null}
 
       {myBookingsQuery.isLoading ? (
-        <div className="space-y-3">
-          <Skeleton className="h-16 w-full" />
-          <Skeleton className="h-16 w-full" />
+        <div className='space-y-3'>
+          <Skeleton className='h-16 w-full' />
+          <Skeleton className='h-16 w-full' />
         </div>
       ) : (
-        <ul className="divide-y divide-te-mine-border rounded-xl border border-te-mine-border bg-te-mine-bg shadow-sm">
+        <ul className='divide-y divide-te-mine-border rounded-xl border border-te-mine-border bg-te-mine-bg shadow-sm'>
           {(myBookingsQuery.data ?? []).length === 0 ? (
-            <li className="px-4 py-10 text-center text-sm text-te-muted">
-              Inga bokningar ännu.
-            </li>
+            <li className='px-4 py-10 text-center text-sm text-te-muted'>Inga bokningar ännu.</li>
           ) : (
-            (myBookingsQuery.data ?? []).map((b) => (
-              <li
-                key={b.id}
-                className="flex flex-wrap items-center justify-between gap-3 bg-te-mine-bg px-4 py-4 transition-colors hover:bg-te-mine-row"
-              >
+            (myBookingsQuery.data ?? []).map(b => (
+              <li key={b.id} className='flex flex-wrap items-center justify-between gap-3 bg-te-mine-bg px-4 py-4 transition-colors hover:bg-te-mine-row'>
                 <div>
-                  <p className="font-medium text-te-text">
+                  <p className='font-medium text-te-text'>
                     {b.room.name}
-                    {b.room.id ? (
-                      <span className="ml-2 font-mono text-xs text-te-muted">
-                        {b.room.id}
-                      </span>
-                    ) : null}
+                    {b.room.id ? <span className='ml-2 font-mono text-xs text-te-muted'>{b.room.id}</span> : null}
                   </p>
-                  <p className="text-sm text-te-muted">
+                  <p className='text-sm text-te-muted'>
                     {b.start} → {b.end} · ref {b.id}
                   </p>
                 </div>
-                <Button
-                  variant="danger"
-                  className="text-xs"
-                  disabled={cancelMutation.isPending}
-                  onClick={() => onCancelRequest(b.id)}
-                >
+                <Button variant='danger' className='text-xs' disabled={cancelMutation.isPending} onClick={() => onCancelRequest(b.id)}>
                   Avboka
                 </Button>
               </li>
@@ -76,9 +54,7 @@ export function MyBookingsTab({
         </ul>
       )}
 
-      {cancelError ? (
-        <p className="text-sm text-te-danger">{errorMessage(cancelError)}</p>
-      ) : null}
+      {cancelError ? <p className='text-sm text-te-danger'>{errorMessage(cancelError)}</p> : null}
     </div>
-  )
+  );
 }
