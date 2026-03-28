@@ -326,6 +326,38 @@ function BookingSheetForm({
     return displayStart.getTime() + ratio * m.spanMs
   }
 
+  /** Center current booking length on the tapped time (then clamp to window + free gaps). */
+  function placeBookingAtTrackClick(clientX: number) {
+    const m = trackMetrics()
+    if (!m) return
+    const w0 = displayStart.getTime()
+    const w1 = displayEnd.getTime()
+    const clickMs = snapInstantMsToQuarterOnDate(
+      clientXToMs(clientX),
+      date,
+    )
+    const durMs =
+      bookingInterval.end.getTime() - bookingInterval.start.getTime()
+    if (durMs < MIN_DURATION_MIN * 60_000) return
+    let startMs = snapInstantMsToQuarterOnDate(clickMs - durMs / 2, date)
+    let endMs = startMs + durMs
+    if (endMs > w1) {
+      const over = endMs - w1
+      startMs -= over
+      endMs = w1
+    }
+    if (startMs < w0) {
+      const under = w0 - startMs
+      startMs = w0
+      endMs += under
+    }
+    if (endMs > w1) endMs = w1
+    if ((endMs - startMs) / 60_000 < MIN_DURATION_MIN) return
+    const [a, b] = clampToFreeGaps(startMs, endMs, freeGaps, date)
+    setStartTime(formatLocalTime(new Date(a)))
+    setEndTime(formatLocalTime(new Date(b)))
+  }
+
   function endDragPointer() {
     const d = dragRef.current
     if (!d) return
@@ -538,11 +570,36 @@ function BookingSheetForm({
             </div>
             <p className="text-[11px] leading-relaxed text-te-muted">
               Grå = andras bokningar, pastellrosa = dina. Tider snappas till
-              kvartar (TimeEdit). Dra den gröna ytan för att flytta; dra i
-              strecken vid sidorna för längd.{' '}
-              <span className="text-te-accent">Max 4 h.</span>
+              kvartar (TimeEdit). Dra den gröna ytan eller{' '}
+              <span className="font-medium text-te-text">klicka på en tom tid</span>{' '}
+              för att centrera bokningen där. Dra i strecken vid sidorna för
+              längd. <span className="text-te-accent">Max 4 h.</span>
             </p>
-            <div ref={trackRef} className="relative h-11 overflow-visible">
+            <div
+              ref={trackRef}
+              className="relative h-11 min-h-11 w-full cursor-default overflow-visible"
+              onPointerDownCapture={(e) => {
+                if (e.button !== 0) return
+                const t = e.target as HTMLElement | null
+                if (!t) return
+                if (t.closest('[data-booking-preview-root]')) return
+                const clicked = snapInstantMsToQuarterOnDate(
+                  clientXToMs(e.clientX),
+                  date,
+                )
+                if (
+                  busyClipped.some(
+                    (b) =>
+                      clicked >= b.start.getTime() &&
+                      clicked < b.end.getTime(),
+                  )
+                ) {
+                  return
+                }
+                e.preventDefault()
+                placeBookingAtTrackClick(e.clientX)
+              }}
+            >
               <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-lg bg-te-border/25">
                 <div className="absolute inset-x-0 top-0 flex justify-between px-1 pt-1 text-[9px] font-medium uppercase tracking-wider text-te-muted/80">
                   <span>07</span>
@@ -598,6 +655,7 @@ function BookingSheetForm({
                 })}
               </div>
               <div
+                data-booking-preview-root
                 className="absolute bottom-1 top-4 z-10"
                 style={{
                   left: `${leftPct}%`,
