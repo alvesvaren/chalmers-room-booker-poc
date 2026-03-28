@@ -13,6 +13,22 @@ export function getWeekRange(weekOffset: number, anchor: Date = new Date()) {
   return { weekStart, weekEnd }
 }
 
+/** Monday-based week offset for the week containing `dateStr` (YYYY-MM-DD), relative to `getWeekRange(0, anchor)`. */
+export function weekOffsetForLocalDate(
+  dateStr: string,
+  anchor: Date = new Date(),
+): number {
+  const [Y, M, D] = dateStr.split('-').map(Number)
+  const target = new Date(Y, M - 1, D, 12, 0, 0, 0)
+  if (Number.isNaN(target.getTime())) return 0
+  const { weekStart: anchorMonday } = getWeekRange(0, anchor)
+  const { weekStart: targetMonday } = getWeekRange(0, target)
+  const msPerWeek = 7 * 24 * 60 * 60_000
+  return Math.round(
+    (targetMonday.getTime() - anchorMonday.getTime()) / msPerWeek,
+  )
+}
+
 /** API returns naive local wall-clock strings (no timezone suffix). */
 export function parseNaiveLocal(isoLike: string): Date {
   const normalized = isoLike.trim().replace(' ', 'T')
@@ -307,6 +323,46 @@ export function buildRoomWeekTimeline(
     })
   }
   return days
+}
+
+/**
+ * True if [intervalStart, intervalEnd) lies in the day's bookable window, does not overlap busy
+ * (subset of a single free gap), and starts at or after `now` when `dateStr` is today.
+ */
+export function roomAvailableForInterval(
+  room: RoomWithBookings,
+  weekStart: Date,
+  weekEndExclusive: Date,
+  dateStr: string,
+  intervalStart: Date,
+  intervalEnd: Date,
+  now: Date = new Date(),
+  dayStartH: number = DEFAULT_DAY_START_H,
+  dayEndH: number = DEFAULT_DAY_END_H,
+): boolean {
+  if (intervalEnd.getTime() - intervalStart.getTime() < MIN_GAP_MS) {
+    return false
+  }
+  const days = buildRoomWeekTimeline(
+    room,
+    weekStart,
+    weekEndExclusive,
+    dayStartH,
+    dayEndH,
+  )
+  const day = days.find((d) => d.dateStr === dateStr)
+  if (!day) return false
+  const t0 = intervalStart.getTime()
+  const t1 = intervalEnd.getTime()
+  if (t0 < day.displayStart.getTime() || t1 > day.displayEnd.getTime()) {
+    return false
+  }
+  if (formatLocalDate(now) === dateStr && t0 < now.getTime()) {
+    return false
+  }
+  return day.free.some(
+    (g) => g.start.getTime() <= t0 && g.end.getTime() >= t1,
+  )
 }
 
 /** Position as % of [windowStart, windowEnd]: { left, width } for CSS. */

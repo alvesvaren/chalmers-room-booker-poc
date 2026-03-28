@@ -1,25 +1,80 @@
-import { useMemo, useState } from 'react'
-import type { Room } from '../client/types.gen'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import type { AllRoomsBookings, Room, RoomWithBookings } from '../client/types.gen'
 import type { UseQueryResult } from '@tanstack/react-query'
 import { errorMessage } from '../lib/errors'
 import { getRoomRating, ratingSortValue } from '../lib/roomRatings'
+import {
+  addMinutes,
+  formatLocalDate,
+  formatLocalTime,
+  roomAvailableForInterval,
+} from '../lib/weekTimeline'
 import { Button } from './ui/Button'
 import { Skeleton } from './ui/Skeleton'
 
 type SortKey = 'rating' | 'name' | 'campus' | 'capacity'
 
+function roomWithBookingsFor(
+  room: Room,
+  scheduleRooms: RoomWithBookings[] | undefined,
+): RoomWithBookings {
+  const hit = scheduleRooms?.find((r) => r.id === room.id)
+  if (hit) return hit
+  return {
+    ...room,
+    bookings: [],
+  }
+}
+
+function parseInstantOnDate(dateStr: string, timeStr: string): Date {
+  const [Y, M, D] = dateStr.split('-').map(Number)
+  const [h, mi] = timeStr.split(':').map(Number)
+  return new Date(Y, M - 1, D, h, mi ?? 0, 0, 0)
+}
+
 export function RoomsTab({
   roomsQuery,
+  bookingsQuery,
+  bookingsWeekStart,
+  bookingsWeekEnd,
+  onRoomsAvailabilityDateChange,
   onBookRoom,
   isRoomBookable,
 }: {
   roomsQuery: UseQueryResult<Array<Room>, unknown>
-  onBookRoom: (room: Room) => void
+  bookingsQuery: UseQueryResult<AllRoomsBookings, unknown>
+  bookingsWeekStart: Date
+  bookingsWeekEnd: Date
+  onRoomsAvailabilityDateChange: (date: string | null) => void
+  onBookRoom: (
+    room: Room,
+    slot?: { date: string; startTime: string; endTime: string },
+  ) => void
   isRoomBookable: (room: Room) => boolean
 }) {
   const [search, setSearch] = useState('')
   const [campusPick, setCampusPick] = useState('')
   const [sort, setSort] = useState<SortKey>('rating')
+  const [slotFilterActive, setSlotFilterActive] = useState(false)
+  const [slotDate, setSlotDate] = useState(() => formatLocalDate(new Date()))
+  const [slotStartTime, setSlotStartTime] = useState('13:30')
+  const [slotDurationMin, setSlotDurationMin] = useState(60)
+
+  const minBookDate = formatLocalDate(new Date())
+
+  const failedRoomIds = useMemo(() => {
+    const e = bookingsQuery.data?.errors
+    if (!e?.length) return new Set<string>()
+    return new Set(e.map((x) => x.roomId))
+  }, [bookingsQuery.data?.errors])
+
+  useEffect(() => {
+    if (!slotFilterActive) {
+      onRoomsAvailabilityDateChange(null)
+      return
+    }
+    onRoomsAvailabilityDateChange(slotDate)
+  }, [slotFilterActive, slotDate, onRoomsAvailabilityDateChange])
 
   const campuses = useMemo(() => {
     const s = new Set<string>()
@@ -28,6 +83,63 @@ export function RoomsTab({
     }
     return [...s].sort((a, b) => a.localeCompare(b, 'sv'))
   }, [roomsQuery.data])
+
+  const slotInterval = useMemo(() => {
+    if (!slotFilterActive) return null
+    const start = parseInstantOnDate(slotDate, slotStartTime)
+    const end = addMinutes(start, slotDurationMin)
+    return {
+      start,
+      end,
+      endTime: formatLocalTime(end),
+      crossesDay: formatLocalDate(end) !== slotDate,
+    }
+  }, [slotFilterActive, slotDate, slotStartTime, slotDurationMin])
+
+  const roomSlotOk = useCallback(
+    (room: Room): boolean => {
+      if (!slotFilterActive || !slotInterval || slotInterval.crossesDay) {
+        return false
+      }
+      if (failedRoomIds.has(room.id)) return false
+      const rw = roomWithBookingsFor(room, bookingsQuery.data?.rooms)
+      return roomAvailableForInterval(
+        rw,
+        bookingsWeekStart,
+        bookingsWeekEnd,
+        slotDate,
+        slotInterval.start,
+        slotInterval.end,
+      )
+    },
+    [
+      slotFilterActive,
+      slotInterval,
+      failedRoomIds,
+      bookingsQuery.data?.rooms,
+      bookingsWeekStart,
+      bookingsWeekEnd,
+      slotDate,
+    ],
+  )
+
+  const canBookRoom = useCallback(
+    (room: Room): boolean => {
+      if (failedRoomIds.has(room.id)) return false
+      if (slotFilterActive) {
+        if (!slotInterval || slotInterval.crossesDay) return false
+        return roomSlotOk(room)
+      }
+      return isRoomBookable(room)
+    },
+    [
+      failedRoomIds,
+      slotFilterActive,
+      slotInterval,
+      roomSlotOk,
+      isRoomBookable,
+    ],
+  )
 
   const filtered = useMemo(() => {
     let list = [...(roomsQuery.data ?? [])]
@@ -40,7 +152,15 @@ export function RoomsTab({
         r.campus.toLowerCase().includes(campusPick.toLowerCase()),
       )
     }
+    if (slotFilterActive) {
+      list = list.filter((r) => roomSlotOk(r))
+    }
     list.sort((a, b) => {
+      if (slotFilterActive) {
+        const cmp = ratingSortValue(b.name) - ratingSortValue(a.name)
+        if (cmp !== 0) return cmp
+        return a.name.localeCompare(b.name, 'sv')
+      }
       if (sort === 'rating') {
         const cmp = ratingSortValue(b.name) - ratingSortValue(a.name)
         if (cmp !== 0) return cmp
@@ -60,7 +180,20 @@ export function RoomsTab({
       return a.name.localeCompare(b.name, 'sv')
     })
     return list
-  }, [roomsQuery.data, search, campusPick, sort])
+  }, [
+    roomsQuery.data,
+    search,
+    campusPick,
+    sort,
+    slotFilterActive,
+    slotDate,
+    slotStartTime,
+    slotDurationMin,
+    bookingsQuery.data?.rooms,
+    bookingsWeekStart,
+    bookingsWeekEnd,
+    roomSlotOk,
+  ])
 
   const filterGrid =
     'grid w-full grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3'
@@ -68,6 +201,13 @@ export function RoomsTab({
     'min-w-0 w-full rounded-lg border border-te-border bg-te-elevated px-3 py-2.5 text-sm outline-none focus:border-te-accent focus:ring-2 focus:ring-te-accent/20 sm:py-2'
   const roomGridClass =
     'grid gap-3 sm:gap-4 [grid-template-columns:repeat(auto-fill,minmax(min(100%,17rem),1fr))]'
+
+  const slotPanelClass =
+    'rounded-2xl border border-te-accent/20 bg-gradient-to-br from-te-accent/[0.07] via-te-elevated to-te-surface p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] sm:p-5'
+
+  const bookingsBusy =
+    slotFilterActive &&
+    (bookingsQuery.isLoading || bookingsQuery.isFetching)
 
   return (
     <div className="te-reveal te-reveal-delay-1 space-y-6">
@@ -78,6 +218,97 @@ export function RoomsTab({
         <p className="mt-1 text-sm text-te-muted">
           Filtrera och öppna bokning med förifylld tid.
         </p>
+      </div>
+
+      <div className={slotPanelClass}>
+        <label className="flex cursor-pointer select-none items-start gap-3">
+          <input
+            type="checkbox"
+            className="mt-1 size-4 shrink-0 rounded border-te-border text-te-accent focus:ring-te-accent/30"
+            checked={slotFilterActive}
+            onChange={(e) => setSlotFilterActive(e.target.checked)}
+          />
+          <span>
+            <span className="font-display text-sm font-semibold text-te-text">
+              Ledig vid tid
+            </span>
+            <span className="mt-1 block text-xs leading-relaxed text-te-muted">
+              Visar rum där du får en obruten lucka som täcker hela intervallet.
+              Schemana som laddas följer vald dag — byter du vecka under
+              &quot;Veckoschema&quot; nollställs den här länken.
+            </span>
+          </span>
+        </label>
+
+        {slotFilterActive ? (
+          <div className="mt-4 grid gap-3 border-t border-te-border/60 pt-4 sm:grid-cols-2 lg:grid-cols-4">
+            <label className="flex min-w-0 flex-col gap-1 text-sm">
+              <span className="font-medium text-te-muted">Datum</span>
+              <input
+                type="date"
+                className={fieldClass}
+                min={minBookDate}
+                value={slotDate}
+                onChange={(e) => setSlotDate(e.target.value)}
+              />
+            </label>
+            <label className="flex min-w-0 flex-col gap-1 text-sm">
+              <span className="font-medium text-te-muted">Start</span>
+              <input
+                type="time"
+                className={fieldClass}
+                value={slotStartTime}
+                onChange={(e) => setSlotStartTime(e.target.value)}
+              />
+            </label>
+            <label className="flex min-w-0 flex-col gap-1 text-sm">
+              <span className="font-medium text-te-muted">Längd (min)</span>
+              <input
+                type="number"
+                min={15}
+                max={240}
+                step={15}
+                className={fieldClass}
+                value={slotDurationMin}
+                onChange={(e) =>
+                  setSlotDurationMin(
+                    Math.max(
+                      15,
+                      Math.min(240, Number(e.target.value) || 60),
+                    ),
+                  )
+                }
+              />
+            </label>
+            <div className="flex min-w-0 flex-col justify-end gap-1 text-sm">
+              <span className="font-medium text-te-muted">Fönster</span>
+              <p className="rounded-lg border border-dashed border-te-border/80 bg-te-surface/80 px-3 py-2.5 tabular-nums text-te-text sm:py-2">
+                {slotInterval && !slotInterval.crossesDay ? (
+                  <>
+                    {slotStartTime} – {slotInterval.endTime}
+                  </>
+                ) : slotInterval?.crossesDay ? (
+                  <span className="text-te-danger text-xs">
+                    Intervallet passerar midnatt — välj kortare längd.
+                  </span>
+                ) : (
+                  '—'
+                )}
+              </p>
+            </div>
+          </div>
+        ) : null}
+
+        {bookingsBusy ? (
+          <p className="mt-3 text-xs font-medium text-te-accent">
+            Hämtar veckoschema…
+          </p>
+        ) : null}
+        {slotFilterActive && bookingsQuery.isError ? (
+          <p className="mt-3 text-xs text-te-danger">
+            Kunde inte ladda bokningar: {errorMessage(bookingsQuery.error)}
+          </p>
+        ) : null}
       </div>
 
       <div className={filterGrid}>
@@ -106,11 +337,19 @@ export function RoomsTab({
           </select>
         </label>
         <label className="flex min-w-0 flex-col gap-1 text-sm sm:col-span-2 lg:col-span-1">
-          <span className="font-medium text-te-muted">Sortera</span>
+          <span className="font-medium text-te-muted">
+            Sortera
+            {slotFilterActive ? (
+              <span className="ml-1 font-normal text-te-muted">
+                (styrs av betyg vid tidsfilter)
+              </span>
+            ) : null}
+          </span>
           <select
             className={fieldClass}
             value={sort}
             onChange={(e) => setSort(e.target.value as SortKey)}
+            disabled={slotFilterActive}
           >
             <option value="rating">Betyg (CSV)</option>
             <option value="name">Namn</option>
@@ -137,7 +376,11 @@ export function RoomsTab({
         <div className={roomGridClass}>
           {filtered.length === 0 ? (
             <div className="col-span-full rounded-xl border border-dashed border-te-border bg-te-elevated/50 px-4 py-12 text-center text-sm text-te-muted">
-              Inga rum matchar.
+              {slotFilterActive && slotInterval?.crossesDay
+                ? 'Intervallet är för långt för en kalenderdag — minska längden.'
+                : slotFilterActive
+                  ? 'Inga rum är helt lediga vid vald tid med nuvarande filter.'
+                  : 'Inga rum matchar.'}
             </div>
           ) : (
             filtered.map((room) => {
@@ -149,10 +392,11 @@ export function RoomsTab({
                       maximumFractionDigits: 1,
                     })
                   : null
+              const fetchFailed = failedRoomIds.has(room.id)
               return (
                 <article
                   key={room.id}
-                  className="group flex h-full min-h-60 min-w-0 flex-col rounded-xl border border-te-border bg-te-elevated p-4 shadow-sm transition-[box-shadow] duration-200 hover:border-te-accent/25 hover:shadow-md sm:p-5"
+                  className="group flex h-full min-h-60 min-w-0 flex-col rounded-xl border border-te-border bg-te-elevated p-4 shadow-sm transition-shadow duration-200 hover:border-te-accent/25 hover:shadow-md sm:p-5"
                 >
                   <div className="min-h-0 min-w-0 flex-1 space-y-4">
                     <header className="min-w-0">
@@ -163,6 +407,21 @@ export function RoomsTab({
                         {room.name}
                       </h3>
                     </header>
+
+                    {fetchFailed ? (
+                      <p className="text-xs font-medium text-te-danger">
+                        Kunde inte ladda TimeEdit-schema för detta rum.
+                      </p>
+                    ) : null}
+
+                    {slotFilterActive &&
+                    slotInterval &&
+                    !slotInterval.crossesDay &&
+                    !fetchFailed ? (
+                      <p className="text-xs font-medium text-te-accent">
+                        Ledig {slotStartTime} – {slotInterval.endTime}
+                      </p>
+                    ) : null}
 
                     {rr != null ? (
                       <div className="flex flex-wrap items-end gap-2">
@@ -202,13 +461,27 @@ export function RoomsTab({
                   <Button
                     variant="primary"
                     className="mt-5 w-full touch-manipulation py-2.5 text-sm"
-                    disabled={!isRoomBookable(room)}
+                    disabled={!canBookRoom(room)}
                     title={
-                      !isRoomBookable(room)
-                        ? 'Ingen ledig tid kvar denna vecka från och med nu'
-                        : undefined
+                      fetchFailed
+                        ? 'Schema saknas från servern'
+                        : !canBookRoom(room)
+                          ? slotFilterActive
+                            ? 'Inte ledigt hela intervallet (eller tiden har passerat)'
+                            : 'Ingen ledig tid kvar denna vecka från och med nu'
+                          : undefined
                     }
-                    onClick={() => onBookRoom(room)}
+                    onClick={() => {
+                      if (slotFilterActive && slotInterval && !slotInterval.crossesDay) {
+                        onBookRoom(room, {
+                          date: slotDate,
+                          startTime: slotStartTime,
+                          endTime: slotInterval.endTime,
+                        })
+                        return
+                      }
+                      onBookRoom(room)
+                    }}
                   >
                     Boka detta rum
                   </Button>

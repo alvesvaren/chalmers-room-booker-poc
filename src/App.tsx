@@ -10,7 +10,7 @@ import {
 import { client } from './client/client.gen'
 import type { Query } from '@tanstack/react-query'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { Room, RoomWithBookings } from './client/types.gen'
 import { AppTabs, type AppTabId } from './components/AppTabs'
 import { BookingSheet, type BookingSheetInitial } from './components/BookingSheet'
@@ -21,7 +21,9 @@ import { SignInPanel } from './components/SignInPanel'
 import {
   firstFreeGapInWeek,
   getWeekRange,
+  roomAvailableForInterval,
   toBookingDraft,
+  weekOffsetForLocalDate,
 } from './lib/weekTimeline'
 import type { TimeInterval } from './lib/weekTimeline'
 
@@ -68,6 +70,10 @@ export default function App() {
   const [bookingInitial, setBookingInitial] =
     useState<BookingSheetInitial | null>(null)
   const [toast, setToast] = useState<string | null>(null)
+  /** When set, /api/bookings uses this date's week; Rum-tab slot filter owns lifecycle. */
+  const [roomsAvailabilityDate, setRoomsAvailabilityDate] = useState<
+    string | null
+  >(null)
 
   const queryClient = useQueryClient()
   const authed = Boolean(token)
@@ -100,10 +106,15 @@ export default function App() {
     enabled: authed,
   })
 
+  const effectiveBookingsWeekOffset =
+    roomsAvailabilityDate != null
+      ? weekOffsetForLocalDate(roomsAvailabilityDate)
+      : weekOffset
+
   const bookingsQuery = useQuery({
     ...getApiBookingsOptions({
       query: {
-        weekOffset: String(weekOffset),
+        weekOffset: String(effectiveBookingsWeekOffset),
         campus: campusFilter.trim() || undefined,
         q: qFilter.trim() || undefined,
       },
@@ -142,7 +153,13 @@ export default function App() {
     void queryClient.clear()
   }
 
-  const { weekStart, weekEnd } = getWeekRange(weekOffset)
+  const { weekStart, weekEnd } = getWeekRange(effectiveBookingsWeekOffset)
+
+  function parseInstantOnDate(dateStr: string, timeStr: string): Date {
+    const [Y, M, D] = dateStr.split('-').map(Number)
+    const [h, mi] = timeStr.split(':').map(Number)
+    return new Date(Y, M - 1, D, h, mi ?? 0, 0, 0)
+  }
 
   function openBookingSheet(initial: BookingSheetInitial) {
     createBookingMutation.reset()
@@ -160,8 +177,35 @@ export default function App() {
     openBookingSheet(toBookingDraft(room.id, room.name, gap))
   }
 
-  function handleBookRoomFromDirectory(room: Room) {
+  function handleBookRoomFromDirectory(
+    room: Room,
+    slot?: { date: string; startTime: string; endTime: string },
+  ) {
     const rw = roomWithBookingsFor(room, bookingsQuery.data?.rooms)
+    if (slot) {
+      const start = parseInstantOnDate(slot.date, slot.startTime)
+      const end = parseInstantOnDate(slot.date, slot.endTime)
+      if (
+        !roomAvailableForInterval(
+          rw,
+          weekStart,
+          weekEnd,
+          slot.date,
+          start,
+          end,
+        )
+      ) {
+        return
+      }
+      openBookingSheet({
+        roomId: room.id,
+        roomName: room.name,
+        date: slot.date,
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+      })
+      return
+    }
     const gap = firstFreeGapInWeek(rw, weekStart, weekEnd)
     if (!gap) return
     openBookingSheet(toBookingDraft(room.id, room.name, gap))
@@ -172,10 +216,13 @@ export default function App() {
     cancelMutation.mutate({ path: { id } })
   }
 
-  function isRoomBookable(room: Room) {
-    const rw = roomWithBookingsFor(room, bookingsQuery.data?.rooms)
-    return firstFreeGapInWeek(rw, weekStart, weekEnd) != null
-  }
+  const isRoomBookable = useCallback(
+    (room: Room) => {
+      const rw = roomWithBookingsFor(room, bookingsQuery.data?.rooms)
+      return firstFreeGapInWeek(rw, weekStart, weekEnd) != null
+    },
+    [bookingsQuery.data?.rooms, weekStart, weekEnd],
+  )
 
   return (
     <div className="min-h-svh antialiased text-te-text">
@@ -237,8 +284,11 @@ export default function App() {
             >
               {activeTab === 'schedule' ? (
                 <ScheduleTab
-                  weekOffset={weekOffset}
-                  onWeekOffsetChange={setWeekOffset}
+                  weekOffset={roomsAvailabilityDate != null ? effectiveBookingsWeekOffset : weekOffset}
+                  onWeekOffsetChange={(next) => {
+                    setRoomsAvailabilityDate(null)
+                    setWeekOffset(next)
+                  }}
                   campusFilter={campusFilter}
                   onCampusFilter={setCampusFilter}
                   qFilter={qFilter}
@@ -252,6 +302,10 @@ export default function App() {
               {activeTab === 'rooms' ? (
                 <RoomsTab
                   roomsQuery={roomsQuery}
+                  bookingsQuery={bookingsQuery}
+                  bookingsWeekStart={weekStart}
+                  bookingsWeekEnd={weekEnd}
+                  onRoomsAvailabilityDateChange={setRoomsAvailabilityDate}
                   onBookRoom={handleBookRoomFromDirectory}
                   isRoomBookable={isRoomBookable}
                 />
