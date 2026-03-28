@@ -48,8 +48,11 @@ export function ScheduleTab({
     return rooms
   }, [bookingsQuery.data?.rooms])
 
+  const filterGrid = 'grid w-full grid-cols-1 gap-3 sm:grid-cols-2'
   const inputClass =
-    'rounded-lg border border-te-border bg-te-elevated px-3 py-2 text-sm text-te-text outline-none focus:border-te-accent focus:ring-2 focus:ring-te-accent/20'
+    'min-w-0 w-full rounded-lg border border-te-border bg-te-elevated px-3 py-2.5 text-sm text-te-text outline-none focus:border-te-accent focus:ring-2 focus:ring-te-accent/20 sm:py-2'
+  const scheduleGridClass =
+    'grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(min(100%,26rem),1fr))]'
 
   return (
     <div className="te-reveal te-reveal-delay-1 space-y-6">
@@ -85,8 +88,8 @@ export function ScheduleTab({
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-3">
-        <label className="flex flex-col gap-1 text-sm">
+      <div className={filterGrid}>
+        <label className="flex min-w-0 flex-col gap-1 text-sm">
           <span className="font-medium text-te-muted">Campus (filtrera)</span>
           <input
             className={inputClass}
@@ -95,7 +98,7 @@ export function ScheduleTab({
             placeholder="Johanneberg"
           />
         </label>
-        <label className="flex flex-col gap-1 text-sm">
+        <label className="flex min-w-0 flex-col gap-1 text-sm">
           <span className="font-medium text-te-muted">Rumsnamn</span>
           <input
             className={inputClass}
@@ -111,10 +114,13 @@ export function ScheduleTab({
       ) : null}
 
       {bookingsQuery.isLoading ? (
-        <div className="space-y-4">
-          <Skeleton className="h-32 w-full" />
-          <Skeleton className="h-32 w-full" />
-          <Skeleton className="h-32 w-full" />
+        <div className={scheduleGridClass}>
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton
+              key={i}
+              className="h-72 w-full rounded-xl border border-te-border"
+            />
+          ))}
         </div>
       ) : (
         <>
@@ -151,11 +157,11 @@ export function ScheduleTab({
             </div>
           ) : null}
 
-          <div className="space-y-4">
+          <div className={scheduleGridClass}>
             {roomsSorted.length === 0 ? (
-              <p className="text-sm text-te-muted">
+              <div className="col-span-full rounded-xl border border-dashed border-te-border bg-te-elevated/50 px-4 py-12 text-center text-sm text-te-muted">
                 Inga rum för denna filtrering.
-              </p>
+              </div>
             ) : (
               roomsSorted.map((room) => (
                 <RoomWeekCard

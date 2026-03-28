@@ -60,7 +60,12 @@ export function RoomsTab({
     return list
   }, [roomsQuery.data, search, campusPick, sort])
 
-  const th = 'pb-3 pr-4 text-left text-xs font-semibold uppercase tracking-wide text-te-muted'
+  const filterGrid =
+    'grid w-full grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3'
+  const fieldClass =
+    'min-w-0 w-full rounded-lg border border-te-border bg-te-elevated px-3 py-2.5 text-sm outline-none focus:border-te-accent focus:ring-2 focus:ring-te-accent/20 sm:py-2'
+  const roomGridClass =
+    'grid gap-3 sm:gap-4 [grid-template-columns:repeat(auto-fill,minmax(min(100%,17rem),1fr))]'
 
   return (
     <div className="te-reveal te-reveal-delay-1 space-y-6">
@@ -73,20 +78,20 @@ export function RoomsTab({
         </p>
       </div>
 
-      <div className="flex flex-wrap gap-3">
-        <label className="flex flex-col gap-1 text-sm">
+      <div className={filterGrid}>
+        <label className="flex min-w-0 flex-col gap-1 text-sm">
           <span className="font-medium text-te-muted">Sök namn</span>
           <input
-            className="rounded-lg border border-te-border bg-te-elevated px-3 py-2 text-sm outline-none focus:border-te-accent focus:ring-2 focus:ring-te-accent/20"
+            className={fieldClass}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="t.ex. Kuggen"
           />
         </label>
-        <label className="flex flex-col gap-1 text-sm">
+        <label className="flex min-w-0 flex-col gap-1 text-sm">
           <span className="font-medium text-te-muted">Campus</span>
           <select
-            className="rounded-lg border border-te-border bg-te-elevated px-3 py-2 text-sm outline-none focus:border-te-accent focus:ring-2 focus:ring-te-accent/20"
+            className={fieldClass}
             value={campusPick}
             onChange={(e) => setCampusPick(e.target.value)}
           >
@@ -98,10 +103,10 @@ export function RoomsTab({
             ))}
           </select>
         </label>
-        <label className="flex flex-col gap-1 text-sm">
+        <label className="flex min-w-0 flex-col gap-1 text-sm sm:col-span-2 lg:col-span-1">
           <span className="font-medium text-te-muted">Sortera</span>
           <select
-            className="rounded-lg border border-te-border bg-te-elevated px-3 py-2 text-sm outline-none focus:border-te-accent focus:ring-2 focus:ring-te-accent/20"
+            className={fieldClass}
             value={sort}
             onChange={(e) => setSort(e.target.value as SortKey)}
           >
@@ -118,83 +123,91 @@ export function RoomsTab({
       ) : null}
 
       {roomsQuery.isLoading ? (
-        <div className="space-y-3">
-          <Skeleton className="h-12 w-full" />
-          <Skeleton className="h-12 w-full" />
-          <Skeleton className="h-12 w-full" />
+        <div className={roomGridClass}>
+          {Array.from({ length: 8 }).map((_, i) => (
+            <Skeleton
+              key={i}
+              className="h-46 w-full rounded-xl border border-te-border"
+            />
+          ))}
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-te-border bg-te-elevated shadow-sm">
-          <table className="min-w-full text-left text-sm">
-            <thead>
-              <tr className="border-b border-te-border">
-                <th className={th}>Namn</th>
-                <th className={th}>Betyg</th>
-                <th className={th}>Campus</th>
-                <th className={th}>Platser</th>
-                <th className={th}>Id</th>
-                <th className={th} />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-te-border/80">
-              {filtered.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={6}
-                    className="px-4 py-8 text-center text-te-muted"
-                  >
-                    Inga rum matchar.
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((room) => {
-                  const rr = getRoomRating(room.name)
-                  const betyg =
-                    rr != null
-                      ? rr.overall.toLocaleString('sv-SE', {
-                          minimumFractionDigits: 1,
-                          maximumFractionDigits: 1,
-                        })
-                      : null
-                  return (
-                  <tr key={room.id} className="hover:bg-te-accent-muted/30">
-                    <td className="px-4 py-3 font-medium text-te-text">
-                      {room.name}
-                    </td>
-                    <td className="px-4 py-3 text-te-muted">
-                      {rr != null ? (
+        <div className={roomGridClass}>
+          {filtered.length === 0 ? (
+            <div className="col-span-full rounded-xl border border-dashed border-te-border bg-te-elevated/50 px-4 py-12 text-center text-sm text-te-muted">
+              Inga rum matchar.
+            </div>
+          ) : (
+            filtered.map((room) => {
+              const rr = getRoomRating(room.name)
+              const betyg =
+                rr != null
+                  ? rr.overall.toLocaleString('sv-SE', {
+                      minimumFractionDigits: 1,
+                      maximumFractionDigits: 1,
+                    })
+                  : null
+              return (
+                <article
+                  key={room.id}
+                  className="group flex h-full min-h-60 min-w-0 flex-col rounded-xl border border-te-border bg-te-elevated p-4 shadow-sm transition-[box-shadow] duration-200 hover:border-te-accent/25 hover:shadow-md sm:p-5"
+                >
+                  <div className="min-h-0 min-w-0 flex-1 space-y-4">
+                    <header className="min-w-0">
+                      <p className="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-te-muted">
+                        Grupprum
+                      </p>
+                      <h3 className="mt-1.5 font-display text-xl font-semibold leading-[1.15] tracking-tight text-te-text sm:text-2xl">
+                        {room.name}
+                      </h3>
+                    </header>
+
+                    {rr != null ? (
+                      <div className="flex flex-wrap items-end gap-2">
                         <span
-                          className="cursor-help border-b border-dotted border-te-muted/80 text-te-text"
+                          className="font-display text-3xl font-semibold leading-none tabular-nums text-te-accent sm:text-[2.35rem]"
                           title={rr.comment}
                         >
                           {betyg}
                         </span>
-                      ) : (
-                        '—'
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-te-muted">{room.campus}</td>
-                    <td className="px-4 py-3 text-te-muted">
-                      {room.capacity ?? '—'}
-                    </td>
-                    <td className="px-4 py-3 font-mono text-xs text-te-muted">
-                      {room.id}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <Button
-                        variant="secondary"
-                        className="text-xs"
-                        onClick={() => onBookRoom(room)}
-                      >
-                        Boka
-                      </Button>
-                    </td>
-                  </tr>
-                  )
-                })
-              )}
-            </tbody>
-          </table>
+                        <span className="cursor-help border-b border-dotted border-te-muted/70 pb-0.5 text-xs font-medium text-te-muted">
+                          genomsnitt (CSV)
+                        </span>
+                      </div>
+                    ) : (
+                      <p className="text-sm font-medium text-te-muted">
+                        Ingen betygsdata
+                      </p>
+                    )}
+
+                    <p
+                      className="text-sm leading-snug text-te-muted"
+                      title={`${room.campus} · ${room.capacity ?? '—'} platser`}
+                    >
+                      <span className="font-medium text-te-text/95">
+                        {room.campus}
+                      </span>
+                      <span
+                        aria-hidden
+                        className="mx-2 inline-block h-3 w-px translate-y-px bg-te-border align-middle"
+                      />
+                      <span className="tabular-nums">
+                        {room.capacity ?? '—'} platser
+                      </span>
+                    </p>
+                  </div>
+
+                  <Button
+                    variant="primary"
+                    className="mt-5 w-full touch-manipulation py-2.5 text-sm"
+                    onClick={() => onBookRoom(room)}
+                  >
+                    Boka detta rum
+                  </Button>
+                </article>
+              )
+            })
+          )}
         </div>
       )}
     </div>

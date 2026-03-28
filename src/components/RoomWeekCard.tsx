@@ -28,40 +28,60 @@ export function RoomWeekCard({
   const rr = getRoomRating(room.name)
 
   return (
-    <article className="overflow-hidden rounded-xl border border-te-border bg-te-elevated shadow-sm">
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-te-border/80 px-4 py-3 sm:px-5">
+    <article className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-te-border bg-te-elevated shadow-sm transition-[box-shadow] duration-200 hover:border-te-accent/25 hover:shadow-md">
+      <div className="flex flex-col gap-3 border-b border-te-border/80 px-4 py-4 sm:flex-row sm:items-start sm:justify-between sm:px-5 sm:py-4">
         <button
           type="button"
-          className="min-w-0 flex-1 text-left font-medium text-te-text"
+          className="min-w-0 flex-1 text-left"
           onClick={() => setOpen((o) => !o)}
           aria-expanded={open}
+          aria-label={
+            open
+              ? `Dölj tidslinje för ${room.name}`
+              : `Visa tidslinje för ${room.name}`
+          }
         >
-          <span className="font-display">{room.name}</span>
-          <span className="mt-0.5 block text-sm font-normal text-te-muted">
-            {room.campus} · {room.capacity ?? '—'} platser
+          <p className="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-te-muted">
+            Grupprum
+          </p>
+          <span className="mt-1.5 block font-display text-lg font-semibold leading-tight tracking-tight text-te-text sm:text-xl">
+            {room.name}
+          </span>
+          <span className="mt-2 block text-sm text-te-muted">
+            <span className="font-medium text-te-text/90">{room.campus}</span>
+            <span
+              aria-hidden
+              className="mx-2 inline-block h-3 w-px translate-y-px bg-te-border align-middle"
+            />
+            <span className="tabular-nums">{room.capacity ?? '—'} platser</span>
             {rr != null ? (
               <>
-                {' · '}
                 <span
-                  className="cursor-help border-b border-dotted border-te-muted/80 text-te-text"
+                  aria-hidden
+                  className="mx-2 inline-block h-3 w-px translate-y-px bg-te-border align-middle"
+                />
+                <span
+                  className="cursor-help font-display text-base font-semibold tabular-nums text-te-accent"
                   title={rr.comment}
                 >
-                  Betyg{' '}
                   {rr.overall.toLocaleString('sv-SE', {
                     minimumFractionDigits: 1,
                     maximumFractionDigits: 1,
                   })}
+                  <span className="ml-1 font-sans text-xs font-medium text-te-muted">
+                    betyg
+                  </span>
                 </span>
               </>
             ) : null}
           </span>
         </button>
         <Button
-          variant="secondary"
-          className="shrink-0 text-xs"
+          variant="primary"
+          className="w-full shrink-0 touch-manipulation py-2.5 text-sm font-semibold sm:w-auto sm:px-5"
           onClick={() => onBookRoom(room)}
         >
-          Book room
+          Boka
         </Button>
       </div>
 

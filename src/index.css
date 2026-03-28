@@ -9,6 +9,7 @@
   --te-text-muted: #57534e;
   --te-accent: #0d5c5c;
   --te-accent-hover: #094747;
+  --te-on-accent: #ffffff;
   --te-accent-muted: rgba(13, 92, 92, 0.12);
   --te-danger: #b91c1c;
   --te-danger-bg: rgba(185, 28, 28, 0.08);
@@ -28,6 +29,7 @@
     --te-text-muted: #a8a29e;
     --te-accent: #5eead4;
     --te-accent-hover: #99f6e4;
+    --te-on-accent: #0a1614;
     --te-accent-muted: rgba(94, 234, 212, 0.12);
     --te-danger: #fca5a5;
     --te-danger-bg: rgba(252, 165, 165, 0.1);
@@ -50,6 +52,7 @@
   --color-te-muted: var(--te-text-muted);
   --color-te-accent: var(--te-accent);
   --color-te-accent-hover: var(--te-accent-hover);
+  --color-te-on-accent: var(--te-on-accent);
   --color-te-accent-muted: var(--te-accent-muted);
   --color-te-danger: var(--te-danger);
   --color-te-danger-bg: var(--te-danger-bg);

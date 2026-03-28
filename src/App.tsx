@@ -174,7 +174,7 @@ export default function App() {
 
   return (
     <div className="min-h-svh antialiased text-te-text">
-      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="w-full max-w-none px-4 py-8 sm:px-6 lg:px-8 xl:px-10 2xl:px-12">
         <header className="te-reveal mb-8 border-b border-te-border pb-8">
           <h1 className="font-display text-3xl font-semibold tracking-tight text-te-text sm:text-4xl">
             TimeEdit demo
