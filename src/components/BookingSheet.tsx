@@ -19,7 +19,7 @@ import { Button } from './ui/Button'
 const MIN_DURATION_MIN = 15
 const MAX_DURATION_MIN = 240
 const DRAG_SNAP_MIN = 5
-const DURATION_CHIPS_MIN = [15, 30, 60, 120] as const
+const DURATION_CHIPS_MIN = [15, 30, 60, 90, 120, 240] as const
 
 function localDateTimeMs(dateStr: string, timeStr: string): number {
   const [Y, M, D] = dateStr.split('-').map(Number)
@@ -464,6 +464,16 @@ function BookingSheetForm({
             })
           }}
         >
+          <label className="grid gap-1 text-sm">
+            <span className="font-medium text-te-text">Titel (valfritt)</span>
+            <input
+              className={inputClass}
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Visas i blocket nedan om du fyller i"
+            />
+          </label>
+
           <section className="space-y-2" aria-label="Förhandsvisning av bokning">
             <div
               className="flex items-end justify-between gap-2"
@@ -504,12 +514,18 @@ function BookingSheetForm({
                     <div
                       key={`busy-${b.start.getTime()}-${i}`}
                       title={title}
-                      className="absolute bottom-1 top-4 z-[1] rounded-sm bg-te-busy-strong/85 shadow-inner"
+                      className="absolute bottom-1 top-4 z-[1] flex items-center justify-center overflow-hidden rounded-sm bg-te-busy-strong/85 px-0.5 shadow-inner"
                       style={{
                         left: `${bl}%`,
                         width: `${Math.max(bw, 0.5)}%`,
                       }}
-                    />
+                    >
+                      {b.label ? (
+                        <span className="truncate text-center font-display text-[0.55rem] font-semibold leading-tight text-white drop-shadow-sm sm:text-[0.6rem]">
+                          {b.label}
+                        </span>
+                      ) : null}
+                    </div>
                   )
                 })}
               </div>
@@ -530,12 +546,19 @@ function BookingSheetForm({
                   <span className="pointer-events-none h-[62%] w-px rounded-full bg-te-accent shadow-[0_0_0_1px_rgba(0,0,0,0.07)]" />
                 </button>
                 <div
-                  className="te-booking-preview-bar flex h-full min-h-0 w-full min-w-0 cursor-grab touch-manipulation select-none items-center justify-center rounded-md border border-te-accent/35 bg-te-free-hover px-0.5 active:cursor-grabbing"
+                  className="te-booking-preview-bar flex h-full min-h-0 w-full min-w-0 cursor-grab touch-manipulation select-none items-center justify-center rounded-md border border-te-accent/35 bg-te-free-hover px-1 active:cursor-grabbing"
                   onPointerDown={(e) => onPointerDownBar('move', e)}
+                  aria-label={
+                    title.trim()
+                      ? `Bokning: ${title.trim()}`
+                      : 'Bokning utan titel — dra för att flytta'
+                  }
                 >
-                  <span className="pointer-events-none truncate text-center font-display text-[0.6rem] font-semibold leading-tight tracking-tight text-te-accent drop-shadow-sm sm:text-[0.68rem] sm:leading-tight">
-                    Kommer att boka här
-                  </span>
+                  {title.trim() ? (
+                    <span className="pointer-events-none truncate text-center font-display text-[0.6rem] font-semibold leading-tight tracking-tight text-te-accent drop-shadow-sm sm:text-[0.68rem] sm:leading-tight">
+                      {title.trim()}
+                    </span>
+                  ) : null}
                 </div>
                 <button
                   type="button"
@@ -612,16 +635,6 @@ function BookingSheetForm({
               />
             </label>
           </div>
-
-          <label className="grid gap-1 text-sm">
-            <span className="font-medium text-te-text">Titel (valfritt)</span>
-            <input
-              className={inputClass}
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Lämnas tom om du vill"
-            />
-          </label>
 
           <div className="border-t border-te-border pt-3">
             <button

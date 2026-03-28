@@ -192,12 +192,18 @@ export function RoomWeekCard({
                     <div
                       key={`b-${i}`}
                       title={title}
-                      className="absolute inset-y-1 z-10 rounded-sm bg-te-busy-strong/85 shadow-inner pointer-events-auto cursor-default"
+                      className="absolute inset-y-1 z-10 flex cursor-default items-center justify-center overflow-hidden rounded-sm bg-te-busy-strong/85 px-0.5 shadow-inner pointer-events-auto"
                       style={{
                         left: `${leftPct}%`,
                         width: `${Math.max(widthPct, 0.6)}%`,
                       }}
-                    />
+                    >
+                      {b.label ? (
+                        <span className="truncate text-center font-display text-[0.55rem] font-semibold leading-tight text-white drop-shadow-sm sm:text-[0.62rem]">
+                          {b.label}
+                        </span>
+                      ) : null}
+                    </div>
                   )
                 })}
               </div>
