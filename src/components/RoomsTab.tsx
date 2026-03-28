@@ -216,8 +216,8 @@ export function RoomsTab({
                 max={240}
                 step={15}
                 className={fieldClass}
-                value={slotDurationMin}
-                onChange={e => setSlotDurationMin(Math.min(240, Number(e.target.value) || 60))}
+                defaultValue={slotDurationMin}
+                onChange={e => setSlotDurationMin(Math.max(15, Math.min(240, Number(e.target.value ?? 15))))}
               />
             </label>
             <div className='flex min-w-0 flex-col justify-end gap-1 text-sm'>
