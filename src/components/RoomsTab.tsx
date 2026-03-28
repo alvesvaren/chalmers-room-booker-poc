@@ -7,6 +7,7 @@ import {
   addMinutes,
   formatLocalDate,
   formatLocalTime,
+  formatWeekRangeLabel,
   roomAvailableForInterval,
 } from '../lib/weekTimeline'
 import { Button } from './ui/Button'
@@ -205,9 +206,15 @@ export function RoomsTab({
   const slotPanelClass =
     'rounded-2xl border border-te-accent/20 bg-gradient-to-br from-te-accent/[0.07] via-te-elevated to-te-surface p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] sm:p-5'
 
-  const bookingsBusy =
+  /** Med tidsfilter: visa skeleton medan veckans schema hämtas (inkl. när datum byter vecka). */
+  const slotBookingsPending =
     slotFilterActive &&
     (bookingsQuery.isLoading || bookingsQuery.isFetching)
+
+  const bookingsWeekLabel = formatWeekRangeLabel(
+    bookingsWeekStart,
+    bookingsWeekEnd,
+  )
 
   return (
     <div className="te-reveal te-reveal-delay-1 space-y-6">
@@ -299,10 +306,27 @@ export function RoomsTab({
           </div>
         ) : null}
 
-        {bookingsBusy ? (
-          <p className="mt-3 text-xs font-medium text-te-accent">
-            Hämtar veckoschema…
-          </p>
+        {slotBookingsPending ? (
+          <div
+            className="mt-4 space-y-3 border-t border-te-border/60 pt-4"
+            role="status"
+            aria-live="polite"
+            aria-busy="true"
+          >
+            <div className="flex flex-wrap items-center gap-3">
+              <Skeleton className="h-2.5 w-full max-w-40 rounded-full sm:max-w-56" />
+              <Skeleton className="hidden h-2.5 w-16 rounded-full sm:block" />
+            </div>
+            <p className="text-xs leading-relaxed text-te-muted">
+              <span className="font-medium text-te-text">
+                Hämtar bokningar för veckan
+              </span>{' '}
+              <span className="tabular-nums text-te-text/90">
+                {bookingsWeekLabel}
+              </span>
+              . Rumskorten nedan visar först när datan är inne.
+            </p>
+          </div>
         ) : null}
         {slotFilterActive && bookingsQuery.isError ? (
           <p className="mt-3 text-xs text-te-danger">
@@ -371,6 +395,40 @@ export function RoomsTab({
               className="h-46 w-full rounded-xl border border-te-border"
             />
           ))}
+        </div>
+      ) : slotBookingsPending ? (
+        <div className="space-y-4">
+          <p
+            className="text-sm text-te-muted"
+            role="status"
+            aria-live="polite"
+          >
+            <span className="font-display font-semibold text-te-text">
+              Uppdaterar tillgänglighet
+            </span>{' '}
+            för{' '}
+            <span className="font-medium tabular-nums text-te-text/95">
+              {bookingsWeekLabel}
+            </span>
+            …
+          </p>
+          <div
+            className={roomGridClass}
+            aria-hidden
+          >
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div
+                key={i}
+                className="flex min-h-60 min-w-0 flex-col rounded-xl border border-te-border/80 bg-te-elevated/40 p-4 sm:p-5"
+              >
+                <Skeleton className="h-3 w-16 rounded" />
+                <Skeleton className="mt-4 h-7 w-4/5 max-w-48 rounded-md" />
+                <Skeleton className="mt-5 h-10 w-20 rounded-md" />
+                <Skeleton className="mt-4 h-4 w-full max-w-56 rounded" />
+                <Skeleton className="mt-auto h-10 w-full rounded-lg" />
+              </div>
+            ))}
+          </div>
         </div>
       ) : (
         <div className={roomGridClass}>
