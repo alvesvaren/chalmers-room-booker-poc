@@ -469,7 +469,7 @@ function BookingSheetForm({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-6"
+      className="fixed inset-0 z-50 flex min-h-0 items-end justify-center overflow-x-hidden sm:items-center sm:p-6"
       role="presentation"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose()
@@ -480,13 +480,13 @@ function BookingSheetForm({
         aria-hidden
       />
       <div
-        className="relative z-10 flex max-h-[min(92vh,760px)] w-full max-w-lg flex-col rounded-t-2xl border border-te-border bg-te-surface shadow-2xl sm:max-h-[90vh] sm:rounded-2xl"
+        className="relative z-10 flex max-h-[min(92vh,760px)] w-full min-w-0 max-w-[min(32rem,100vw)] flex-col overflow-x-hidden rounded-t-2xl border border-te-border bg-te-surface shadow-2xl sm:max-h-[90vh] sm:rounded-2xl"
         role="dialog"
         aria-modal="true"
         aria-labelledby="booking-sheet-title"
       >
-        <div className="flex items-start justify-between gap-4 border-b border-te-border px-5 py-4">
-          <div>
+        <div className="flex min-w-0 items-start justify-between gap-4 border-b border-te-border px-5 py-4">
+          <div className="min-w-0 flex-1">
             <h2
               id="booking-sheet-title"
               className="font-display text-lg font-semibold tracking-tight text-te-text"
@@ -494,7 +494,9 @@ function BookingSheetForm({
               Ny bokning
             </h2>
             {roomName ? (
-              <p className="mt-0.5 text-sm text-te-muted">{roomName}</p>
+              <p className="mt-0.5 truncate text-sm text-te-muted" title={roomName}>
+                {roomName}
+              </p>
             ) : null}
           </div>
           <button
@@ -508,7 +510,7 @@ function BookingSheetForm({
         </div>
 
         <form
-          className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-5 py-4"
+          className="flex min-h-0 min-w-0 flex-1 flex-col gap-5 overflow-y-auto overflow-x-hidden px-5 py-4"
           onSubmit={(e) => {
             e.preventDefault()
             let sMs = parseInstantOnDate(date, startTime).getTime()
@@ -555,13 +557,13 @@ function BookingSheetForm({
 
           <section className="space-y-2" aria-label="Förhandsvisning av bokning">
             <div
-              className="flex items-end justify-between gap-2"
+              className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-end sm:justify-between sm:gap-2"
               aria-live="polite"
             >
-              <span className="text-xs font-semibold uppercase tracking-[0.12em] text-te-muted">
+              <span className="shrink-0 text-xs font-semibold uppercase tracking-[0.12em] text-te-muted">
                 Kommer att boka
               </span>
-              <span className="font-mono text-xs tabular-nums text-te-text">
+              <span className="min-w-0 break-anywhere font-mono text-xs tabular-nums text-te-text sm:text-right">
                 {startTime}–{endTime}
                 <span className="ml-2 text-te-muted">
                   ({durationMin} min)
