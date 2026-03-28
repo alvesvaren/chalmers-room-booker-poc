@@ -14,13 +14,14 @@ import {
   intervalToPercent,
   isMyCalendarBusy,
   parseNaiveLocal,
+  QUARTER_HOUR_MS,
+  snapInstantMsToQuarterOnDate,
   type TimeInterval,
 } from '../lib/weekTimeline'
 import { Button } from './ui/Button'
 
 const MIN_DURATION_MIN = 15
 const MAX_DURATION_MIN = 240
-const DRAG_SNAP_MIN = 5
 const DURATION_CHIPS_MIN = [15, 30, 60, 90, 120, 240] as const
 
 function localDateTimeMs(dateStr: string, timeStr: string): number {
@@ -66,11 +67,6 @@ function dayDisplayBounds(dateStr: string): { start: Date; end: Date } {
   return { start, end }
 }
 
-function snapMsToStep(ms: number, stepMin: number): number {
-  const step = stepMin * 60_000
-  return Math.round(ms / step) * step
-}
-
 function clamp(n: number, lo: number, hi: number): number {
   return Math.min(hi, Math.max(lo, n))
 }
@@ -89,14 +85,25 @@ function clampToFreeGaps(
   s: number,
   e: number,
   gaps: TimeInterval[],
-  snapStepMin: number,
+  dateStr: string,
 ): [number, number] {
-  const snap = (ms: number) => snapMsToStep(ms, snapStepMin)
-  if (gaps.length === 0) return [snap(s), snap(e)]
+  const snap = (ms: number) => snapInstantMsToQuarterOnDate(ms, dateStr)
+  if (gaps.length === 0) {
+    const s0 = snap(s)
+    let dur = e - s
+    dur = Math.max(
+      MIN_DURATION_MIN * 60_000,
+      Math.round(dur / QUARTER_HOUR_MS) * QUARTER_HOUR_MS,
+    )
+    dur = Math.min(dur, MAX_DURATION_MIN * 60_000)
+    return [s0, snap(s0 + dur)]
+  }
 
   let dur = e - s
   if (dur < MIN_DURATION_MIN * 60_000) dur = MIN_DURATION_MIN * 60_000
   if (dur > MAX_DURATION_MIN * 60_000) dur = MAX_DURATION_MIN * 60_000
+  dur = Math.round(dur / QUARTER_HOUR_MS) * QUARTER_HOUR_MS
+  dur = clamp(dur, MIN_DURATION_MIN * 60_000, MAX_DURATION_MIN * 60_000)
 
   let sAdj = s
   let eAdj = sAdj + dur
@@ -116,13 +123,22 @@ function clampToFreeGaps(
     const maxDurAll = Math.min(MAX_DURATION_MIN * 60_000, room)
     if (room < minDur) continue
 
-    const durUse = clamp(dur, minDur, maxDurAll)
+    const maxDurQuarter = Math.floor(maxDurAll / QUARTER_HOUR_MS) * QUARTER_HOUR_MS
+    if (maxDurQuarter < minDur) continue
+
+    const durUse = clamp(
+      dur,
+      minDur,
+      maxDurQuarter,
+    )
+    const durUseQ = Math.round(durUse / QUARTER_HOUR_MS) * QUARTER_HOUR_MS
+    const durF = clamp(durUseQ, minDur, maxDurQuarter)
     const sLo = g0
-    const sHi = g1 - durUse
+    const sHi = g1 - durF
     if (sHi < sLo) continue
 
     const sClamped = clamp(sAdj, sLo, sHi)
-    const eClamped = sClamped + durUse
+    const eClamped = sClamped + durF
     const dist = Math.abs(sClamped - s) + Math.abs(eClamped - e)
     if (dist < bestDist) {
       bestDist = dist
@@ -224,7 +240,7 @@ function BookingSheetForm({
   }, [date, startTime, endTime])
 
   function applyIntervalClamped(startMs: number, endMs: number) {
-    const [s2, e2] = clampToFreeGaps(startMs, endMs, freeGaps, DRAG_SNAP_MIN)
+    const [s2, e2] = clampToFreeGaps(startMs, endMs, freeGaps, date)
     setStartTime(formatLocalTime(new Date(s2)))
     setEndTime(formatLocalTime(new Date(e2)))
   }
@@ -246,7 +262,7 @@ function BookingSheetForm({
     const e = parseInstantOnDate(date, endTime).getTime()
     if (!Number.isFinite(s) || !Number.isFinite(e) || e <= s) return
     if (intervalFitsInFreeGaps(s, e, freeGaps)) return
-    const [s2, e2] = clampToFreeGaps(s, e, freeGaps, DRAG_SNAP_MIN)
+    const [s2, e2] = clampToFreeGaps(s, e, freeGaps, date)
     const ns = formatLocalTime(new Date(s2))
     const ne = formatLocalTime(new Date(e2))
     if (ns !== startTime || ne !== endTime) {
@@ -353,7 +369,10 @@ function BookingSheetForm({
       if (d.kind === 'move') {
         const dxRatio = (ev.clientX - d.originX) / m.rect.width
         const deltaMs = dxRatio * m.spanMs
-        startMsN = snapMsToStep(d.startMs + deltaMs, DRAG_SNAP_MIN)
+        startMsN = snapInstantMsToQuarterOnDate(
+          d.startMs + deltaMs,
+          date,
+        )
         endMsN = startMsN + durMs
         if (endMsN > w1) {
           const over = endMsN - w1
@@ -373,7 +392,10 @@ function BookingSheetForm({
         }
       } else if (d.kind === 'resize-start') {
         const endFixed = d.endMs
-        let newStart = snapMsToStep(clientXToMs(ev.clientX), DRAG_SNAP_MIN)
+        let newStart = snapInstantMsToQuarterOnDate(
+          clientXToMs(ev.clientX),
+          date,
+        )
         const lo = Math.max(w0, endFixed - MAX_DURATION_MIN * 60_000)
         const hi = endFixed - MIN_DURATION_MIN * 60_000
         newStart = clamp(newStart, lo, hi)
@@ -381,7 +403,10 @@ function BookingSheetForm({
         endMsN = endFixed
       } else {
         const startFixed = d.startMs
-        let newEnd = snapMsToStep(clientXToMs(ev.clientX), DRAG_SNAP_MIN)
+        let newEnd = snapInstantMsToQuarterOnDate(
+          clientXToMs(ev.clientX),
+          date,
+        )
         const lo = startFixed + MIN_DURATION_MIN * 60_000
         const hi = Math.min(w1, startFixed + MAX_DURATION_MIN * 60_000)
         newEnd = clamp(newEnd, lo, hi)
@@ -389,7 +414,7 @@ function BookingSheetForm({
         endMsN = newEnd
       }
 
-      const [a, b] = clampToFreeGaps(startMsN, endMsN, freeGaps, DRAG_SNAP_MIN)
+      const [a, b] = clampToFreeGaps(startMsN, endMsN, freeGaps, date)
       setStartTime(formatLocalTime(new Date(a)))
       setEndTime(formatLocalTime(new Date(b)))
     }
@@ -454,7 +479,24 @@ function BookingSheetForm({
           className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-5 py-4"
           onSubmit={(e) => {
             e.preventDefault()
-            if (isLocalStartInPast(date, startTime, new Date())) {
+            let sMs = parseInstantOnDate(date, startTime).getTime()
+            let eMs = parseInstantOnDate(date, endTime).getTime()
+            if (!Number.isFinite(sMs) || !Number.isFinite(eMs)) {
+              setClientError('Ogiltiga klockslag.')
+              return
+            }
+            sMs = snapInstantMsToQuarterOnDate(sMs, date)
+            eMs = snapInstantMsToQuarterOnDate(eMs, date)
+            let durMs = eMs - sMs
+            durMs = Math.max(
+              MIN_DURATION_MIN * 60_000,
+              Math.round(durMs / QUARTER_HOUR_MS) * QUARTER_HOUR_MS,
+            )
+            durMs = Math.min(durMs, MAX_DURATION_MIN * 60_000)
+            eMs = sMs + durMs
+            const startNorm = formatLocalTime(new Date(sMs))
+            const endNorm = formatLocalTime(new Date(eMs))
+            if (isLocalStartInPast(date, startNorm, new Date())) {
               setClientError(
                 'Välj en starttid som inte redan har passerat.',
               )
@@ -463,8 +505,8 @@ function BookingSheetForm({
             onSubmit({
               roomId,
               date,
-              startTime,
-              endTime,
+              startTime: startNorm,
+              endTime: endNorm,
               title: title.trim() || undefined,
             })
           }}
@@ -495,9 +537,10 @@ function BookingSheetForm({
               </span>
             </div>
             <p className="text-[11px] leading-relaxed text-te-muted">
-              Grå = andras bokningar, pastellrosa = dina. Dra den gröna ytan
-              för att flytta; dra i de smala strecken vid sidorna (utanför
-              blocket) för längd. <span className="text-te-accent">Max 4 h.</span>
+              Grå = andras bokningar, pastellrosa = dina. Tider snappas till
+              kvartar (TimeEdit). Dra den gröna ytan för att flytta; dra i
+              strecken vid sidorna för längd.{' '}
+              <span className="text-te-accent">Max 4 h.</span>
             </p>
             <div ref={trackRef} className="relative h-11 overflow-visible">
               <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-lg bg-te-border/25">

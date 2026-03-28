@@ -36,6 +36,30 @@ export function formatLocalTime(d: Date): string {
   return `${h}:${min}`
 }
 
+/** TimeEdit only accepts bookings on quarter-hour boundaries in local time. */
+export const QUARTER_HOUR_MS = 15 * 60_000
+
+/** Snap instant (local) to nearest quarter on the calendar day `dateStr` (YYYY-MM-DD). */
+export function snapInstantMsToQuarterOnDate(
+  ms: number,
+  dateStr: string,
+): number {
+  const [Y, M, D] = dateStr.split('-').map(Number)
+  const day0 = new Date(Y, M - 1, D, 0, 0, 0, 0).getTime()
+  const rel = ms - day0
+  return day0 + Math.round(rel / QUARTER_HOUR_MS) * QUARTER_HOUR_MS
+}
+
+export function snapInstantMsToCeilQuarterOnDate(
+  ms: number,
+  dateStr: string,
+): number {
+  const [Y, M, D] = dateStr.split('-').map(Number)
+  const day0 = new Date(Y, M - 1, D, 0, 0, 0, 0).getTime()
+  const rel = ms - day0
+  return day0 + Math.ceil(rel / QUARTER_HOUR_MS) * QUARTER_HOUR_MS
+}
+
 export function formatWeekRangeLabel(weekStart: Date, weekEndExclusive: Date) {
   const lastDay = new Date(weekEndExclusive)
   lastDay.setDate(lastDay.getDate() - 1)
@@ -325,12 +349,33 @@ export function toBookingDraft(
   endTime: string
 } {
   const w = defaultBookingWindow(gap)
+  const dateStr = formatLocalDate(w.start)
+  let startMs = snapInstantMsToQuarterOnDate(w.start.getTime(), dateStr)
+  if (startMs < gap.start.getTime()) {
+    startMs = snapInstantMsToCeilQuarterOnDate(gap.start.getTime(), dateStr)
+  }
+  let endMs = Math.min(w.end.getTime(), gap.end.getTime())
+  endMs = snapInstantMsToQuarterOnDate(endMs, dateStr)
+  if (endMs <= startMs) {
+    endMs = startMs + 60 * 60_000
+  }
+  endMs = Math.min(endMs, gap.end.getTime())
+  let dur = endMs - startMs
+  dur = Math.max(
+    QUARTER_HOUR_MS,
+    Math.round(dur / QUARTER_HOUR_MS) * QUARTER_HOUR_MS,
+  )
+  endMs = Math.min(startMs + dur, gap.end.getTime())
+  endMs = snapInstantMsToQuarterOnDate(endMs, dateStr)
+  if (endMs <= startMs) {
+    endMs = Math.min(startMs + QUARTER_HOUR_MS, gap.end.getTime())
+  }
   return {
     roomId,
     roomName,
-    date: formatLocalDate(w.start),
-    startTime: formatLocalTime(w.start),
-    endTime: formatLocalTime(w.end),
+    date: dateStr,
+    startTime: formatLocalTime(new Date(startMs)),
+    endTime: formatLocalTime(new Date(endMs)),
   }
 }
 
