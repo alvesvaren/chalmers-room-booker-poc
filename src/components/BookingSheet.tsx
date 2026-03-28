@@ -79,8 +79,8 @@ function clampToFreeGaps(s: number, e: number, gaps: TimeInterval[], dateStr: st
   dur = Math.round(dur / QUARTER_HOUR_MS) * QUARTER_HOUR_MS;
   dur = clamp(dur, MIN_DURATION_MIN * 60_000, MAX_DURATION_MIN * 60_000);
 
-  let sAdj = s;
-  let eAdj = sAdj + dur;
+  const sAdj = s;
+  const eAdj = sAdj + dur;
 
   if (intervalFitsInFreeGaps(sAdj, eAdj, gaps)) {
     return [snap(sAdj), snap(eAdj)];
@@ -204,11 +204,11 @@ function BookingSheetForm({
   }
 
   function commitManualTimes() {
-    let s = parseInstantOnDate(date, startTime).getTime();
+    const s = parseInstantOnDate(date, startTime).getTime();
     let e = parseInstantOnDate(date, endTime).getTime();
     if (!Number.isFinite(s) || !Number.isFinite(e)) return;
     if (e <= s) e = s + MIN_DURATION_MIN * 60_000;
-    let d = (e - s) / 60_000;
+    const d = (e - s) / 60_000;
     if (d < MIN_DURATION_MIN) e = s + MIN_DURATION_MIN * 60_000;
     else if (d > MAX_DURATION_MIN) e = s + MAX_DURATION_MIN * 60_000;
     applyIntervalClamped(s, e);
@@ -470,23 +470,18 @@ function BookingSheetForm({
           }}
         >
           <label className='grid gap-1 text-sm'>
-            <span className='font-medium text-te-text'>Titel (valfritt)</span>
-            <input className={inputClass} value={title} onChange={e => setTitle(e.target.value)} placeholder='Visas i blocket nedan om du fyller i' />
+            <span className='font-medium text-te-text'>Titel</span>
+            <input className={inputClass} value={title} onChange={e => setTitle(e.target.value)} placeholder='Valfritt' />
           </label>
 
           <section className='space-y-2' aria-label='Förhandsvisning av bokning'>
             <div className='flex min-w-0 flex-col gap-1 sm:flex-row sm:items-end sm:justify-between sm:gap-2' aria-live='polite'>
-              <span className='shrink-0 text-xs font-semibold uppercase tracking-[0.12em] text-te-muted'>Kommer att boka</span>
+              <span className='shrink-0 text-xs font-semibold uppercase tracking-[0.12em] text-te-muted'>Tid</span>
               <span className='min-w-0 break-anywhere font-mono text-xs tabular-nums text-te-text sm:text-right'>
                 {startTime}–{endTime}
                 <span className='ml-2 text-te-muted'>({durationMin} min)</span>
               </span>
             </div>
-            <p className='text-[11px] leading-relaxed text-te-muted'>
-              Grå = andras bokningar, pastellrosa = dina. Tider snappas till kvartar (TimeEdit). Dra den gröna ytan eller{" "}
-              <span className='font-medium text-te-text'>klicka på en tom tid</span> för att centrera bokningen där. Dra i strecken vid sidorna för längd.{" "}
-              <span className='text-te-accent'>Max 4 h.</span>
-            </p>
             <div
               ref={trackRef}
               className='relative h-11 min-h-11 w-full cursor-default overflow-visible'
@@ -633,7 +628,7 @@ function BookingSheetForm({
 
           <div className='border-t border-te-border pt-3'>
             <button type='button' className='text-xs font-medium text-te-accent hover:underline' onClick={() => setShowAdvanced(s => !s)}>
-              {showAdvanced ? "Dölj" : "Avancerat"} · rums-id
+              {showAdvanced ? "Dölj" : "Rums-id"}
             </button>
             {showAdvanced ? (
               <label className='mt-2 grid gap-1 text-sm'>

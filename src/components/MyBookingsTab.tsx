@@ -17,10 +17,7 @@ export function MyBookingsTab({
 }) {
   return (
     <div className='te-reveal te-reveal-delay-1 space-y-6'>
-      <div>
-        <h2 className='font-display text-xl font-semibold text-te-text'>Mina bokningar</h2>
-        <p className='mt-1 text-sm text-te-muted'>Avboka eller skapa nya bokningar via flikarna Schema och Rum.</p>
-      </div>
+      <h2 className='font-display text-xl font-semibold text-te-text'>Mina bokningar</h2>
 
       {myBookingsQuery.isError ? <p className='text-sm text-te-danger'>{errorMessage(myBookingsQuery.error)}</p> : null}
 
@@ -37,12 +34,11 @@ export function MyBookingsTab({
             (myBookingsQuery.data ?? []).map(b => (
               <li key={b.id} className='flex flex-wrap items-center justify-between gap-3 bg-te-mine-bg px-4 py-4 transition-colors hover:bg-te-mine-row'>
                 <div>
-                  <p className='font-medium text-te-text'>
+                  <p className='font-medium text-te-text' title={b.room.id ? `id ${b.room.id}` : undefined}>
                     {b.room.name}
-                    {b.room.id ? <span className='ml-2 font-mono text-xs text-te-muted'>{b.room.id}</span> : null}
                   </p>
                   <p className='text-sm text-te-muted'>
-                    {b.start} → {b.end} · ref {b.id}
+                    {b.start} → {b.end}
                   </p>
                 </div>
                 <Button variant='danger' className='text-xs' disabled={cancelMutation.isPending} onClick={() => onCancelRequest(b.id)}>

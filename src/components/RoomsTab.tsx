@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { AllRoomsBookings, Room, RoomWithBookings } from "../client/types.gen";
 import type { UseQueryResult } from "@tanstack/react-query";
+import { roomMatchesCapacityFilter } from "../lib/capacityBounds";
 import { errorMessage } from "../lib/errors";
 import { getRoomRating, ratingSortValue } from "../lib/roomRatings";
 import { addMinutes, formatLocalDate, formatLocalTime, formatWeekRangeLabel, roomAvailableForInterval } from "../lib/weekTimeline";
 import { Button } from "./ui/Button";
+import { CapacityRangeSlider } from "./ui/CapacityRangeSlider";
 import { Skeleton } from "./ui/Skeleton";
 
 type SortKey = "rating" | "name" | "campus" | "capacity";
@@ -32,6 +34,10 @@ export function RoomsTab({
   onRoomsAvailabilityDateChange,
   onBookRoom,
   isRoomBookable,
+  capacityBounds,
+  capacityMin,
+  capacityMax,
+  onCapacityRangeChange,
 }: {
   roomsQuery: UseQueryResult<Array<Room>, unknown>;
   bookingsQuery: UseQueryResult<AllRoomsBookings, unknown>;
@@ -40,6 +46,10 @@ export function RoomsTab({
   onRoomsAvailabilityDateChange: (date: string | null) => void;
   onBookRoom: (room: Room, slot?: { date: string; startTime: string; endTime: string }) => void;
   isRoomBookable: (room: Room) => boolean;
+  capacityBounds: { min: number; max: number };
+  capacityMin: number;
+  capacityMax: number;
+  onCapacityRangeChange: (next: { min: number; max: number }) => void;
 }) {
   const [search, setSearch] = useState("");
   const [campusPick, setCampusPick] = useState("");
@@ -118,6 +128,7 @@ export function RoomsTab({
     if (campusPick) {
       list = list.filter(r => r.campus.toLowerCase().includes(campusPick.toLowerCase()));
     }
+    list = list.filter(r => roomMatchesCapacityFilter(r, capacityMin, capacityMax));
     if (slotFilterActive) {
       list = list.filter(r => roomSlotOk(r));
     }
@@ -146,20 +157,7 @@ export function RoomsTab({
       return a.name.localeCompare(b.name, "sv");
     });
     return list;
-  }, [
-    roomsQuery.data,
-    search,
-    campusPick,
-    sort,
-    slotFilterActive,
-    slotDate,
-    slotStartTime,
-    slotDurationMin,
-    bookingsQuery.data?.rooms,
-    bookingsWeekStart,
-    bookingsWeekEnd,
-    roomSlotOk,
-  ]);
+  }, [roomsQuery.data, search, campusPick, capacityMin, capacityMax, sort, slotFilterActive, roomSlotOk]);
 
   const filterGrid = "grid w-full grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3";
   const fieldClass =
@@ -176,10 +174,7 @@ export function RoomsTab({
 
   return (
     <div className='te-reveal te-reveal-delay-1 space-y-6'>
-      <div>
-        <h2 className='font-display text-xl font-semibold text-te-text'>Rum</h2>
-        <p className='mt-1 text-sm text-te-muted'>Filtrera och öppna bokning med förifylld tid.</p>
-      </div>
+      <h2 className='font-display text-xl font-semibold text-te-text'>Rum</h2>
 
       <div className={slotPanelClass}>
         <label className='flex cursor-pointer select-none items-start gap-3'>
@@ -189,19 +184,13 @@ export function RoomsTab({
             checked={slotFilterActive}
             onChange={e => setSlotFilterActive(e.target.checked)}
           />
-          <span>
-            <span className='font-display text-sm font-semibold text-te-text'>Ledig vid tid</span>
-            <span className='mt-1 block text-xs leading-relaxed text-te-muted'>
-              Visar rum där du får en obruten lucka som täcker hela intervallet. Schemana som laddas följer vald dag — byter du vecka under
-              &quot;Veckoschema&quot; nollställs den här länken.
-            </span>
-          </span>
+          <span className='font-display text-sm font-semibold text-te-text'>Ledig vid tid</span>
         </label>
 
         {slotFilterActive ? (
           <div className='mt-4 grid gap-3 border-t border-te-border/60 pt-4 sm:grid-cols-2 lg:grid-cols-4'>
             <label className='flex min-w-0 flex-col gap-1 text-sm'>
-              <span className='font-medium text-te-muted'>Datum</span>
+              <span className='font-medium text-te-muted'>Dag</span>
               <input type='date' className={fieldClass} min={minBookDate} value={slotDate} onChange={e => setSlotDate(e.target.value)} />
             </label>
             <label className='flex min-w-0 flex-col gap-1 text-sm'>
@@ -221,7 +210,7 @@ export function RoomsTab({
               />
             </label>
             <div className='flex min-w-0 flex-col justify-end gap-1 text-sm'>
-              <span className='font-medium text-te-muted'>Fönster</span>
+              <span className='font-medium text-te-muted'>Intervall</span>
               <p className='rounded-lg border border-dashed border-te-border/80 bg-te-surface/80 px-3 py-2.5 tabular-nums text-te-text sm:py-2'>
                 {slotInterval && !slotInterval.crossesDay ? (
                   <>
@@ -239,14 +228,11 @@ export function RoomsTab({
 
         {slotBookingsPending ? (
           <div className='mt-4 space-y-3 border-t border-te-border/60 pt-4' role='status' aria-live='polite' aria-busy='true'>
+            <p className='sr-only'>Hämtar bokningar {bookingsWeekLabel}</p>
             <div className='flex flex-wrap items-center gap-3'>
               <Skeleton className='h-2.5 w-full max-w-40 rounded-full sm:max-w-56' />
               <Skeleton className='hidden h-2.5 w-16 rounded-full sm:block' />
             </div>
-            <p className='text-xs leading-relaxed text-te-muted'>
-              <span className='font-medium text-te-text'>Hämtar bokningar för veckan</span>{" "}
-              <span className='tabular-nums text-te-text/90'>{bookingsWeekLabel}</span>. Rumskorten nedan visar först när datan är inne.
-            </p>
           </div>
         ) : null}
         {slotFilterActive && bookingsQuery.isError ? (
@@ -254,34 +240,41 @@ export function RoomsTab({
         ) : null}
       </div>
 
-      <div className={filterGrid}>
-        <label className='flex min-w-0 flex-col gap-1 text-sm'>
-          <span className='font-medium text-te-muted'>Sök namn</span>
-          <input className={fieldClass} value={search} onChange={e => setSearch(e.target.value)} placeholder='t.ex. Kuggen' />
-        </label>
-        <label className='flex min-w-0 flex-col gap-1 text-sm'>
-          <span className='font-medium text-te-muted'>Campus</span>
-          <select className={fieldClass} value={campusPick} onChange={e => setCampusPick(e.target.value)}>
-            <option value=''>Alla</option>
-            {campuses.map(c => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className='flex min-w-0 flex-col gap-1 text-sm sm:col-span-2 lg:col-span-1'>
-          <span className='font-medium text-te-muted'>
-            Sortera
-            {slotFilterActive ? <span className='ml-1 font-normal text-te-muted'>(styrs av betyg vid tidsfilter)</span> : null}
-          </span>
-          <select className={fieldClass} value={sort} onChange={e => setSort(e.target.value as SortKey)} disabled={slotFilterActive}>
-            <option value='rating'>Betyg (CSV)</option>
-            <option value='name'>Namn</option>
-            <option value='campus'>Campus</option>
-            <option value='capacity'>Platser</option>
-          </select>
-        </label>
+      <div className='space-y-4'>
+        <div className={filterGrid}>
+          <label className='flex min-w-0 flex-col gap-1 text-sm'>
+            <span className='font-medium text-te-muted'>Namn</span>
+            <input className={fieldClass} value={search} onChange={e => setSearch(e.target.value)} placeholder='Sök rum' />
+          </label>
+          <label className='flex min-w-0 flex-col gap-1 text-sm'>
+            <span className='font-medium text-te-muted'>Campus</span>
+            <select className={fieldClass} value={campusPick} onChange={e => setCampusPick(e.target.value)}>
+              <option value=''>Alla</option>
+              {campuses.map(c => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className='flex min-w-0 flex-col gap-1 text-sm sm:col-span-2 lg:col-span-1'>
+            <span className='font-medium text-te-muted'>Sortera</span>
+            <select className={fieldClass} value={sort} onChange={e => setSort(e.target.value as SortKey)} disabled={slotFilterActive}>
+              <option value='rating'>Betyg</option>
+              <option value='name'>Namn</option>
+              <option value='campus'>Campus</option>
+              <option value='capacity'>Platser</option>
+            </select>
+          </label>
+        </div>
+        <CapacityRangeSlider
+          minBound={capacityBounds.min}
+          maxBound={capacityBounds.max}
+          valueMin={capacityMin}
+          valueMax={capacityMax}
+          onChange={onCapacityRangeChange}
+          disabled={roomsQuery.isLoading}
+        />
       </div>
 
       {roomsQuery.isError ? <p className='text-sm text-te-danger'>{errorMessage(roomsQuery.error)}</p> : null}
@@ -294,9 +287,8 @@ export function RoomsTab({
         </div>
       ) : slotBookingsPending ? (
         <div className='space-y-4'>
-          <p className='text-sm text-te-muted' role='status' aria-live='polite'>
-            <span className='font-display font-semibold text-te-text'>Uppdaterar tillgänglighet</span> för{" "}
-            <span className='font-medium tabular-nums text-te-text/95'>{bookingsWeekLabel}</span>…
+          <p className='sr-only' role='status' aria-live='polite'>
+            Uppdaterar tillgänglighet {bookingsWeekLabel}
           </p>
           <div className={roomGridClass} aria-hidden>
             {Array.from({ length: 8 }).map((_, i) => (
@@ -338,8 +330,7 @@ export function RoomsTab({
                 >
                   <div className='min-h-0 min-w-0 flex-1 space-y-4'>
                     <header className='min-w-0'>
-                      <p className='text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-te-muted'>Grupprum</p>
-                      <h3 className='mt-1.5 font-display text-xl font-semibold leading-[1.15] tracking-tight text-te-text sm:text-2xl'>{room.name}</h3>
+                      <h3 className='font-display text-xl font-semibold leading-[1.15] tracking-tight text-te-text sm:text-2xl'>{room.name}</h3>
                     </header>
 
                     {fetchFailed ? <p className='text-xs font-medium text-te-danger'>Kunde inte ladda TimeEdit-schema för detta rum.</p> : null}
@@ -351,15 +342,10 @@ export function RoomsTab({
                     ) : null}
 
                     {rr != null ? (
-                      <div className='flex flex-wrap items-end gap-2'>
-                        <span className='font-display text-3xl font-semibold leading-none tabular-nums text-te-accent sm:text-[2.35rem]' title={rr.comment}>
-                          {betyg}
-                        </span>
-                        <span className='cursor-help border-b border-dotted border-te-muted/70 pb-0.5 text-xs font-medium text-te-muted'>genomsnitt (CSV)</span>
-                      </div>
-                    ) : (
-                      <p className='text-sm font-medium text-te-muted'>Ingen betygsdata</p>
-                    )}
+                      <span className='font-display text-3xl font-semibold leading-none tabular-nums text-te-accent sm:text-[2.35rem]' title={rr.comment}>
+                        {betyg}
+                      </span>
+                    ) : null}
 
                     <p className='text-sm leading-snug text-te-muted' title={`${room.campus} · ${room.capacity ?? "—"} platser`}>
                       <span className='font-medium text-te-text/95'>{room.campus}</span>
@@ -393,7 +379,7 @@ export function RoomsTab({
                       onBookRoom(room);
                     }}
                   >
-                    Boka detta rum
+                    Boka
                   </Button>
                 </article>
               );

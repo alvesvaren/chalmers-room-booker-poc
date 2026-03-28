@@ -1,6 +1,6 @@
 import type { Query } from "@tanstack/react-query";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   deleteApiMyBookingsByIdMutation,
   getApiBookingsOptions,
@@ -18,11 +18,16 @@ import { MyBookingsTab } from "./components/MyBookingsTab";
 import { RoomsTab } from "./components/RoomsTab";
 import { ScheduleTab } from "./components/ScheduleTab";
 import { SignInPanel } from "./components/SignInPanel";
+import { CAPACITY_SLIDER_FALLBACK_MAX, capacitySliderBounds } from "./lib/capacityBounds";
 import type { TimeInterval } from "./lib/weekTimeline";
 import { firstFreeGapInWeek, getWeekRange, roomAvailableForInterval, toBookingDraft, weekOffsetForLocalDate } from "./lib/weekTimeline";
 
 const STORAGE_KEY = "timeedit-demo-jwt";
 export const API_BASE = "https://timeedit-api-wrapper.vercel.app";
+
+function clampInt(n: number, lo: number, hi: number) {
+  return Math.min(hi, Math.max(lo, n));
+}
 
 function bookingsGridPredicate(q: Query) {
   const head = q.queryKey[0];
@@ -51,6 +56,7 @@ export default function App() {
   const [weekOffset, setWeekOffset] = useState(0);
   const [campusFilter, setCampusFilter] = useState("");
   const [qFilter, setQFilter] = useState("");
+  const [capacityRange, setCapacityRange] = useState({ min: 1, max: CAPACITY_SLIDER_FALLBACK_MAX });
   const [activeTab, setActiveTab] = useState<AppTabId>("schedule");
   const [bookingSheetOpen, setBookingSheetOpen] = useState(false);
   const [bookingInitial, setBookingInitial] = useState<BookingSheetInitial | null>(null);
@@ -88,6 +94,17 @@ export default function App() {
     ...getApiRoomsOptions(),
     enabled: authed,
   });
+
+  const capacityBounds = useMemo(() => capacitySliderBounds(roomsQuery.data), [roomsQuery.data]);
+
+  const displayCapacityRange = useMemo(() => {
+    const lo = capacityBounds.min;
+    const hi = capacityBounds.max;
+    const a = clampInt(capacityRange.min, lo, hi);
+    const b = clampInt(capacityRange.max, lo, hi);
+    if (a > b) return { min: lo, max: hi };
+    return { min: a, max: b };
+  }, [capacityBounds.min, capacityBounds.max, capacityRange.min, capacityRange.max]);
 
   const effectiveBookingsWeekOffset = roomsAvailabilityDate != null ? weekOffsetForLocalDate(roomsAvailabilityDate) : weekOffset;
 
@@ -197,7 +214,7 @@ export default function App() {
       <div className='w-full max-w-none px-4 py-8 sm:px-6 lg:px-8 xl:px-10 2xl:px-12'>
         <header className='te-reveal mb-8 border-b border-te-border pb-8'>
           <h1 className='font-display text-3xl font-semibold tracking-tight text-te-text sm:text-4xl'>TimeEdit demo</h1>
-          <p className='mt-2 max-w-2xl text-sm leading-relaxed text-te-muted'>Grupprumsbokning via TimeEdit. Logga in med ditt Chalmers-konto.</p>
+          <p className='mt-2 max-w-2xl text-sm leading-relaxed text-te-muted'>Grupprumsbokning · Chalmers-inloggning.</p>
         </header>
 
         <SignInPanel
@@ -255,6 +272,10 @@ export default function App() {
                   onCampusFilter={setCampusFilter}
                   qFilter={qFilter}
                   onQFilter={setQFilter}
+                  capacityBounds={capacityBounds}
+                  capacityMin={displayCapacityRange.min}
+                  capacityMax={displayCapacityRange.max}
+                  onCapacityRangeChange={setCapacityRange}
                   bookingsQuery={bookingsQuery}
                   myBookings={myBookingsQuery.data}
                   onPickFree={handlePickFree}
@@ -270,6 +291,10 @@ export default function App() {
                   onRoomsAvailabilityDateChange={setRoomsAvailabilityDate}
                   onBookRoom={handleBookRoomFromDirectory}
                   isRoomBookable={isRoomBookable}
+                  capacityBounds={capacityBounds}
+                  capacityMin={displayCapacityRange.min}
+                  capacityMax={displayCapacityRange.max}
+                  onCapacityRangeChange={setCapacityRange}
                 />
               ) : null}
               {activeTab === "mine" ? (

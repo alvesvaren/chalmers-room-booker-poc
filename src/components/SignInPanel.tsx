@@ -28,11 +28,9 @@ export function SignInPanel({
   return (
     <section className='te-reveal rounded-2xl border border-te-border bg-te-surface p-6 shadow-sm sm:p-8'>
       <h2 className='font-display text-xl font-semibold tracking-tight text-te-text'>Logga in</h2>
-      <p className='mt-1 text-sm text-te-muted'>Chalmers-inloggning · token sparas i session för denna flik.</p>
 
       {authed ? (
         <div className='mt-6 flex flex-wrap items-center gap-4'>
-          <p className='text-sm text-te-success'>Inloggad.</p>
           <Button variant='secondary' onClick={onLogOut}>
             Logga ut
           </Button>
