@@ -53,8 +53,7 @@ export function RoomWeekCard({
           aria-expanded={open}
           aria-label={open ? `Dölj tidslinje för ${room.name}` : `Visa tidslinje för ${room.name}`}
         >
-          <p className='text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-te-muted'>Grupprum</p>
-          <span className='mt-1.5 block font-display text-lg font-semibold leading-tight tracking-tight text-te-text sm:text-xl'>{room.name}</span>
+          <span className='block font-display text-lg font-semibold leading-tight tracking-tight text-te-text sm:text-xl'>{room.name}</span>
           <span className='mt-2 block text-sm text-te-muted'>
             <span className='font-medium text-te-text/90'>{room.campus}</span>
             <span aria-hidden className='mx-2 inline-block h-3 w-px translate-y-px bg-te-border align-middle' />
@@ -67,7 +66,6 @@ export function RoomWeekCard({
                     minimumFractionDigits: 1,
                     maximumFractionDigits: 1,
                   })}
-                  <span className='ml-1 font-sans text-xs font-medium text-te-muted'>betyg</span>
                 </span>
               </>
             ) : null}
@@ -180,10 +178,6 @@ export function RoomWeekCard({
               </div>
             </div>
           ))}
-
-          <p className='text-[11px] text-te-muted'>
-            Ljusgrön = ledig tid framåt (klicka för att boka). Mörkgrå = passerad ledig tid. Grå block = andra bokningar. Pastellrosa = dina bokningar.
-          </p>
 
           <ul className='sr-only'>
             {days.flatMap(d =>

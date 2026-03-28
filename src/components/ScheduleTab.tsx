@@ -1,11 +1,13 @@
 import type { UseQueryResult } from "@tanstack/react-query";
 import { useId, useMemo, useState } from "react";
 import type { AllRoomsBookings, Booking, RoomWithBookings } from "../client/types.gen";
+import { roomMatchesCapacityFilter } from "../lib/capacityBounds";
 import { errorMessage } from "../lib/errors";
 import { ratingSortValue } from "../lib/roomRatings";
 import { formatWeekRangeLabel, getWeekRange, type TimeInterval } from "../lib/weekTimeline";
 import { RoomWeekCard } from "./RoomWeekCard";
 import { Button } from "./ui/Button";
+import { CapacityRangeSlider } from "./ui/CapacityRangeSlider";
 import { Skeleton } from "./ui/Skeleton";
 
 /** Motsvarar layouten i RoomWeekCard (header + veckorader med tidslinje). */
@@ -73,6 +75,10 @@ export function ScheduleTab({
   onCampusFilter,
   qFilter,
   onQFilter,
+  capacityBounds,
+  capacityMin,
+  capacityMax,
+  onCapacityRangeChange,
   bookingsQuery,
   myBookings,
   onPickFree,
@@ -84,6 +90,10 @@ export function ScheduleTab({
   onCampusFilter: (v: string) => void;
   qFilter: string;
   onQFilter: (v: string) => void;
+  capacityBounds: { min: number; max: number };
+  capacityMin: number;
+  capacityMax: number;
+  onCapacityRangeChange: (next: { min: number; max: number }) => void;
   bookingsQuery: UseQueryResult<AllRoomsBookings, unknown>;
   myBookings: Booking[] | undefined;
   onPickFree: (room: RoomWithBookings, gap: TimeInterval) => void;
@@ -95,14 +105,14 @@ export function ScheduleTab({
   const label = formatWeekRangeLabel(weekStart, weekEnd);
 
   const roomsSorted = useMemo(() => {
-    const rooms = [...(bookingsQuery.data?.rooms ?? [])];
+    const rooms = [...(bookingsQuery.data?.rooms ?? [])].filter(r => roomMatchesCapacityFilter(r, capacityMin, capacityMax));
     rooms.sort((a, b) => {
       const cmp = ratingSortValue(b.name) - ratingSortValue(a.name);
       if (cmp !== 0) return cmp;
       return a.name.localeCompare(b.name, "sv");
     });
     return rooms;
-  }, [bookingsQuery.data?.rooms]);
+  }, [bookingsQuery.data?.rooms, capacityMin, capacityMax]);
 
   const filterGrid = "grid w-full grid-cols-1 gap-3 sm:grid-cols-2";
   const inputClass =
@@ -129,25 +139,32 @@ export function ScheduleTab({
         </div>
       </div>
 
-      <div className={filterGrid}>
-        <label className='flex min-w-0 flex-col gap-1 text-sm'>
-          <span className='font-medium text-te-muted'>Campus (filtrera)</span>
-          <input className={inputClass} value={campusFilter} onChange={e => onCampusFilter(e.target.value)} placeholder='Johanneberg' />
-        </label>
-        <label className='flex min-w-0 flex-col gap-1 text-sm'>
-          <span className='font-medium text-te-muted'>Rumsnamn</span>
-          <input className={inputClass} value={qFilter} onChange={e => onQFilter(e.target.value)} placeholder='KG' />
-        </label>
+      <div className='space-y-4'>
+        <div className={filterGrid}>
+          <label className='flex min-w-0 flex-col gap-1 text-sm'>
+            <span className='font-medium text-te-muted'>Campus</span>
+            <input className={inputClass} value={campusFilter} onChange={e => onCampusFilter(e.target.value)} placeholder='Johanneberg' />
+          </label>
+          <label className='flex min-w-0 flex-col gap-1 text-sm'>
+            <span className='font-medium text-te-muted'>Namn</span>
+            <input className={inputClass} value={qFilter} onChange={e => onQFilter(e.target.value)} placeholder='Sök rum' />
+          </label>
+        </div>
+        <CapacityRangeSlider
+          minBound={capacityBounds.min}
+          maxBound={capacityBounds.max}
+          valueMin={capacityMin}
+          valueMax={capacityMax}
+          onChange={onCapacityRangeChange}
+          disabled={bookingsQuery.isLoading}
+        />
       </div>
 
       {bookingsQuery.isError ? <p className='text-sm text-te-danger'>{errorMessage(bookingsQuery.error)}</p> : null}
 
       {bookingsQuery.isLoading ? (
         <div className='space-y-4' role='status' aria-live='polite' aria-busy='true'>
-          <p className='text-sm text-te-muted'>
-            <span className='font-display font-semibold text-te-text'>Laddar veckoschema</span> för{" "}
-            <span className='font-medium tabular-nums text-te-text/95'>{label}</span>…
-          </p>
+          <p className='sr-only'>Laddar schema {label}</p>
           <div className={scheduleGridClass}>
             {Array.from({ length: 6 }).map((_, i) => (
               <ScheduleWeekCardSkeleton key={i} dayPattern={i} />
@@ -158,8 +175,7 @@ export function ScheduleTab({
         <>
           {bookingsQuery.data?.errors?.length ? (
             <div className='rounded-xl border border-amber-500/35 bg-amber-500/10 px-4 py-3 text-sm text-amber-900 dark:text-amber-100'>
-              <p className='font-medium'>Delvisa fel</p>
-              <ul className='mt-1 list-inside list-disc'>
+              <ul className='list-inside list-disc'>
                 {bookingsQuery.data.errors.map(e => (
                   <li key={e.roomId}>
                     {e.roomId}: {e.detail}
