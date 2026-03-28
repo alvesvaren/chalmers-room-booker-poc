@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import type { RoomWithBookings } from '../client/types.gen'
+import type { Booking, RoomWithBookings } from '../client/types.gen'
 import { getRoomRating } from '../lib/roomRatings'
 import {
   buildRoomWeekTimeline,
@@ -9,6 +9,7 @@ import {
   splitFreeGapForDisplay,
   type TimeInterval,
   intervalToPercent,
+  isMyCalendarBusy,
 } from '../lib/weekTimeline'
 import { Button } from './ui/Button'
 
@@ -27,12 +28,14 @@ export function RoomWeekCard({
   weekEndExclusive,
   onPickFree,
   onBookRoom,
+  myBookings,
 }: {
   room: RoomWithBookings
   weekStart: Date
   weekEndExclusive: Date
   onPickFree: (room: RoomWithBookings, gap: TimeInterval) => void
   onBookRoom: (room: RoomWithBookings) => void
+  myBookings: Booking[] | undefined
 }) {
   const [open, setOpen] = useState(true)
   const now = useTickingNow(60_000)
@@ -185,21 +188,36 @@ export function RoomWeekCard({
                     day.displayEnd,
                   )
                   const range = `${formatLocalTime(b.start)}–${formatLocalTime(b.end)}`
-                  const title = b.label
-                    ? `Upptagen ${range} · ${b.label}`
-                    : `Upptagen ${range}`
+                  const mine = isMyCalendarBusy(b, room.id, room.name, myBookings)
+                  const title = mine
+                    ? b.label
+                      ? `Din bokning ${range} · ${b.label}`
+                      : `Din bokning ${range}`
+                    : b.label
+                      ? `Upptagen ${range} · ${b.label}`
+                      : `Upptagen ${range}`
                   return (
                     <div
                       key={`b-${i}`}
                       title={title}
-                      className="absolute inset-y-1 z-10 flex cursor-default items-center justify-center overflow-hidden rounded-sm bg-te-busy-strong/85 px-0.5 shadow-inner pointer-events-auto"
+                      className={`absolute inset-y-1 z-10 flex cursor-default items-center justify-center overflow-hidden rounded-sm px-0.5 shadow-inner pointer-events-auto ${
+                        mine
+                          ? 'bg-te-mine-busy/85'
+                          : 'bg-te-busy-strong/85'
+                      }`}
                       style={{
                         left: `${leftPct}%`,
                         width: `${Math.max(widthPct, 0.6)}%`,
                       }}
                     >
                       {b.label ? (
-                        <span className="truncate text-center font-display text-[0.55rem] font-semibold leading-tight text-white drop-shadow-sm sm:text-[0.62rem]">
+                        <span
+                          className={`truncate text-center font-display text-[0.55rem] font-semibold leading-tight sm:text-[0.62rem] ${
+                            mine
+                              ? 'text-te-mine-busy-text drop-shadow-none'
+                              : 'text-white drop-shadow-sm'
+                          }`}
+                        >
                           {b.label}
                         </span>
                       ) : null}
@@ -212,7 +230,8 @@ export function RoomWeekCard({
 
           <p className="text-[11px] text-te-muted">
             Ljusgrön = ledig tid framåt (klicka för att boka). Mörkgrå =
-            passerad ledig tid. Mättad grå = upptaget.
+            passerad ledig tid. Grå block = andra bokningar. Pastellrosa = dina
+            bokningar.
           </p>
 
           <ul className="sr-only">

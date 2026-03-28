@@ -1,5 +1,9 @@
 import { useId, useMemo, useState } from 'react'
-import type { AllRoomsBookings, RoomWithBookings } from '../client/types.gen'
+import type {
+  AllRoomsBookings,
+  Booking,
+  RoomWithBookings,
+} from '../client/types.gen'
 import type { UseQueryResult } from '@tanstack/react-query'
 import {
   getWeekRange,
@@ -20,6 +24,7 @@ export function ScheduleTab({
   qFilter,
   onQFilter,
   bookingsQuery,
+  myBookings,
   onPickFree,
   onBookRoom,
 }: {
@@ -30,6 +35,7 @@ export function ScheduleTab({
   qFilter: string
   onQFilter: (v: string) => void
   bookingsQuery: UseQueryResult<AllRoomsBookings, unknown>
+  myBookings: Booking[] | undefined
   onPickFree: (room: RoomWithBookings, gap: TimeInterval) => void
   onBookRoom: (room: RoomWithBookings) => void
 }) {
@@ -171,6 +177,7 @@ export function ScheduleTab({
                   weekEndExclusive={weekEnd}
                   onPickFree={onPickFree}
                   onBookRoom={onBookRoom}
+                  myBookings={myBookings}
                 />
               ))
             )}

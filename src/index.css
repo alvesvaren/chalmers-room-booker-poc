@@ -17,6 +17,14 @@
   --te-busy: #94a3b8;
   --te-busy-strong: #64748b;
   --te-free-hover: rgba(13, 92, 92, 0.06);
+  /* Mina bokningar — matt rosatonad pastell */
+  --te-mine-bg: #f3e8e6;
+  --te-mine-border: #e2cfc9;
+  --te-mine-row: #efe0dc;
+  /* Egna bokningar i veckoschema — samma visuella tyngd som grå block (/85) */
+  --te-mine-busy: #efe7e5;
+  --te-mine-busy-border: #e0d0cc;
+  --te-mine-busy-text: var(--te-text);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -37,6 +45,12 @@
     --te-busy: #64748b;
     --te-busy-strong: #94a3b8;
     --te-free-hover: rgba(94, 234, 212, 0.08);
+    --te-mine-bg: #241e20;
+    --te-mine-border: #3a3235;
+    --te-mine-row: #2a2225;
+    --te-mine-busy: #9a8b8d;
+    --te-mine-busy-border: #8a7a7c;
+    --te-mine-busy-text: #ffffff;
   }
 }
 
@@ -60,6 +74,12 @@
   --color-te-busy: var(--te-busy);
   --color-te-busy-strong: var(--te-busy-strong);
   --color-te-free-hover: var(--te-free-hover);
+  --color-te-mine-bg: var(--te-mine-bg);
+  --color-te-mine-border: var(--te-mine-border);
+  --color-te-mine-row: var(--te-mine-row);
+  --color-te-mine-busy: var(--te-mine-busy);
+  --color-te-mine-busy-border: var(--te-mine-busy-border);
+  --color-te-mine-busy-text: var(--te-mine-busy-text);
 }
 
 @layer utilities {

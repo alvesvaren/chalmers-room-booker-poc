@@ -1,4 +1,4 @@
-import type { RoomCalendarSlot, RoomWithBookings } from '../client/types.gen'
+import type { Booking, RoomCalendarSlot, RoomWithBookings } from '../client/types.gen'
 
 /** Monday 00:00 local of the week containing `anchor`, plus `weekOffset` full weeks. `weekEnd` is exclusive (next Monday 00:00). */
 export function getWeekRange(weekOffset: number, anchor: Date = new Date()) {
@@ -48,7 +48,10 @@ export function formatWeekRangeLabel(weekStart: Date, weekEndExclusive: Date) {
 
 export type TimeInterval = { start: Date; end: Date }
 
-export type BusySegment = TimeInterval & { label?: string }
+export type BusySegment = TimeInterval & {
+  label?: string
+  reservationId?: string
+}
 
 const MIN_GAP_MS = 60_000
 
@@ -197,7 +200,31 @@ function slotToBusy(s: RoomCalendarSlot): BusySegment {
     start: parseNaiveLocal(s.start),
     end: parseNaiveLocal(s.end),
     label: s.label,
+    reservationId: s.reservationId,
   }
+}
+
+/** True if this busy segment is the signed-in user's booking (room week grid or sheet). */
+export function isMyCalendarBusy(
+  segment: Pick<BusySegment, 'start' | 'end' | 'reservationId'>,
+  roomId: string,
+  roomName: string,
+  myBookings: Booking[] | undefined,
+): boolean {
+  if (!myBookings?.length) return false
+  if (segment.reservationId) {
+    return myBookings.some((m) => m.id === segment.reservationId)
+  }
+  const s0 = segment.start.getTime()
+  const s1 = segment.end.getTime()
+  return myBookings.some((m) => {
+    const sameRoom =
+      m.room.id != null ? m.room.id === roomId : m.room.name === roomName
+    if (!sameRoom) return false
+    const ms = parseNaiveLocal(m.start).getTime()
+    const me = parseNaiveLocal(m.end).getTime()
+    return ms < s1 && me > s0
+  })
 }
 
 /** Build per-day busy + free gaps for timeline rendering (clips to visible hours). */
@@ -233,6 +260,7 @@ export function buildRoomWeekTimeline(
         ),
         end: new Date(Math.min(b.end.getTime(), dayEndMidnight.getTime())),
         label: b.label,
+        reservationId: b.reservationId,
       }))
       .filter((b) => b.end > b.start)
 

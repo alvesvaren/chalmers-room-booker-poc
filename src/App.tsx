@@ -244,6 +244,7 @@ export default function App() {
                   qFilter={qFilter}
                   onQFilter={setQFilter}
                   bookingsQuery={bookingsQuery}
+                  myBookings={myBookingsQuery.data}
                   onPickFree={handlePickFree}
                   onBookRoom={handleBookRoomFromSchedule}
                 />
@@ -290,6 +291,7 @@ export default function App() {
         }}
         initial={bookingInitial}
         scheduleRooms={bookingsQuery.data?.rooms}
+        myBookings={myBookingsQuery.data}
         onSubmit={(body) =>
           createBookingMutation.mutate(
             { body },

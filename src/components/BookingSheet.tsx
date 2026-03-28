@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type {
+  Booking,
   CreateBookingRequest,
   RoomWithBookings,
 } from '../client/types.gen'
@@ -11,6 +12,7 @@ import {
   formatLocalTime,
   freeSlotsInWindow,
   intervalToPercent,
+  isMyCalendarBusy,
   parseNaiveLocal,
   type TimeInterval,
 } from '../lib/weekTimeline'
@@ -145,6 +147,7 @@ export type BookingSheetInitial = {
 function BookingSheetForm({
   initial,
   scheduleRooms,
+  myBookings,
   onClose,
   onSubmit,
   isPending,
@@ -152,6 +155,7 @@ function BookingSheetForm({
 }: {
   initial: BookingSheetInitial
   scheduleRooms: RoomWithBookings[] | undefined
+  myBookings: Booking[] | undefined
   onClose: () => void
   onSubmit: (body: CreateBookingRequest) => void
   isPending: boolean
@@ -194,6 +198,7 @@ function BookingSheetForm({
           start: new Date(t0),
           end: new Date(t1),
           label: slot.label,
+          reservationId: slot.reservationId,
         }
       })
       .filter((x): x is NonNullable<typeof x> => x != null)
@@ -490,9 +495,9 @@ function BookingSheetForm({
               </span>
             </div>
             <p className="text-[11px] leading-relaxed text-te-muted">
-              Grå block = redan bokat. Dra den gröna ytan för att flytta;
-              dra i de smala strecken vid sidorna (utanför blocket) för längd.{' '}
-              <span className="text-te-accent">Max 4 h.</span>
+              Grå = andras bokningar, pastellrosa = dina. Dra den gröna ytan
+              för att flytta; dra i de smala strecken vid sidorna (utanför
+              blocket) för längd. <span className="text-te-accent">Max 4 h.</span>
             </p>
             <div ref={trackRef} className="relative h-11 overflow-visible">
               <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-lg bg-te-border/25">
@@ -507,21 +512,41 @@ function BookingSheetForm({
                     displayStart,
                     displayEnd,
                   )
-                  const title = b.label
-                    ? `Upptagen · ${b.label}`
-                    : 'Upptagen'
+                  const mine = isMyCalendarBusy(
+                    b,
+                    roomId,
+                    roomName,
+                    myBookings,
+                  )
+                  const title = mine
+                    ? b.label
+                      ? `Din bokning · ${b.label}`
+                      : 'Din bokning'
+                    : b.label
+                      ? `Upptagen · ${b.label}`
+                      : 'Upptagen'
                   return (
                     <div
                       key={`busy-${b.start.getTime()}-${i}`}
                       title={title}
-                      className="absolute bottom-1 top-4 z-[1] flex items-center justify-center overflow-hidden rounded-sm bg-te-busy-strong/85 px-0.5 shadow-inner"
+                      className={`absolute bottom-1 top-4 z-[1] flex items-center justify-center overflow-hidden rounded-sm px-0.5 shadow-inner ${
+                        mine
+                          ? 'bg-te-mine-busy/85'
+                          : 'bg-te-busy-strong/85'
+                      }`}
                       style={{
                         left: `${bl}%`,
                         width: `${Math.max(bw, 0.5)}%`,
                       }}
                     >
                       {b.label ? (
-                        <span className="truncate text-center font-display text-[0.55rem] font-semibold leading-tight text-white drop-shadow-sm sm:text-[0.6rem]">
+                        <span
+                          className={`truncate text-center font-display text-[0.55rem] font-semibold leading-tight sm:text-[0.6rem] ${
+                            mine
+                              ? 'text-te-mine-busy-text'
+                              : 'text-white drop-shadow-sm'
+                          }`}
+                        >
                           {b.label}
                         </span>
                       ) : null}
@@ -691,6 +716,7 @@ export function BookingSheet({
   onClose,
   initial,
   scheduleRooms,
+  myBookings,
   onSubmit,
   isPending,
   error,
@@ -699,6 +725,7 @@ export function BookingSheet({
   onClose: () => void
   initial: BookingSheetInitial | null
   scheduleRooms: RoomWithBookings[] | undefined
+  myBookings: Booking[] | undefined
   onSubmit: (body: CreateBookingRequest) => void
   isPending: boolean
   error: unknown | null
@@ -710,6 +737,7 @@ export function BookingSheet({
       key={`${initial.roomId}-${initial.date}-${initial.startTime}-${initial.endTime}`}
       initial={initial}
       scheduleRooms={scheduleRooms}
+      myBookings={myBookings}
       onClose={onClose}
       onSubmit={onSubmit}
       isPending={isPending}
