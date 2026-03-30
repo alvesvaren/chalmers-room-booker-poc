@@ -1,6 +1,6 @@
 import type { Query } from "@tanstack/react-query";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   deleteApiMyBookingsByIdMutation,
   getApiBookingsOptions,
@@ -23,7 +23,8 @@ import type { TimeInterval } from "./lib/weekTimeline";
 import { firstFreeGapInWeek, getWeekRange, roomAvailableForInterval, toBookingDraft, weekOffsetForLocalDate } from "./lib/weekTimeline";
 
 const STORAGE_KEY = "timeedit-demo-jwt";
-export const API_BASE = "https://timeedit-api-wrapper.vercel.app";
+export const API_BASE = "https://timeedit.svaren.dev";
+const AUTH_LOGIN_PATH = "/api/auth/login";
 
 function clampInt(n: number, lo: number, hi: number) {
   return Math.min(hi, Math.max(lo, n));
@@ -46,7 +47,7 @@ function roomWithBookingsFor(room: Room, scheduleRooms: RoomWithBookings[] | und
 export default function App() {
   const [token, setToken] = useState(() => {
     try {
-      return sessionStorage.getItem(STORAGE_KEY) ?? "";
+      return localStorage.getItem(STORAGE_KEY) ?? "";
     } catch {
       return "";
     }
@@ -66,6 +67,53 @@ export default function App() {
 
   const queryClient = useQueryClient();
   const authed = Boolean(token);
+  const tokenRef = useRef(token);
+  const authFailureLogoutScheduled = useRef(false);
+
+  useEffect(() => {
+    tokenRef.current = token;
+    if (token) authFailureLogoutScheduled.current = false;
+  }, [token]);
+
+  const logOut = useCallback(() => {
+    setToken("");
+    void queryClient.invalidateQueries();
+    void queryClient.clear();
+  }, [queryClient]);
+
+  useEffect(() => {
+    const id = client.interceptors.response.use(async (response, request) => {
+      const path = new URL(request.url).pathname;
+      const isLogin = path === AUTH_LOGIN_PATH || path.endsWith(AUTH_LOGIN_PATH);
+      const hadToken = Boolean(tokenRef.current);
+
+      if (response.status === 401 && !isLogin && hadToken) {
+        if (!authFailureLogoutScheduled.current) {
+          authFailureLogoutScheduled.current = true;
+          logOut();
+          setToast("Sessionen har gått ut eller är ogiltig. Logga in igen.");
+        }
+        return response;
+      }
+
+      if (response.status === 502 && !isLogin && hadToken) {
+        try {
+          const text = await response.clone().text();
+          const body = JSON.parse(text) as { error?: string };
+          if (body.error === "TimeEdit authentication failed" && !authFailureLogoutScheduled.current) {
+            authFailureLogoutScheduled.current = true;
+            logOut();
+            setToast("TimeEdit accepterade inte inloggningen. Logga in igen.");
+          }
+        } catch {
+          /* ignore parse errors */
+        }
+      }
+
+      return response;
+    });
+    return () => client.interceptors.response.eject(id);
+  }, [logOut]);
 
   useEffect(() => {
     client.setConfig({
@@ -73,8 +121,8 @@ export default function App() {
       auth: () => token || undefined,
     });
     try {
-      if (token) sessionStorage.setItem(STORAGE_KEY, token);
-      else sessionStorage.removeItem(STORAGE_KEY);
+      if (token) localStorage.setItem(STORAGE_KEY, token);
+      else localStorage.removeItem(STORAGE_KEY);
     } catch {
       /* ignore storage */
     }
@@ -143,12 +191,6 @@ export default function App() {
       await queryClient.invalidateQueries({ predicate: bookingsGridPredicate });
     },
   });
-
-  function logOut() {
-    setToken("");
-    void queryClient.invalidateQueries();
-    void queryClient.clear();
-  }
 
   const { weekStart, weekEnd } = getWeekRange(effectiveBookingsWeekOffset);
 
