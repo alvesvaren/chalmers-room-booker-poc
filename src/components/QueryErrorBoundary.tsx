@@ -49,11 +49,11 @@ class QueryErrorBoundaryInner extends Component<
 
 function defaultWorkspaceFallback({ error, reset }: FallbackRenderProps) {
   return (
-    <div className="rounded-xl border border-te-danger/30 bg-te-danger-bg px-4 py-6 text-center">
-      <p className="text-sm font-medium text-te-danger">
+    <div className="border-te-danger/30 bg-te-danger-bg rounded-xl border px-4 py-6 text-center">
+      <p className="text-te-danger text-sm font-medium">
         Något gick fel när data skulle laddas.
       </p>
-      <p className="mt-2 text-xs text-te-muted">{errorMessage(error)}</p>
+      <p className="text-te-muted mt-2 text-xs">{errorMessage(error)}</p>
       <Button
         type="button"
         variant="secondary"

@@ -26,8 +26,8 @@ export function SignInPanel({
     "w-full rounded-lg border border-te-border bg-te-elevated px-3 py-2.5 text-base text-te-text outline-none transition-shadow placeholder:text-te-muted/70 focus:border-te-accent focus:ring-2 focus:ring-te-accent/20 sm:text-sm";
 
   return (
-    <section className="te-reveal rounded-2xl border border-te-border bg-te-surface p-6 shadow-sm sm:p-8">
-      <h2 className="font-display text-xl font-semibold tracking-tight text-te-text">
+    <section className="te-reveal border-te-border bg-te-surface rounded-2xl border p-6 shadow-sm sm:p-8">
+      <h2 className="font-display text-te-text text-xl font-semibold tracking-tight">
         Logga in
       </h2>
 
@@ -46,7 +46,7 @@ export function SignInPanel({
           }}
         >
           <label className="flex min-w-48 flex-1 flex-col gap-1.5 text-sm">
-            <span className="font-medium text-te-text">Användarnamn</span>
+            <span className="text-te-text font-medium">Användarnamn</span>
             <input
               className={inputClass}
               autoComplete="username"
@@ -57,7 +57,7 @@ export function SignInPanel({
             />
           </label>
           <label className="flex min-w-48 flex-1 flex-col gap-1.5 text-sm">
-            <span className="font-medium text-te-text">Lösenord</span>
+            <span className="text-te-text font-medium">Lösenord</span>
             <input
               className={inputClass}
               type="password"
@@ -74,7 +74,7 @@ export function SignInPanel({
       )}
 
       {submitError ? (
-        <p className="mt-4 text-sm text-te-danger" role="alert">
+        <p className="text-te-danger mt-4 text-sm" role="alert">
           {errorMessage(submitError)}
         </p>
       ) : null}

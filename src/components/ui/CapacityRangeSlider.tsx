@@ -67,11 +67,11 @@ export function CapacityRangeSlider({
   return (
     <div className={disabled ? "pointer-events-none opacity-50" : ""}>
       <div className="flex items-baseline justify-between gap-2">
-        <span id={labelId} className="text-sm font-medium text-te-muted">
+        <span id={labelId} className="text-te-muted text-sm font-medium">
           {label}
         </span>
         <span
-          className="font-display text-sm font-semibold tabular-nums text-te-text"
+          className="font-display text-te-text text-sm font-semibold tabular-nums"
           aria-live="polite"
         >
           {valueMin}–{valueMax}
@@ -79,11 +79,11 @@ export function CapacityRangeSlider({
       </div>
       <div className="relative mt-3 h-9" role="group" aria-labelledby={labelId}>
         <div
-          className="pointer-events-none absolute left-0 right-0 top-1/2 h-2 -translate-y-1/2 rounded-full bg-te-border/70 shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)]"
+          className="bg-te-border/70 pointer-events-none absolute top-1/2 right-0 left-0 h-2 -translate-y-1/2 rounded-full shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)]"
           aria-hidden
         />
         <div
-          className="pointer-events-none absolute top-1/2 h-2 -translate-y-1/2 rounded-full bg-gradient-to-r from-te-accent/25 via-te-accent/45 to-te-accent/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)]"
+          className="from-te-accent/25 via-te-accent/45 to-te-accent/25 pointer-events-none absolute top-1/2 h-2 -translate-y-1/2 rounded-full bg-gradient-to-r shadow-[inset_0_1px_0_rgba(255,255,255,0.35)]"
           style={{
             left: `${loPct}%`,
             width: `${Math.max(hiPct - loPct, 0)}%`,
@@ -120,7 +120,7 @@ export function CapacityRangeSlider({
         />
       </div>
       <div
-        className="mt-1 flex justify-between font-mono text-[0.65rem] font-medium uppercase tracking-wider text-te-muted/90"
+        className="text-te-muted/90 mt-1 flex justify-between font-mono text-[0.65rem] font-medium tracking-wider uppercase"
         aria-hidden
       >
         <span>{minBound}</span>

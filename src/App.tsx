@@ -35,13 +35,13 @@ export default function App() {
   });
 
   return (
-    <div className="min-h-svh antialiased text-te-text">
+    <div className="text-te-text min-h-svh antialiased">
       <div className="w-full max-w-none px-4 py-8 sm:px-6 lg:px-8 xl:px-10 2xl:px-12">
-        <header className="te-reveal mb-8 border-b border-te-border pb-8">
-          <h1 className="font-display text-3xl font-semibold tracking-tight text-te-text sm:text-4xl">
+        <header className="te-reveal border-te-border mb-8 border-b pb-8">
+          <h1 className="font-display text-te-text text-3xl font-semibold tracking-tight sm:text-4xl">
             TimeEdit demo
           </h1>
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-te-muted">
+          <p className="text-te-muted mt-2 max-w-2xl text-sm leading-relaxed">
             Grupprumsbokning · Chalmers-inloggning.
           </p>
         </header>
@@ -70,7 +70,7 @@ export default function App() {
 
         {sessionToast ? (
           <div
-            className="fixed bottom-6 left-1/2 z-[60] max-w-md -translate-x-1/2 rounded-xl border border-te-border bg-te-elevated px-4 py-3 text-sm text-te-text shadow-lg"
+            className="border-te-border bg-te-elevated text-te-text fixed bottom-6 left-1/2 z-60 max-w-md -translate-x-1/2 rounded-xl border px-4 py-3 text-sm shadow-lg"
             role="status"
             aria-live="polite"
           >
@@ -79,7 +79,7 @@ export default function App() {
         ) : null}
 
         {!authed ? (
-          <p className="mt-8 text-center text-sm text-te-muted">
+          <p className="text-te-muted mt-8 text-center text-sm">
             Logga in för att se schema, rum och dina bokningar.
           </p>
         ) : (
@@ -90,9 +90,9 @@ export default function App() {
           </QueryErrorBoundary>
         )}
 
-        <footer className="mt-16 border-t border-te-border pt-6 text-center text-xs text-te-muted">
+        <footer className="border-te-border text-te-muted mt-16 border-t pt-6 text-center text-xs">
           <a
-            className="font-medium text-te-accent underline-offset-4 hover:underline"
+            className="text-te-accent font-medium underline-offset-4 hover:underline"
             href={API_BASE}
             target="_blank"
             rel="noreferrer"

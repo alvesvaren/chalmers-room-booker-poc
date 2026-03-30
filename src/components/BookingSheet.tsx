@@ -339,26 +339,26 @@ function BookingSheetForm({
       }}
     >
       <div
-        className="absolute inset-0 bg-te-text/25 backdrop-blur-[2px]"
+        className="bg-te-text/25 absolute inset-0 backdrop-blur-[2px]"
         aria-hidden
       />
       <div
-        className="relative z-10 flex max-h-[min(92vh,760px)] w-full min-w-0 max-w-[min(32rem,100vw)] flex-col overflow-x-hidden rounded-t-2xl border border-te-border bg-te-surface shadow-2xl sm:max-h-[90vh] sm:rounded-2xl"
+        className="border-te-border bg-te-surface relative z-10 flex max-h-[min(92vh,760px)] w-full max-w-[min(32rem,100vw)] min-w-0 flex-col overflow-x-hidden rounded-t-2xl border shadow-2xl sm:max-h-[90vh] sm:rounded-2xl"
         role="dialog"
         aria-modal="true"
         aria-labelledby="booking-sheet-title"
       >
-        <div className="flex min-w-0 items-start justify-between gap-4 border-b border-te-border px-5 py-4">
+        <div className="border-te-border flex min-w-0 items-start justify-between gap-4 border-b px-5 py-4">
           <div className="min-w-0 flex-1">
             <h2
               id="booking-sheet-title"
-              className="font-display text-lg font-semibold tracking-tight text-te-text"
+              className="font-display text-te-text text-lg font-semibold tracking-tight"
             >
               Ny bokning
             </h2>
             {roomName ? (
               <p
-                className="mt-0.5 truncate text-sm text-te-muted"
+                className="text-te-muted mt-0.5 truncate text-sm"
                 title={roomName}
               >
                 {roomName}
@@ -368,7 +368,7 @@ function BookingSheetForm({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-1.5 text-te-muted hover:bg-te-accent-muted hover:text-te-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-te-accent"
+            className="text-te-muted hover:bg-te-accent-muted hover:text-te-text focus-visible:outline-te-accent rounded-lg p-1.5 focus-visible:outline-2"
             aria-label="Stäng"
           >
             ✕
@@ -376,7 +376,7 @@ function BookingSheetForm({
         </div>
 
         <form
-          className="flex min-h-0 min-w-0 flex-1 flex-col gap-5 overflow-y-auto overflow-x-hidden px-5 py-4"
+          className="flex min-h-0 min-w-0 flex-1 flex-col gap-5 overflow-x-hidden overflow-y-auto px-5 py-4"
           onSubmit={(e) => {
             e.preventDefault();
             clearClientError();
@@ -411,7 +411,7 @@ function BookingSheetForm({
           }}
         >
           <label className="grid gap-1 text-sm">
-            <span className="font-medium text-te-text">Titel</span>
+            <span className="text-te-text font-medium">Titel</span>
             <input
               className={inputClass}
               value={title}
@@ -428,12 +428,12 @@ function BookingSheetForm({
               className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-end sm:justify-between sm:gap-2"
               aria-live="polite"
             >
-              <span className="shrink-0 text-xs font-semibold uppercase tracking-[0.12em] text-te-muted">
+              <span className="text-te-muted shrink-0 text-xs font-semibold tracking-[0.12em] uppercase">
                 Tid
               </span>
-              <span className="min-w-0 break-anywhere font-mono text-xs tabular-nums text-te-text sm:text-right">
+              <span className="break-anywhere text-te-text min-w-0 font-mono text-xs tabular-nums sm:text-right">
                 {startTime}–{endTime}
-                <span className="ml-2 text-te-muted">({durationMin} min)</span>
+                <span className="text-te-muted ml-2">({durationMin} min)</span>
               </span>
             </div>
             <div
@@ -460,8 +460,8 @@ function BookingSheetForm({
                 placeBookingAtTrackClick(e.clientX);
               }}
             >
-              <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-lg bg-te-border/25">
-                <div className="absolute inset-x-0 top-0 flex justify-between px-1 pt-1 text-[9px] font-medium uppercase tracking-wider text-te-muted/80">
+              <div className="bg-te-border/25 pointer-events-none absolute inset-0 overflow-hidden rounded-lg">
+                <div className="text-te-muted/80 absolute inset-x-0 top-0 flex justify-between px-1 pt-1 text-[9px] font-medium tracking-wider uppercase">
                   <span>07</span>
                   <span>13</span>
                   <span>22</span>
@@ -489,7 +489,7 @@ function BookingSheetForm({
                     <div
                       key={`busy-${b.start.getTime()}-${i}`}
                       title={slotTitle}
-                      className={`absolute bottom-1 top-4 z-[1] flex items-center justify-center overflow-hidden rounded-sm px-0.5 shadow-inner ${
+                      className={`absolute top-4 bottom-1 z-1 flex items-center justify-center overflow-hidden rounded-sm px-0.5 shadow-inner ${
                         mine ? "bg-te-mine-busy/85" : "bg-te-busy-strong/85"
                       }`}
                       style={{
@@ -499,7 +499,7 @@ function BookingSheetForm({
                     >
                       {b.label ? (
                         <span
-                          className={`truncate text-center font-display text-[0.55rem] font-semibold leading-tight sm:text-[0.6rem] ${
+                          className={`font-display truncate text-center text-[0.55rem] leading-tight font-semibold sm:text-[0.6rem] ${
                             mine
                               ? "text-te-mine-busy-text"
                               : "text-white drop-shadow-sm"
@@ -514,7 +514,7 @@ function BookingSheetForm({
               </div>
               <div
                 data-booking-preview-root
-                className="absolute bottom-1 top-4 z-10"
+                className="absolute top-4 bottom-1 z-10"
                 style={{
                   left: `${leftPct}%`,
                   width: `${previewWidthPct}%`,
@@ -527,10 +527,10 @@ function BookingSheetForm({
                   style={{ right: "100%" }}
                   onPointerDown={(e) => onPointerDownBar("resize-start", e)}
                 >
-                  <span className="pointer-events-none h-[62%] w-px rounded-full bg-te-accent shadow-[0_0_0_1px_rgba(0,0,0,0.07)]" />
+                  <span className="bg-te-accent pointer-events-none h-[62%] w-px rounded-full shadow-[0_0_0_1px_rgba(0,0,0,0.07)]" />
                 </button>
                 <div
-                  className="te-booking-preview-bar flex h-full min-h-0 w-full min-w-0 cursor-grab touch-manipulation select-none items-center justify-center rounded-md border border-te-accent/35 bg-te-free-hover px-1 active:cursor-grabbing"
+                  className="te-booking-preview-bar border-te-accent/35 bg-te-free-hover flex h-full min-h-0 w-full min-w-0 cursor-grab touch-manipulation items-center justify-center rounded-md border px-1 select-none active:cursor-grabbing"
                   onPointerDown={(e) => onPointerDownBar("move", e)}
                   aria-label={
                     title.trim()
@@ -539,7 +539,7 @@ function BookingSheetForm({
                   }
                 >
                   {title.trim() ? (
-                    <span className="pointer-events-none truncate text-center font-display text-[0.6rem] font-semibold leading-tight tracking-tight text-te-accent drop-shadow-sm sm:text-[0.68rem] sm:leading-tight">
+                    <span className="font-display text-te-accent pointer-events-none truncate text-center text-[0.6rem] leading-tight font-semibold tracking-tight drop-shadow-sm sm:text-[0.68rem] sm:leading-tight">
                       {title.trim()}
                     </span>
                   ) : null}
@@ -551,14 +551,14 @@ function BookingSheetForm({
                   style={{ left: "100%" }}
                   onPointerDown={(e) => onPointerDownBar("resize-end", e)}
                 >
-                  <span className="pointer-events-none h-[62%] w-px rounded-full bg-te-accent shadow-[0_0_0_1px_rgba(0,0,0,0.07)]" />
+                  <span className="bg-te-accent pointer-events-none h-[62%] w-px rounded-full shadow-[0_0_0_1px_rgba(0,0,0,0.07)]" />
                 </button>
               </div>
             </div>
           </section>
 
           <label className="grid gap-1 text-sm">
-            <span className="font-medium text-te-text">Datum</span>
+            <span className="text-te-text font-medium">Datum</span>
             <input
               className={inputClass}
               type="date"
@@ -573,7 +573,7 @@ function BookingSheetForm({
           </label>
 
           <div className="grid gap-2">
-            <span className="text-sm font-medium text-te-text">
+            <span className="text-te-text text-sm font-medium">
               Längd (snabbval)
             </span>
             <div className="flex flex-wrap gap-2">
@@ -599,7 +599,7 @@ function BookingSheetForm({
 
           <div className="grid gap-2 sm:grid-cols-2">
             <label className="grid gap-1 text-sm">
-              <span className="font-medium text-te-text">Starttid</span>
+              <span className="text-te-text font-medium">Starttid</span>
               <input
                 className={inputClass + " font-mono text-base sm:text-xs"}
                 value={startTime}
@@ -614,7 +614,7 @@ function BookingSheetForm({
               />
             </label>
             <label className="grid gap-1 text-sm">
-              <span className="font-medium text-te-text">Sluttid</span>
+              <span className="text-te-text font-medium">Sluttid</span>
               <input
                 className={inputClass + " font-mono text-base sm:text-xs"}
                 value={endTime}
@@ -629,10 +629,10 @@ function BookingSheetForm({
             </label>
           </div>
 
-          <div className="border-t border-te-border pt-3">
+          <div className="border-te-border border-t pt-3">
             <button
               type="button"
-              className="text-xs font-medium text-te-accent hover:underline"
+              className="text-te-accent text-xs font-medium hover:underline"
               onClick={() => setShowAdvanced((s) => !s)}
             >
               {showAdvanced ? "Dölj" : "Rums-id"}
@@ -651,13 +651,13 @@ function BookingSheetForm({
           </div>
 
           {clientError ? (
-            <p className="text-sm text-te-danger" role="alert">
+            <p className="text-te-danger text-sm" role="alert">
               {clientError}
             </p>
           ) : null}
           {error ? (
             <p
-              className="text-sm text-te-danger"
+              className="text-te-danger text-sm"
               role="alert"
               aria-live="polite"
             >
@@ -665,7 +665,7 @@ function BookingSheetForm({
             </p>
           ) : null}
 
-          <div className="mt-auto flex flex-wrap justify-end gap-2 border-t border-te-border pt-4">
+          <div className="border-te-border mt-auto flex flex-wrap justify-end gap-2 border-t pt-4">
             <Button type="button" variant="secondary" onClick={onClose}>
               Avbryt
             </Button>

@@ -41,8 +41,8 @@ export function RoomWeekCard({
   const rr = getRoomRating(room.name);
 
   return (
-    <article className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-te-border bg-te-elevated shadow-sm transition-[box-shadow] duration-200 hover:border-te-accent/25 hover:shadow-md">
-      <div className="flex flex-col gap-3 border-b border-te-border/80 px-4 py-4 sm:flex-row sm:items-start sm:justify-between sm:px-5 sm:py-4">
+    <article className="border-te-border bg-te-elevated hover:border-te-accent/25 flex h-full min-h-0 flex-col overflow-hidden rounded-xl border shadow-sm transition-shadow duration-200 hover:shadow-md">
+      <div className="border-te-border/80 flex flex-col gap-3 border-b px-4 py-4 sm:flex-row sm:items-start sm:justify-between sm:px-5 sm:py-4">
         <button
           type="button"
           className="min-w-0 flex-1 text-left"
@@ -54,24 +54,24 @@ export function RoomWeekCard({
               : `Visa tidslinje för ${room.name}`
           }
         >
-          <span className="block font-display text-lg font-semibold leading-tight tracking-tight text-te-text sm:text-xl">
+          <span className="font-display text-te-text block text-lg leading-tight font-semibold tracking-tight sm:text-xl">
             {room.name}
           </span>
-          <span className="mt-2 block text-sm text-te-muted">
-            <span className="font-medium text-te-text/90">{room.campus}</span>
+          <span className="text-te-muted mt-2 block text-sm">
+            <span className="text-te-text/90 font-medium">{room.campus}</span>
             <span
               aria-hidden
-              className="mx-2 inline-block h-3 w-px translate-y-px bg-te-border align-middle"
+              className="bg-te-border mx-2 inline-block h-3 w-px translate-y-px align-middle"
             />
             <span className="tabular-nums">{room.capacity ?? "—"} platser</span>
             {rr != null ? (
               <>
                 <span
                   aria-hidden
-                  className="mx-2 inline-block h-3 w-px translate-y-px bg-te-border align-middle"
+                  className="bg-te-border mx-2 inline-block h-3 w-px translate-y-px align-middle"
                 />
                 <span
-                  className="cursor-help font-display text-base font-semibold tabular-nums text-te-accent"
+                  className="font-display text-te-accent cursor-help text-base font-semibold tabular-nums"
                   title={rr.comment}
                 >
                   {rr.overall.toLocaleString("sv-SE", {
@@ -102,7 +102,7 @@ export function RoomWeekCard({
 
       {open ? (
         <div className="space-y-3 px-4 py-4 sm:px-5">
-          <div className="ml-12 hidden justify-between text-[10px] font-medium uppercase tracking-wider text-te-muted sm:flex">
+          <div className="text-te-muted ml-12 hidden justify-between text-[10px] font-medium tracking-wider uppercase sm:flex">
             <span>07</span>
             <span>10</span>
             <span>13</span>
@@ -116,13 +116,13 @@ export function RoomWeekCard({
               key={day.dateStr}
               className="grid grid-cols-1 gap-2 sm:grid-cols-[auto_1fr] sm:items-center"
             >
-              <div className="text-xs font-medium capitalize text-te-muted sm:w-14">
-                <span className="sm:hidden text-te-text">
+              <div className="text-te-muted text-xs font-medium capitalize sm:w-14">
+                <span className="text-te-text sm:hidden">
                   {day.weekdayShort} {formatLocalDate(day.date)}{" "}
                 </span>
                 <span className="hidden sm:inline">{day.weekdayShort}</span>
               </div>
-              <div className="relative h-9 overflow-hidden rounded-lg bg-te-border/25">
+              <div className="bg-te-border/25 relative h-9 overflow-hidden rounded-lg">
                 {day.free.flatMap((g, i) => {
                   const { past, future } = splitFreeGapForDisplay(g, now);
                   const els: ReactNode[] = [];
@@ -136,7 +136,7 @@ export function RoomWeekCard({
                       <div
                         key={`${day.dateStr}-past-${i}`}
                         title="Passerad tid"
-                        className="pointer-events-none absolute inset-y-1 z-0 rounded border border-te-border/40 bg-te-border/50"
+                        className="border-te-border/40 bg-te-border/50 pointer-events-none absolute inset-y-1 z-0 rounded border"
                         style={{
                           left: `${leftPct}%`,
                           width: `${Math.max(widthPct, 0.6)}%`,
@@ -156,7 +156,7 @@ export function RoomWeekCard({
                         key={`${day.dateStr}-fut-${i}`}
                         type="button"
                         title={`Boka ${label}`}
-                        className="absolute inset-y-1 z-0 rounded border border-te-accent/25 bg-te-free-hover hover:bg-te-accent-muted"
+                        className="border-te-accent/25 bg-te-free-hover hover:bg-te-accent-muted absolute inset-y-1 z-0 rounded border"
                         style={{
                           left: `${leftPct}%`,
                           width: `${Math.max(widthPct, 1.2)}%`,
@@ -191,7 +191,7 @@ export function RoomWeekCard({
                     <div
                       key={`b-${i}`}
                       title={title}
-                      className={`absolute inset-y-1 z-10 flex cursor-default items-center justify-center overflow-hidden rounded-sm px-0.5 shadow-inner pointer-events-auto ${
+                      className={`pointer-events-auto absolute inset-y-1 z-10 flex cursor-default items-center justify-center overflow-hidden rounded-sm px-0.5 shadow-inner ${
                         mine ? "bg-te-mine-busy/85" : "bg-te-busy-strong/85"
                       }`}
                       style={{
@@ -201,7 +201,7 @@ export function RoomWeekCard({
                     >
                       {b.label ? (
                         <span
-                          className={`truncate text-center font-display text-[0.55rem] font-semibold leading-tight sm:text-[0.62rem] ${
+                          className={`font-display truncate text-center text-[0.55rem] leading-tight font-semibold sm:text-[0.62rem] ${
                             mine
                               ? "text-te-mine-busy-text drop-shadow-none"
                               : "text-white drop-shadow-sm"

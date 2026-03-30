@@ -223,7 +223,7 @@ export function AuthenticatedWorkspace() {
           role="tabpanel"
           id={`panel-${activeTab}`}
           aria-labelledby={`tab-${activeTab}`}
-          className="rounded-2xl border border-te-border bg-te-surface p-5 shadow-sm sm:p-8"
+          className="border-te-border bg-te-surface rounded-2xl border p-5 shadow-sm sm:p-8"
         >
           {activeTab === "schedule" ? (
             <ScheduleTab
@@ -301,7 +301,7 @@ export function AuthenticatedWorkspace() {
 
       {toast ? (
         <div
-          className="fixed bottom-6 left-1/2 z-[60] max-w-md -translate-x-1/2 rounded-xl border border-te-border bg-te-elevated px-4 py-3 text-sm text-te-text shadow-lg"
+          className="border-te-border bg-te-elevated text-te-text fixed bottom-6 left-1/2 z-60 max-w-md -translate-x-1/2 rounded-xl border px-4 py-3 text-sm shadow-lg"
           role="status"
           aria-live="polite"
         >

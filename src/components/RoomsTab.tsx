@@ -212,25 +212,25 @@ export function RoomsTab({
 
   return (
     <div className="te-reveal te-reveal-delay-1 space-y-6">
-      <h2 className="font-display text-xl font-semibold text-te-text">Rum</h2>
+      <h2 className="font-display text-te-text text-xl font-semibold">Rum</h2>
 
       <div className={slotPanelClass}>
-        <label className="flex cursor-pointer select-none items-start gap-3">
+        <label className="flex cursor-pointer items-start gap-3 select-none">
           <input
             type="checkbox"
-            className="mt-1 size-4 shrink-0 rounded border-te-border text-te-accent focus:ring-te-accent/30"
+            className="border-te-border text-te-accent focus:ring-te-accent/30 mt-1 size-4 shrink-0 rounded"
             checked={slotFilterActive}
             onChange={(e) => setSlotFilterActiveSynced(e.target.checked)}
           />
-          <span className="font-display text-sm font-semibold text-te-text">
+          <span className="font-display text-te-text text-sm font-semibold">
             Ledig vid tid
           </span>
         </label>
 
         {slotFilterActive ? (
-          <div className="mt-4 grid gap-3 border-t border-te-border/60 pt-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="border-te-border/60 mt-4 grid gap-3 border-t pt-4 sm:grid-cols-2 lg:grid-cols-4">
             <label className="flex min-w-0 flex-col gap-1 text-sm">
-              <span className="font-medium text-te-muted">Dag</span>
+              <span className="text-te-muted font-medium">Dag</span>
               <input
                 type="date"
                 className={fieldClass}
@@ -240,7 +240,7 @@ export function RoomsTab({
               />
             </label>
             <label className="flex min-w-0 flex-col gap-1 text-sm">
-              <span className="font-medium text-te-muted">Start</span>
+              <span className="text-te-muted font-medium">Start</span>
               <input
                 type="time"
                 className={fieldClass}
@@ -249,7 +249,7 @@ export function RoomsTab({
               />
             </label>
             <label className="flex min-w-0 flex-col gap-1 text-sm">
-              <span className="font-medium text-te-muted">Längd (min)</span>
+              <span className="text-te-muted font-medium">Längd (min)</span>
               <input
                 type="number"
                 min={15}
@@ -265,8 +265,8 @@ export function RoomsTab({
               />
             </label>
             <div className="flex min-w-0 flex-col justify-end gap-1 text-sm">
-              <span className="font-medium text-te-muted">Intervall</span>
-              <p className="rounded-lg border border-dashed border-te-border/80 bg-te-surface/80 px-3 py-2.5 tabular-nums text-te-text sm:py-2">
+              <span className="text-te-muted font-medium">Intervall</span>
+              <p className="border-te-border/80 bg-te-surface/80 text-te-text rounded-lg border border-dashed px-3 py-2.5 tabular-nums sm:py-2">
                 {slotInterval && !slotInterval.crossesDay ? (
                   <>
                     {slotStartTime} – {slotInterval.endTime}
@@ -285,7 +285,7 @@ export function RoomsTab({
 
         {slotBookingsPending ? (
           <div
-            className="mt-4 space-y-3 border-t border-te-border/60 pt-4"
+            className="border-te-border/60 mt-4 space-y-3 border-t pt-4"
             role="status"
             aria-live="polite"
             aria-busy="true"
@@ -302,7 +302,7 @@ export function RoomsTab({
       <div className="space-y-4">
         <div className={filterGrid}>
           <label className="flex min-w-0 flex-col gap-1 text-sm">
-            <span className="font-medium text-te-muted">Namn</span>
+            <span className="text-te-muted font-medium">Namn</span>
             <input
               className={fieldClass}
               value={search}
@@ -311,7 +311,7 @@ export function RoomsTab({
             />
           </label>
           <label className="flex min-w-0 flex-col gap-1 text-sm">
-            <span className="font-medium text-te-muted">Campus</span>
+            <span className="text-te-muted font-medium">Campus</span>
             <select
               className={fieldClass}
               value={campusPick}
@@ -326,7 +326,7 @@ export function RoomsTab({
             </select>
           </label>
           <label className="flex min-w-0 flex-col gap-1 text-sm sm:col-span-2 lg:col-span-1">
-            <span className="font-medium text-te-muted">Sortera</span>
+            <span className="text-te-muted font-medium">Sortera</span>
             <select
               className={fieldClass}
               value={sort}
@@ -359,7 +359,7 @@ export function RoomsTab({
             {Array.from({ length: 8 }).map((_, i) => (
               <div
                 key={i}
-                className="flex min-h-60 min-w-0 flex-col rounded-xl border border-te-border/80 bg-te-elevated/40 p-4 sm:p-5"
+                className="border-te-border/80 bg-te-elevated/40 flex min-h-60 min-w-0 flex-col rounded-xl border p-4 sm:p-5"
               >
                 <Skeleton className="h-3 w-16 rounded" />
                 <Skeleton className="mt-4 h-7 w-4/5 max-w-48 rounded-md" />
@@ -373,7 +373,7 @@ export function RoomsTab({
       ) : (
         <div className={roomGridClass}>
           {filtered.length === 0 ? (
-            <div className="col-span-full rounded-xl border border-dashed border-te-border bg-te-elevated/50 px-4 py-12 text-center text-sm text-te-muted">
+            <div className="border-te-border bg-te-elevated/50 text-te-muted col-span-full rounded-xl border border-dashed px-4 py-12 text-center text-sm">
               {slotFilterActive && slotInterval?.crossesDay
                 ? "Intervallet är för långt för en kalenderdag — minska längden."
                 : slotFilterActive
@@ -394,17 +394,17 @@ export function RoomsTab({
               return (
                 <article
                   key={room.id}
-                  className="group flex h-full min-h-60 min-w-0 flex-col rounded-xl border border-te-border bg-te-elevated p-4 shadow-sm transition-shadow duration-200 hover:border-te-accent/25 hover:shadow-md sm:p-5"
+                  className="group border-te-border bg-te-elevated hover:border-te-accent/25 flex h-full min-h-60 min-w-0 flex-col rounded-xl border p-4 shadow-sm transition-shadow duration-200 hover:shadow-md sm:p-5"
                 >
                   <div className="min-h-0 min-w-0 flex-1 space-y-4">
                     <header className="min-w-0">
-                      <h3 className="font-display text-xl font-semibold leading-[1.15] tracking-tight text-te-text sm:text-2xl">
+                      <h3 className="font-display text-te-text text-xl leading-[1.15] font-semibold tracking-tight sm:text-2xl">
                         {room.name}
                       </h3>
                     </header>
 
                     {fetchFailed ? (
-                      <p className="text-xs font-medium text-te-danger">
+                      <p className="text-te-danger text-xs font-medium">
                         Kunde inte ladda TimeEdit-schema för detta rum.
                       </p>
                     ) : null}
@@ -413,14 +413,14 @@ export function RoomsTab({
                     slotInterval &&
                     !slotInterval.crossesDay &&
                     !fetchFailed ? (
-                      <p className="text-xs font-medium text-te-accent">
+                      <p className="text-te-accent text-xs font-medium">
                         Ledig {slotStartTime} – {slotInterval.endTime}
                       </p>
                     ) : null}
 
                     {rr != null ? (
                       <span
-                        className="font-display text-3xl font-semibold leading-none tabular-nums text-te-accent sm:text-[2.35rem]"
+                        className="font-display text-te-accent text-3xl leading-none font-semibold tabular-nums sm:text-[2.35rem]"
                         title={rr.comment}
                       >
                         {betyg}
@@ -428,15 +428,15 @@ export function RoomsTab({
                     ) : null}
 
                     <p
-                      className="text-sm leading-snug text-te-muted"
+                      className="text-te-muted text-sm leading-snug"
                       title={`${room.campus} · ${room.capacity ?? "—"} platser`}
                     >
-                      <span className="font-medium text-te-text/95">
+                      <span className="text-te-text/95 font-medium">
                         {room.campus}
                       </span>
                       <span
                         aria-hidden
-                        className="mx-2 inline-block h-3 w-px translate-y-px bg-te-border align-middle"
+                        className="bg-te-border mx-2 inline-block h-3 w-px translate-y-px align-middle"
                       />
                       <span className="tabular-nums">
                         {room.capacity ?? "—"} platser

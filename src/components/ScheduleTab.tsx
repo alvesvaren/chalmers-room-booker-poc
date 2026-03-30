@@ -78,10 +78,10 @@ export function ScheduleTab({
     <div className={`te-reveal te-reveal-delay-1 space-y-6 ${panelBusyClass}`}>
       <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
         <div>
-          <h2 className="font-display text-xl font-semibold text-te-text">
+          <h2 className="font-display text-te-text text-xl font-semibold">
             Veckoschema
           </h2>
-          <p className="mt-1 text-sm text-te-muted">{label}</p>
+          <p className="text-te-muted mt-1 text-sm">{label}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button
@@ -111,7 +111,7 @@ export function ScheduleTab({
       <div className="space-y-4">
         <div className={filterGrid}>
           <label className="flex min-w-0 flex-col gap-1 text-sm">
-            <span className="font-medium text-te-muted">Campus</span>
+            <span className="text-te-muted font-medium">Campus</span>
             <input
               className={inputClass}
               value={campusFilter}
@@ -120,7 +120,7 @@ export function ScheduleTab({
             />
           </label>
           <label className="flex min-w-0 flex-col gap-1 text-sm">
-            <span className="font-medium text-te-muted">Namn</span>
+            <span className="text-te-muted font-medium">Namn</span>
             <input
               className={inputClass}
               value={qFilter}
@@ -152,11 +152,11 @@ export function ScheduleTab({
       ) : null}
 
       {bookings.bookingRules ? (
-        <div className="rounded-xl border border-te-border bg-te-surface">
+        <div className="border-te-border bg-te-surface rounded-xl border">
           <button
             type="button"
             id={rulesId}
-            className="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-medium text-te-text"
+            className="text-te-text flex w-full items-center justify-between px-4 py-3 text-left text-sm font-medium"
             aria-expanded={rulesOpen}
             onClick={() => setRulesOpen((o) => !o)}
           >
@@ -164,7 +164,7 @@ export function ScheduleTab({
             <span className="text-te-muted">{rulesOpen ? "▼" : "►"}</span>
           </button>
           {rulesOpen ? (
-            <div className="max-h-48 overflow-y-auto border-t border-te-border px-4 py-3 text-sm leading-relaxed text-te-muted">
+            <div className="border-te-border text-te-muted max-h-48 overflow-y-auto border-t px-4 py-3 text-sm leading-relaxed">
               {bookings.bookingRules}
             </div>
           ) : null}
@@ -173,7 +173,7 @@ export function ScheduleTab({
 
       <div className={scheduleGridClass}>
         {roomsSorted.length === 0 ? (
-          <div className="col-span-full rounded-xl border border-dashed border-te-border bg-te-elevated/50 px-4 py-12 text-center text-sm text-te-muted">
+          <div className="border-te-border bg-te-elevated/50 text-te-muted col-span-full rounded-xl border border-dashed px-4 py-12 text-center text-sm">
             Inga rum för denna filtrering.
           </div>
         ) : (

@@ -22,10 +22,10 @@ function ScheduleWeekCardSkeleton({ dayPattern }: { dayPattern: number }) {
 
   return (
     <article
-      className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-te-border bg-te-elevated shadow-sm"
+      className="border-te-border bg-te-elevated flex h-full min-h-0 flex-col overflow-hidden rounded-xl border shadow-sm"
       aria-hidden
     >
-      <div className="flex flex-col gap-3 border-b border-te-border/80 px-4 py-4 sm:flex-row sm:items-start sm:justify-between sm:px-5 sm:py-4">
+      <div className="border-te-border/80 flex flex-col gap-3 border-b px-4 py-4 sm:flex-row sm:items-start sm:justify-between sm:px-5 sm:py-4">
         <div className="min-w-0 flex-1 space-y-2.5">
           <Skeleton className="h-3 w-16 rounded" />
           <Skeleton className="h-7 w-3/5 max-w-xs rounded-md" />
@@ -50,7 +50,7 @@ function ScheduleWeekCardSkeleton({ dayPattern }: { dayPattern: number }) {
               className="grid grid-cols-1 gap-2 sm:grid-cols-[auto_1fr] sm:items-center"
             >
               <Skeleton className="h-4 w-24 rounded sm:w-14" />
-              <div className="relative h-9 overflow-hidden rounded-lg bg-te-border/20">
+              <div className="bg-te-border/20 relative h-9 overflow-hidden rounded-lg">
                 {segments.map(([left, width], j) => (
                   <Skeleton
                     key={j}
