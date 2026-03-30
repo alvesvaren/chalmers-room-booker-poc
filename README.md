@@ -1,73 +1,39 @@
-# React + TypeScript + Vite
+# Chalmers room booker (POC)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A small web app to browse Chalmers study rooms, see weekly availability on a schedule, filter by campus and capacity, and book time slots. Sign-in stores a JWT in `sessionStorage` for the session.
 
-Currently, two official plugins are available:
+**Stack:** React 19, Vite, TypeScript, Tailwind CSS 4, TanStack Query. The HTTP client and query hooks are generated from the TimeEdit OpenAPI spec with [`@hey-api/openapi-ts`](https://heyapi.dev/).
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## API
 
-## React Compiler
+The UI talks to **`https://timeedit.svaren.dev`** (see `API_BASE` in `src/App.tsx`). Types and clients are generated from **`/openapi`**.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Development
 
-## Expanding the ESLint configuration
+Use [pnpm](https://pnpm.io/) for installs and scripts.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+pnpm install
+pnpm dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Build
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+pnpm build
 ```
+
+The build runs `gen:room-ratings` (bundles room rating data), then TypeScript and Vite.
+
+## Other scripts
+
+| Command | Purpose |
+|--------|---------|
+| `pnpm lint` | ESLint |
+| `pnpm preview` | Preview production build |
+| `pnpm openapi-ts` | Regenerate `src/client` from the OpenAPI URL (`openapi-ts.config.ts`) |
+| `pnpm gen:room-ratings` | Regenerate `src/data/roomRatings.gen.ts` |
+
+## Scope
+
+This repository is a proof-of-concept / demo; it is not an official Chalmers product.

@@ -23,7 +23,7 @@ import type { TimeInterval } from "./lib/weekTimeline";
 import { firstFreeGapInWeek, getWeekRange, roomAvailableForInterval, toBookingDraft, weekOffsetForLocalDate } from "./lib/weekTimeline";
 
 const STORAGE_KEY = "timeedit-demo-jwt";
-export const API_BASE = "https://timeedit-api-wrapper.vercel.app";
+export const API_BASE = "https://timeedit.svaren.dev";
 
 function clampInt(n: number, lo: number, hi: number) {
   return Math.min(hi, Math.max(lo, n));
@@ -46,7 +46,7 @@ function roomWithBookingsFor(room: Room, scheduleRooms: RoomWithBookings[] | und
 export default function App() {
   const [token, setToken] = useState(() => {
     try {
-      return sessionStorage.getItem(STORAGE_KEY) ?? "";
+      return localStorage.getItem(STORAGE_KEY) ?? "";
     } catch {
       return "";
     }
@@ -73,8 +73,8 @@ export default function App() {
       auth: () => token || undefined,
     });
     try {
-      if (token) sessionStorage.setItem(STORAGE_KEY, token);
-      else sessionStorage.removeItem(STORAGE_KEY);
+      if (token) localStorage.setItem(STORAGE_KEY, token);
+      else localStorage.removeItem(STORAGE_KEY);
     } catch {
       /* ignore storage */
     }
