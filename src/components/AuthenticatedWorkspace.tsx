@@ -1,9 +1,4 @@
-import {
-  keepPreviousData,
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useState, useTransition } from "react";
 import {
   deleteApiMyBookingsByIdMutation,
@@ -81,20 +76,35 @@ export function AuthenticatedWorkspace() {
         q: qFilter.trim() || undefined,
       },
     }),
-    placeholderData: keepPreviousData,
+    placeholderData: (previousData, previousQuery) => {
+      if (!previousData || !previousQuery) return undefined;
+      const prev = previousQuery.queryKey[0] as {
+        query?: { weekOffset?: string };
+      };
+      if (prev?.query?.weekOffset !== String(effectiveBookingsWeekOffset)) {
+        return undefined;
+      }
+      return previousData;
+    },
   });
 
   const myBookingsQuery = useQuery({
     ...getApiMyBookingsOptions(),
   });
 
-  const roomsIsRevalidating = roomsQuery.isFetching && !roomsQuery.isPending;
-  const bookingsIsRevalidating =
+  const roomsUiStale =
+    Boolean(roomsQuery.data) &&
+    roomsQuery.isFetching &&
+    roomsQuery.isStale;
+  const bookingsUiStale =
+    Boolean(bookingsQuery.data) &&
+    !bookingsQuery.isPlaceholderData &&
     bookingsQuery.isFetching &&
-    !bookingsQuery.isPending &&
-    !bookingsQuery.isPlaceholderData;
-  const myBookingsIsRevalidating =
-    myBookingsQuery.isFetching && !myBookingsQuery.isPending;
+    bookingsQuery.isStale;
+  const myBookingsUiStale =
+    Boolean(myBookingsQuery.data) &&
+    myBookingsQuery.isFetching &&
+    myBookingsQuery.isStale;
 
   const capacityBounds = capacitySliderBounds(roomsQuery.data);
   const capacityDisplay = displayCapacityRange(capacityBounds, capacityRange);
@@ -303,10 +313,10 @@ export function AuthenticatedWorkspace() {
               onCapacityRangeChange={setCapacityRange}
               bookings={bookingsQuery.data}
               bookingsIsFetching={bookingsQuery.isFetching}
-              bookingsIsRevalidating={bookingsIsRevalidating}
+              bookingsUiStale={bookingsUiStale}
               bookingsFailed={bookingsQuery.isError}
               myBookings={myBookingsQuery.data}
-              myBookingsIsRevalidating={myBookingsIsRevalidating}
+              myBookingsUiStale={myBookingsUiStale}
               onPickFree={handlePickFree}
               onBookRoom={handleBookRoomFromSchedule}
               isTabActive={activeTab === "schedule"}
@@ -317,10 +327,10 @@ export function AuthenticatedWorkspace() {
             <RoomsTab
               rooms={roomsQuery.data}
               roomsIsFetching={roomsQuery.isFetching}
-              roomsIsRevalidating={roomsIsRevalidating}
+              roomsUiStale={roomsUiStale}
               bookings={bookingsQuery.data}
               bookingsIsFetching={bookingsQuery.isFetching}
-              bookingsIsRevalidating={bookingsIsRevalidating}
+              bookingsUiStale={bookingsUiStale}
               bookingsWeekStart={weekStart}
               bookingsWeekEnd={weekEnd}
               onRoomsAvailabilityDateChange={setRoomsAvailabilityDate}
@@ -338,7 +348,7 @@ export function AuthenticatedWorkspace() {
             <MyBookingsTab
               myBookings={myBookingsQuery.data}
               loadPending={myBookingsQuery.isPending}
-              revalidating={myBookingsIsRevalidating}
+              uiStale={myBookingsUiStale}
               cancelMutation={cancelMutation}
               onCancelRequest={handleCancelBooking}
               cancelError={cancelMutation.isError ? cancelMutation.error : null}

@@ -21,10 +21,10 @@ type SortKey = "rating" | "name" | "campus" | "capacity";
 export function RoomsTab({
   rooms,
   roomsIsFetching,
-  roomsIsRevalidating,
+  roomsUiStale,
   bookings,
   bookingsIsFetching,
-  bookingsIsRevalidating,
+  bookingsUiStale,
   bookingsWeekStart,
   bookingsWeekEnd,
   onRoomsAvailabilityDateChange,
@@ -38,10 +38,10 @@ export function RoomsTab({
 }: {
   rooms: Room[] | undefined;
   roomsIsFetching: boolean;
-  roomsIsRevalidating: boolean;
+  roomsUiStale: boolean;
   bookings: AllRoomsBookings | undefined;
   bookingsIsFetching: boolean;
-  bookingsIsRevalidating: boolean;
+  bookingsUiStale: boolean;
   bookingsWeekStart: Date;
   bookingsWeekEnd: Date;
   onRoomsAvailabilityDateChange: (date: string | null) => void;
@@ -216,13 +216,13 @@ export function RoomsTab({
 
   const slotBookingsInitialLoad =
     slotFilterActive && bookings == null && bookingsIsFetching;
-  const slotBookingsRevalidating =
-    slotFilterActive && bookings != null && bookingsIsRevalidating;
+  const slotBookingsStaleUi =
+    slotFilterActive && bookings != null && bookingsUiStale;
 
   const roomsLoadPending = rooms == null && roomsIsFetching;
 
   const roomGridStaleClass =
-    roomsIsRevalidating || slotBookingsRevalidating || bookingsIsRevalidating
+    roomsUiStale || slotBookingsStaleUi || bookingsUiStale
       ? "opacity-60 saturate-[0.85] transition-[opacity,filter] duration-150"
       : "";
 

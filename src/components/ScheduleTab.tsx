@@ -30,10 +30,10 @@ export function ScheduleTab({
   onCapacityRangeChange,
   bookings,
   bookingsIsFetching,
-  bookingsIsRevalidating,
+  bookingsUiStale,
   bookingsFailed,
   myBookings,
-  myBookingsIsRevalidating,
+  myBookingsUiStale,
   onPickFree,
   onBookRoom,
   isTabActive,
@@ -50,10 +50,10 @@ export function ScheduleTab({
   onCapacityRangeChange: (next: { min: number; max: number }) => void;
   bookings: AllRoomsBookings | undefined;
   bookingsIsFetching: boolean;
-  bookingsIsRevalidating: boolean;
+  bookingsUiStale: boolean;
   bookingsFailed?: boolean;
   myBookings: Booking[] | undefined;
-  myBookingsIsRevalidating: boolean;
+  myBookingsUiStale: boolean;
   onPickFree: (room: RoomWithBookings, gap: TimeInterval) => void;
   onBookRoom: (room: RoomWithBookings) => void;
   /** False while this tabpanel is `hidden` — keeps window virtualizer from measuring 0×0. */
@@ -84,7 +84,7 @@ export function ScheduleTab({
   const scheduleGridClass =
     "grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(min(100%,26rem),1fr))]";
   const panelBusyClass =
-    bookingsIsRevalidating || myBookingsIsRevalidating
+    bookingsUiStale || myBookingsUiStale
       ? "opacity-60 saturate-[0.85] transition-[opacity,filter] duration-150"
       : "";
 
