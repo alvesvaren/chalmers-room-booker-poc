@@ -1,6 +1,6 @@
 import { Skeleton } from "../ui/Skeleton";
 
-/** Placeholder grid matching `RoomWeekCard` layout while the workspace suspense boundary resolves. */
+/** Placeholder grid matching `RoomWeekCard` layout while bookings are loading. */
 function ScheduleWeekCardSkeleton({ dayPattern }: { dayPattern: number }) {
   const barMasks: [number, number][] =
     dayPattern % 3 === 0

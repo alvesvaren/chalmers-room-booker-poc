@@ -9,7 +9,6 @@ import {
   postApiMyBookingsMutation,
 } from "../client/@tanstack/react-query.gen";
 import type {
-  AllRoomsBookings,
   CreateBookingRequest,
   Room,
   RoomWithBookings,
@@ -60,69 +59,42 @@ export function AuthenticatedWorkspace() {
     string | null
   >(null);
 
-  const roomsQueryOptions = useMemo(() => getApiRoomsOptions(), []);
-  const roomsQuery = useQuery(roomsQueryOptions);
-
   const effectiveBookingsWeekOffset =
     roomsAvailabilityDate != null
       ? weekOffsetForLocalDate(roomsAvailabilityDate)
       : weekOffset;
 
-  const bookingsPlaceholderData = useCallback(
-    (
-      previousData: AllRoomsBookings | undefined,
-      previousQuery: unknown,
-    ): AllRoomsBookings | undefined => {
-      if (
-        previousData == null ||
-        previousQuery == null ||
-        typeof previousQuery !== "object"
-      ) {
-        return undefined;
-      }
-      const head = (previousQuery as { queryKey: readonly unknown[] })
-        .queryKey[0] as { query?: { weekOffset?: string } } | undefined;
-      if (head?.query?.weekOffset !== String(effectiveBookingsWeekOffset)) {
-        return undefined;
-      }
-      return previousData;
-    },
-    [effectiveBookingsWeekOffset],
-  );
+  const bookingsRequestQuery = useMemo(() => {
+    const c = campusFilter.trim();
+    const q = qFilter.trim();
+    const base: { weekOffset: string; campus?: string; q?: string } = {
+      weekOffset: String(effectiveBookingsWeekOffset),
+    };
+    if (c) base.campus = c;
+    if (q) base.q = q;
+    return base;
+  }, [effectiveBookingsWeekOffset, campusFilter, qFilter]);
+
+  const roomsQueryOptions = useMemo(() => getApiRoomsOptions(), []);
+  const roomsQuery = useQuery(roomsQueryOptions);
 
   const bookingsQueryOptions = useMemo(
-    () => ({
-      ...getApiBookingsOptions({
-        query: {
-          weekOffset: String(effectiveBookingsWeekOffset),
-          campus: campusFilter.trim() || undefined,
-          q: qFilter.trim() || undefined,
-        },
-      }),
-      placeholderData: bookingsPlaceholderData,
-    }),
-    [
-      effectiveBookingsWeekOffset,
-      campusFilter,
-      qFilter,
-      bookingsPlaceholderData,
-    ],
+    () => getApiBookingsOptions({ query: bookingsRequestQuery }),
+    [bookingsRequestQuery],
   );
-
   const bookingsQuery = useQuery(bookingsQueryOptions);
 
   const myBookingsQueryOptions = useMemo(() => getApiMyBookingsOptions(), []);
   const myBookingsQuery = useQuery(myBookingsQueryOptions);
 
-  const roomsUiStale =
-    Boolean(roomsQuery.data) &&
-    roomsQuery.isFetching &&
-    roomsQuery.isStale;
+  const bookingsGrid = bookingsQuery.data;
+
   const bookingsUiStale =
-    Boolean(bookingsQuery.data) &&
-    !bookingsQuery.isPlaceholderData &&
+    Boolean(bookingsGrid) &&
     bookingsQuery.isFetching &&
     bookingsQuery.isStale;
+  const roomsUiStale =
+    Boolean(roomsQuery.data) && roomsQuery.isFetching && roomsQuery.isStale;
   const myBookingsUiStale =
     Boolean(myBookingsQuery.data) &&
     myBookingsQuery.isFetching &&
@@ -169,8 +141,6 @@ export function AuthenticatedWorkspace() {
       await queryClient.invalidateQueries({ predicate: isBookingsGridQuery });
     },
   });
-
-  const bookingsGrid = bookingsQuery.data;
 
   const openBookingSheet = useCallback(
     (initial: BookingSheetInitial) => {
@@ -333,7 +303,7 @@ export function AuthenticatedWorkspace() {
               capacityMin={capacityDisplay.min}
               capacityMax={capacityDisplay.max}
               onCapacityRangeChange={setCapacityRange}
-              bookings={bookingsQuery.data}
+              bookings={bookingsGrid}
               bookingsIsFetching={bookingsQuery.isFetching}
               bookingsUiStale={bookingsUiStale}
               bookingsFailed={bookingsQuery.isError}
@@ -350,7 +320,7 @@ export function AuthenticatedWorkspace() {
               rooms={roomsQuery.data}
               roomsIsFetching={roomsQuery.isFetching}
               roomsUiStale={roomsUiStale}
-              bookings={bookingsQuery.data}
+              bookings={bookingsGrid}
               bookingsIsFetching={bookingsQuery.isFetching}
               bookingsUiStale={bookingsUiStale}
               bookingsWeekStart={weekStart}
