@@ -353,13 +353,13 @@ function BookingSheetForm({
         }}
       />
       <div
-        className="border-te-border bg-te-surface relative z-10 mt-auto flex max-h-[min(92vh,760px)] w-full max-w-[min(32rem,100vw)] min-w-0 flex-col overflow-x-hidden rounded-t-2xl border shadow-2xl sm:mt-0 sm:max-h-[90vh] sm:rounded-2xl"
+        className="border-te-border bg-te-surface relative z-10 mt-auto flex max-h-[min(92vh,760px)] w-full max-w-[min(32rem,100dvw)] min-w-0 flex-col overflow-x-hidden rounded-t-2xl border shadow-2xl sm:mt-0 sm:max-h-[90vh] sm:rounded-2xl"
         role="dialog"
         aria-modal="true"
         aria-labelledby="booking-sheet-title"
         onPointerDown={(e) => e.stopPropagation()}
       >
-        <div className="border-te-border flex min-w-0 items-start justify-between gap-4 border-b px-5 py-4">
+        <div className="border-te-border flex min-w-0 items-start justify-between gap-4 border-b py-4 pl-[max(1.25rem,env(safe-area-inset-left,0px))] pr-[max(1.25rem,env(safe-area-inset-right,0px))]">
           <div className="min-w-0 flex-1">
             <h2
               id="booking-sheet-title"
@@ -387,7 +387,7 @@ function BookingSheetForm({
         </div>
 
         <form
-          className="flex min-h-0 min-w-0 flex-1 flex-col gap-5 overflow-x-hidden overflow-y-auto px-5 py-4"
+          className="flex min-h-0 min-w-0 flex-1 flex-col gap-5 overflow-x-hidden overflow-y-auto py-4 pl-[max(1.25rem,env(safe-area-inset-left,0px))] pr-[max(1.25rem,env(safe-area-inset-right,0px))]"
           onSubmit={(e) => {
             e.preventDefault();
             clearClientError();

@@ -90,7 +90,9 @@ export function AuthenticatedWorkspace() {
 
   const roomsIsRevalidating = roomsQuery.isFetching && !roomsQuery.isPending;
   const bookingsIsRevalidating =
-    bookingsQuery.isFetching && !bookingsQuery.isPending;
+    bookingsQuery.isFetching &&
+    !bookingsQuery.isPending &&
+    !bookingsQuery.isPlaceholderData;
   const myBookingsIsRevalidating =
     myBookingsQuery.isFetching && !myBookingsQuery.isPending;
 

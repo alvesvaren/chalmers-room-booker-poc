@@ -101,6 +101,31 @@
     );
     min-height: 100svh;
   }
+
+  /*
+   * Native date/time/datetime-local inputs wrap content in shadow-like edit
+   * subtrees whose default min-width ignores the outer field. That forces
+   * horizontal overflow on narrow mobile layouts unless the inner editors shrink.
+   */
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"] {
+    box-sizing: border-box;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  input[type="date"]::-webkit-datetime-edit,
+  input[type="time"]::-webkit-datetime-edit,
+  input[type="datetime-local"]::-webkit-datetime-edit {
+    min-width: 0;
+  }
+
+  input[type="date"]::-webkit-datetime-edit-fields-wrapper,
+  input[type="time"]::-webkit-datetime-edit-fields-wrapper,
+  input[type="datetime-local"]::-webkit-datetime-edit-fields-wrapper {
+    min-width: 0;
+  }
 }
 
 @keyframes te-fade-up {
