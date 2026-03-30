@@ -1,13 +1,20 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type QueryFunctionContext,
+} from "@tanstack/react-query";
 import { useCallback, useMemo, useState, useTransition } from "react";
 import {
   deleteApiMyBookingsByIdMutation,
   getApiBookingsOptions,
+  getApiBookingsQueryKey,
   getApiMyBookingsOptions,
   getApiMyBookingsQueryKey,
   getApiRoomsOptions,
   postApiMyBookingsMutation,
 } from "../client/@tanstack/react-query.gen";
+import { getApiBookings } from "../client/sdk.gen";
 import type {
   CreateBookingRequest,
   Room,
@@ -78,10 +85,24 @@ export function AuthenticatedWorkspace() {
   const roomsQueryOptions = useMemo(() => getApiRoomsOptions(), []);
   const roomsQuery = useQuery(roomsQueryOptions);
 
-  const bookingsQueryOptions = useMemo(
-    () => getApiBookingsOptions({ query: bookingsRequestQuery }),
-    [bookingsRequestQuery],
-  );
+  const bookingsQueryOptions = useMemo(() => {
+    const base = getApiBookingsOptions({ query: bookingsRequestQuery });
+    type BookingsQK = ReturnType<typeof getApiBookingsQueryKey>;
+    return {
+      ...base,
+      /**
+       * Omit TanStack's `signal` so leaving this query (e.g. week change) does not mark the
+       * fetch as abort-consuming; in-flight requests finish and populate the cache in the background.
+       */
+      queryFn: async ({ queryKey }: QueryFunctionContext<BookingsQK>) => {
+        const { data } = await getApiBookings({
+          ...queryKey[0],
+          throwOnError: true,
+        });
+        return data;
+      },
+    };
+  }, [bookingsRequestQuery]);
   const bookingsQuery = useQuery(bookingsQueryOptions);
 
   const myBookingsQueryOptions = useMemo(() => getApiMyBookingsOptions(), []);
