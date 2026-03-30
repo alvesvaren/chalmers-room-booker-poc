@@ -6,12 +6,14 @@ import { Skeleton } from "./ui/Skeleton";
 export function MyBookingsTab({
   myBookings,
   loadPending,
+  revalidating,
   cancelMutation,
   onCancelRequest,
   cancelError,
 }: {
   myBookings: Booking[] | undefined;
   loadPending?: boolean;
+  revalidating?: boolean;
   cancelMutation: { isPending: boolean };
   onCancelRequest: (id: string) => void;
   cancelError: unknown | null;
@@ -24,7 +26,11 @@ export function MyBookingsTab({
         Mina bokningar
       </h2>
 
-      <ul className="divide-te-mine-border border-te-mine-border bg-te-mine-bg divide-y rounded-xl border shadow-sm">
+      <ul
+        className={`divide-te-mine-border border-te-mine-border bg-te-mine-bg divide-y rounded-xl border shadow-sm ${
+          revalidating ? "opacity-60 saturate-[0.85] transition-[opacity,filter] duration-150" : ""
+        }`}
+      >
         {loadPending
           ? Array.from({ length: 5 }).map((_, i) => (
               <li

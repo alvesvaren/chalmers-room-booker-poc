@@ -66,7 +66,6 @@ export function AuthenticatedWorkspace() {
 
   const roomsQuery = useQuery({
     ...getApiRoomsOptions(),
-    staleTime: 60_000,
   });
 
   const effectiveBookingsWeekOffset =
@@ -87,8 +86,13 @@ export function AuthenticatedWorkspace() {
 
   const myBookingsQuery = useQuery({
     ...getApiMyBookingsOptions(),
-    staleTime: 30_000,
   });
+
+  const roomsIsRevalidating = roomsQuery.isFetching && !roomsQuery.isPending;
+  const bookingsIsRevalidating =
+    bookingsQuery.isFetching && !bookingsQuery.isPending;
+  const myBookingsIsRevalidating =
+    myBookingsQuery.isFetching && !myBookingsQuery.isPending;
 
   const capacityBounds = capacitySliderBounds(roomsQuery.data);
   const capacityDisplay = displayCapacityRange(capacityBounds, capacityRange);
@@ -297,9 +301,10 @@ export function AuthenticatedWorkspace() {
               onCapacityRangeChange={setCapacityRange}
               bookings={bookingsQuery.data}
               bookingsIsFetching={bookingsQuery.isFetching}
+              bookingsIsRevalidating={bookingsIsRevalidating}
               bookingsFailed={bookingsQuery.isError}
               myBookings={myBookingsQuery.data}
-              myBookingsPending={myBookingsQuery.isPending}
+              myBookingsIsRevalidating={myBookingsIsRevalidating}
               onPickFree={handlePickFree}
               onBookRoom={handleBookRoomFromSchedule}
               isTabActive={activeTab === "schedule"}
@@ -310,8 +315,10 @@ export function AuthenticatedWorkspace() {
             <RoomsTab
               rooms={roomsQuery.data}
               roomsIsFetching={roomsQuery.isFetching}
+              roomsIsRevalidating={roomsIsRevalidating}
               bookings={bookingsQuery.data}
               bookingsIsFetching={bookingsQuery.isFetching}
+              bookingsIsRevalidating={bookingsIsRevalidating}
               bookingsWeekStart={weekStart}
               bookingsWeekEnd={weekEnd}
               onRoomsAvailabilityDateChange={setRoomsAvailabilityDate}
@@ -329,6 +336,7 @@ export function AuthenticatedWorkspace() {
             <MyBookingsTab
               myBookings={myBookingsQuery.data}
               loadPending={myBookingsQuery.isPending}
+              revalidating={myBookingsIsRevalidating}
               cancelMutation={cancelMutation}
               onCancelRequest={handleCancelBooking}
               cancelError={cancelMutation.isError ? cancelMutation.error : null}

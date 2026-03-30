@@ -21,8 +21,10 @@ type SortKey = "rating" | "name" | "campus" | "capacity";
 export function RoomsTab({
   rooms,
   roomsIsFetching,
+  roomsIsRevalidating,
   bookings,
   bookingsIsFetching,
+  bookingsIsRevalidating,
   bookingsWeekStart,
   bookingsWeekEnd,
   onRoomsAvailabilityDateChange,
@@ -36,8 +38,10 @@ export function RoomsTab({
 }: {
   rooms: Room[] | undefined;
   roomsIsFetching: boolean;
+  roomsIsRevalidating: boolean;
   bookings: AllRoomsBookings | undefined;
   bookingsIsFetching: boolean;
+  bookingsIsRevalidating: boolean;
   bookingsWeekStart: Date;
   bookingsWeekEnd: Date;
   onRoomsAvailabilityDateChange: (date: string | null) => void;
@@ -203,17 +207,24 @@ export function RoomsTab({
   const filterGrid =
     "grid w-full grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3";
   const fieldClass =
-    "min-w-0 w-full rounded-lg border border-te-border bg-te-elevated px-3 py-2.5 text-base outline-none focus:border-te-accent focus:ring-2 focus:ring-te-accent/20 sm:py-2 sm:text-sm";
+    "min-w-0 max-w-full w-full rounded-lg border border-te-border bg-te-elevated px-3 py-2.5 text-base outline-none focus:border-te-accent focus:ring-2 focus:ring-te-accent/20 sm:py-2 sm:text-sm";
   const roomGridClass =
     "grid gap-3 sm:gap-4 [grid-template-columns:repeat(auto-fill,minmax(min(100%,17rem),1fr))]";
 
   const slotPanelClass =
     "rounded-2xl border border-te-accent/20 bg-gradient-to-br from-te-accent/[0.07] via-te-elevated to-te-surface p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] sm:p-5";
 
-  const slotBookingsPending =
-    slotFilterActive && bookingsIsFetching && bookings != null;
+  const slotBookingsInitialLoad =
+    slotFilterActive && bookings == null && bookingsIsFetching;
+  const slotBookingsRevalidating =
+    slotFilterActive && bookings != null && bookingsIsRevalidating;
 
   const roomsLoadPending = rooms == null && roomsIsFetching;
+
+  const roomGridStaleClass =
+    roomsIsRevalidating || slotBookingsRevalidating || bookingsIsRevalidating
+      ? "opacity-60 saturate-[0.85] transition-[opacity,filter] duration-150"
+      : "";
 
   const bookingsWeekLabel = formatWeekRangeLabel(
     bookingsWeekStart,
@@ -238,7 +249,7 @@ export function RoomsTab({
         </label>
 
         {slotFilterActive ? (
-          <div className="border-te-border/60 mt-4 grid gap-3 border-t pt-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="border-te-border/60 mt-4 grid min-w-0 gap-3 border-t pt-4 sm:grid-cols-2 lg:grid-cols-4">
             <label className="flex min-w-0 flex-col gap-1 text-sm">
               <span className="text-te-muted font-medium">Dag</span>
               <input
@@ -293,7 +304,7 @@ export function RoomsTab({
           </div>
         ) : null}
 
-        {slotBookingsPending ? (
+        {slotBookingsInitialLoad ? (
           <div
             className="border-te-border/60 mt-4 space-y-3 border-t pt-4"
             role="status"
@@ -380,28 +391,8 @@ export function RoomsTab({
             ))}
           </div>
         </div>
-      ) : slotBookingsPending ? (
-        <div className="space-y-4">
-          <p className="sr-only" role="status" aria-live="polite">
-            Uppdaterar tillgänglighet {bookingsWeekLabel}
-          </p>
-          <div className={roomGridClass} aria-hidden>
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div
-                key={i}
-                className="border-te-border/80 bg-te-elevated/40 flex min-h-60 min-w-0 flex-col rounded-xl border p-4 sm:p-5"
-              >
-                <Skeleton className="h-3 w-16 rounded" />
-                <Skeleton className="mt-4 h-7 w-4/5 max-w-48 rounded-md" />
-                <Skeleton className="mt-5 h-10 w-20 rounded-md" />
-                <Skeleton className="mt-4 h-4 w-full max-w-56 rounded" />
-                <Skeleton className="mt-auto h-10 w-full rounded-lg" />
-              </div>
-            ))}
-          </div>
-        </div>
       ) : filtered.length === 0 ? (
-        <div className={roomGridClass}>
+        <div className={`${roomGridClass} ${roomGridStaleClass}`}>
           <div className="border-te-border bg-te-elevated/50 text-te-muted col-span-full rounded-xl border border-dashed px-4 py-12 text-center text-sm">
             {slotFilterActive && slotInterval?.crossesDay
               ? "Intervallet är för långt för en kalenderdag — minska längden."
@@ -411,7 +402,8 @@ export function RoomsTab({
           </div>
         </div>
       ) : (
-        <VirtualizedWindowGrid
+        <div className={roomGridStaleClass}>
+          <VirtualizedWindowGrid
           enabled={isTabActive}
           items={filtered}
           getItemKey={(r) => r.id}
@@ -513,6 +505,7 @@ export function RoomsTab({
             );
           }}
         />
+        </div>
       )}
     </div>
   );

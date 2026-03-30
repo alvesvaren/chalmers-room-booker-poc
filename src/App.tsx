@@ -1,3 +1,4 @@
+import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo, useState } from "react";
 import { postApiAuthLoginMutation } from "./client/@tanstack/react-query.gen";
@@ -8,21 +9,32 @@ import { useApiClientAuth } from "./hooks/useApiClientAuth";
 import { useAuthFailureInterceptor } from "./hooks/useAuthFailureInterceptor";
 import { useAutoDismiss } from "./hooks/useAutoDismiss";
 import { useSessionToken } from "./hooks/useSessionToken";
+import { reactQueryPersistStorageKey } from "./lib/reactQueryPersistKey";
 import { accountLabelFromJwt } from "./lib/jwtAccountLabel";
 import { Button } from "./components/ui/Button";
 
-export default function App() {
+export default function App({
+  session,
+}: {
+  session: ReturnType<typeof useSessionToken>;
+}) {
   const queryClient = useQueryClient();
-  const { token, setToken, authed } = useSessionToken();
+  const { token, setToken, authed } = session;
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [sessionToast, setSessionToast] = useState<string | null>(null);
 
   const logOut = useCallback(() => {
+    if (token) {
+      void createAsyncStoragePersister({
+        storage: window.localStorage,
+        key: reactQueryPersistStorageKey(token),
+      }).removeClient();
+    }
     setToken("");
     void queryClient.invalidateQueries();
     void queryClient.clear();
-  }, [queryClient, setToken]);
+  }, [queryClient, setToken, token]);
 
   useApiClientAuth(token);
   useAuthFailureInterceptor(token, logOut, setSessionToast);

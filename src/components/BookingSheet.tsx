@@ -338,7 +338,7 @@ function BookingSheetForm({
   }
 
   const inputClass =
-    "w-full rounded-lg border border-te-border bg-te-elevated px-3 py-2 text-base text-te-text outline-none transition-shadow placeholder:text-te-muted/70 focus:border-te-accent focus:ring-2 focus:ring-te-accent/20 sm:text-sm";
+    "min-w-0 max-w-full w-full rounded-lg border border-te-border bg-te-elevated px-3 py-2 text-base text-te-text outline-none transition-shadow placeholder:text-te-muted/70 focus:border-te-accent focus:ring-2 focus:ring-te-accent/20 sm:text-sm";
 
   return (
     <div
@@ -421,7 +421,7 @@ function BookingSheetForm({
             });
           }}
         >
-          <label className="grid gap-1 text-sm">
+          <label className="grid min-w-0 gap-1 text-sm">
             <span className="text-te-text font-medium">Titel</span>
             <input
               className={inputClass}
@@ -568,7 +568,7 @@ function BookingSheetForm({
             </div>
           </section>
 
-          <label className="grid gap-1 text-sm">
+          <label className="grid min-w-0 gap-1 text-sm">
             <span className="text-te-text font-medium">Datum</span>
             <input
               className={inputClass}
@@ -608,8 +608,8 @@ function BookingSheetForm({
             </div>
           </div>
 
-          <div className="grid gap-2 sm:grid-cols-2">
-            <label className="grid gap-1 text-sm">
+          <div className="grid min-w-0 gap-2 sm:grid-cols-2">
+            <label className="grid min-w-0 gap-1 text-sm">
               <span className="text-te-text font-medium">Starttid</span>
               <input
                 className={inputClass + " font-mono text-base sm:text-xs"}
@@ -624,7 +624,7 @@ function BookingSheetForm({
                 aria-label="Starttid"
               />
             </label>
-            <label className="grid gap-1 text-sm">
+            <label className="grid min-w-0 gap-1 text-sm">
               <span className="text-te-text font-medium">Sluttid</span>
               <input
                 className={inputClass + " font-mono text-base sm:text-xs"}
@@ -649,7 +649,7 @@ function BookingSheetForm({
               {showAdvanced ? "Dölj" : "Rums-id"}
             </button>
             {showAdvanced ? (
-              <label className="mt-2 grid gap-1 text-sm">
+              <label className="mt-2 grid min-w-0 gap-1 text-sm">
                 <span className="text-te-muted">Rums-id (API)</span>
                 <input
                   className={inputClass + " font-mono text-base sm:text-xs"}
