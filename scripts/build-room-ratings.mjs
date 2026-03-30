@@ -1,3 +1,5 @@
+// @ts-check
+
 /**
  * Reads "Group room ratings - Group Rooms.csv" and writes src/data/roomRatings.gen.ts
  * Run from repo root: node scripts/build-room-ratings.mjs
@@ -141,8 +143,9 @@ for (let r = 1; r < rows.length; r++) {
 }
 
 const sortedKeys = [...merged.keys()].sort((a, b) => a.localeCompare(b, "sv"));
+/** @type {string[]} */
 const entries = sortedKeys.map((k) => {
-  const { overall, comment } = merged.get(k);
+  const { overall, comment } = merged.get(k) ?? { overall: NaN, comment: "" };
   return `  '${escapeTsString(k)}': { overall: ${overall}, comment: '${escapeTsString(comment)}' },`;
 });
 

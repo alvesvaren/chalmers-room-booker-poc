@@ -5,18 +5,15 @@ import {
   startOfDay,
   startOfWeek,
 } from "date-fns";
-import { parseInstantOnDate } from "../datetime";
+import {
+  CALENDAR_INSTANT_ANCHOR_TIME,
+  parseInstantOnDate,
+} from "../datetime";
 
 const DAYS_PER_WEEK = 7;
 
 /** Monday-first week (must match grid navigation and server `weekOffset`). */
 const WEEK_OPTIONS_MONDAY_FIRST = { weekStartsOn: 1 as const };
-
-/**
- * Local noon when turning a calendar `YYYY-MM-DD` into a `Date` for week arithmetic,
- * so the instant stays on the intended calendar day across DST transitions.
- */
-const CALENDAR_DATE_ANCHOR_TIME = "12:00";
 
 function startOfMondayWeekContaining(d: Date): Date {
   return startOfWeek(startOfDay(d), WEEK_OPTIONS_MONDAY_FIRST);
@@ -40,7 +37,7 @@ export function weekOffsetForLocalDate(
   dateStr: string,
   anchor: Date = new Date(),
 ): number {
-  const target = parseInstantOnDate(dateStr, CALENDAR_DATE_ANCHOR_TIME);
+  const target = parseInstantOnDate(dateStr, CALENDAR_INSTANT_ANCHOR_TIME);
   if (Number.isNaN(target.getTime())) return 0;
   const anchorMonday = startOfMondayWeekContaining(anchor);
   const targetMonday = startOfMondayWeekContaining(target);

@@ -1,4 +1,4 @@
-import { addMinutes as addMinutesDateFns } from "date-fns";
+import { addMinutes } from "date-fns";
 import { formatLocalDateWire, formatLocalTime24 } from "../datetime";
 import type { TimeInterval } from "./types";
 import {
@@ -7,13 +7,12 @@ import {
   snapInstantMsToQuarterOnDate,
 } from "./quarters";
 
-export function addMinutes(d: Date, minutes: number): Date {
-  return addMinutesDateFns(d, minutes);
-}
+const DEFAULT_BOOKING_LENGTH_MINUTES = 60;
+const MS_PER_HOUR = 60 * 60_000;
 
 /** Default booking length when opening the sheet (1 h, capped by gap end). */
 export function defaultBookingWindow(gap: TimeInterval): TimeInterval {
-  const oneHour = addMinutesDateFns(gap.start, 60);
+  const oneHour = addMinutes(gap.start, DEFAULT_BOOKING_LENGTH_MINUTES);
   const endMs = Math.min(gap.end.getTime(), oneHour.getTime());
   return { start: gap.start, end: new Date(endMs) };
 }
@@ -38,7 +37,7 @@ export function toBookingDraft(
   let endMs = Math.min(w.end.getTime(), gap.end.getTime());
   endMs = snapInstantMsToQuarterOnDate(endMs, dateStr);
   if (endMs <= startMs) {
-    endMs = startMs + 60 * 60_000;
+    endMs = startMs + MS_PER_HOUR;
   }
   endMs = Math.min(endMs, gap.end.getTime());
   let dur = endMs - startMs;

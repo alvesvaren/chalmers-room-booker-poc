@@ -1,5 +1,9 @@
-import { setHours, startOfDay } from "date-fns";
-import { localWallClockMs } from "./datetime";
+import {
+  LOCAL_MIDNIGHT_TIME,
+  localWallClockMs,
+  parseInstantOnDate,
+} from "./datetime";
+import { setHours } from "date-fns";
 import {
   DEFAULT_DAY_END_H,
   DEFAULT_DAY_START_H,
@@ -12,10 +16,6 @@ export const MIN_BOOK_DURATION_MIN = 15;
 export const MAX_BOOK_DURATION_MIN = 240;
 export const DURATION_CHIPS_MIN = [15, 30, 60, 90, 120, 240] as const;
 
-export function localDateTimeMs(dateStr: string, timeStr: string): number {
-  return localWallClockMs(dateStr, timeStr);
-}
-
 export function isLocalStartInPast(
   dateStr: string,
   timeStr: string,
@@ -27,8 +27,7 @@ export function isLocalStartInPast(
 }
 
 export function dayDisplayBounds(dateStr: string): { start: Date; end: Date } {
-  const [Y, M, D] = dateStr.split("-").map(Number);
-  const day = startOfDay(new Date(Y, M - 1, D));
+  const day = parseInstantOnDate(dateStr, LOCAL_MIDNIGHT_TIME);
   return {
     start: setHours(day, DEFAULT_DAY_START_H),
     end: setHours(day, DEFAULT_DAY_END_H),

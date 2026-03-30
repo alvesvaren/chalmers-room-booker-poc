@@ -10,22 +10,30 @@ export function parseNaiveLocal(isoLike: string): Date {
   return d;
 }
 
+function ymdFromWireDate(dateStr: string): [number, number, number] | null {
+  const [Y, M, D] = dateStr.split("-").map(Number);
+  if (
+    !Number.isFinite(Y) ||
+    !Number.isFinite(M) ||
+    !Number.isFinite(D)
+  ) {
+    return null;
+  }
+  return [Y, M, D];
+}
+
 /**
  * Milliseconds for local calendar date + time, or NaN if parts are not finite numbers.
  * Single implementation shared with {@link parseInstantOnDate}.
  */
 export function localWallClockMs(dateStr: string, timeStr: string): number {
-  const [Y, M, D] = dateStr.split("-").map(Number);
+  const ymd = ymdFromWireDate(dateStr);
+  if (!ymd) return NaN;
+  const [Y, M, D] = ymd;
   const [hRaw, mRaw] = timeStr.trim().split(":");
   const h = Number(hRaw);
   const m = Number(mRaw ?? 0);
-  if (
-    !Number.isFinite(Y) ||
-    !Number.isFinite(M) ||
-    !Number.isFinite(D) ||
-    !Number.isFinite(h) ||
-    !Number.isFinite(m)
-  ) {
+  if (!Number.isFinite(h) || !Number.isFinite(m)) {
     return NaN;
   }
   return new Date(Y, M - 1, D, h, m, 0, 0).getTime();
@@ -39,13 +47,8 @@ export function parseInstantOnDate(dateStr: string, timeStr: string): Date {
 
 /** Start of local calendar day for `YYYY-MM-DD` as epoch ms; NaN if date is invalid. */
 export function startOfLocalDayMs(dateStr: string): number {
-  const [Y, M, D] = dateStr.split("-").map(Number);
-  if (
-    !Number.isFinite(Y) ||
-    !Number.isFinite(M) ||
-    !Number.isFinite(D)
-  ) {
-    return NaN;
-  }
+  const ymd = ymdFromWireDate(dateStr);
+  if (!ymd) return NaN;
+  const [Y, M, D] = ymd;
   return startOfDay(new Date(Y, M - 1, D)).getTime();
 }

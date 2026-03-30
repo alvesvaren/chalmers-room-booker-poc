@@ -10,11 +10,9 @@ export {
 
 export type { BusySegment, DayTimeline, TimeInterval } from "./timeline/types";
 
-export {
-  addMinutes,
-  defaultBookingWindow,
-  toBookingDraft,
-} from "./timeline/bookingDraft";
+export { addMinutes } from "date-fns";
+
+export { defaultBookingWindow, toBookingDraft } from "./timeline/bookingDraft";
 
 export {
   busyIntervalsForWindow,

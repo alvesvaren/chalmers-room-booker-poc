@@ -1,15 +1,11 @@
-import {
-  eachDayOfInterval,
-  setHours,
-  startOfDay,
-  subDays,
-} from "date-fns";
+import { eachDayOfInterval, subDays } from "date-fns";
 import type {
   Booking,
   RoomCalendarSlot,
   RoomWithBookings,
 } from "../../client/types.gen";
 import {
+  atLocalHourOnCalendarDay,
   formatLocalDateWire,
   formatWeekdayShort,
   parseNaiveLocal,
@@ -24,10 +20,6 @@ import type { BusySegment, DayTimeline, TimeInterval } from "./types";
 
 export const DEFAULT_DAY_START_H = 7;
 export const DEFAULT_DAY_END_H = 22;
-
-function startOfDayWithHour(d: Date, hour: number) {
-  return setHours(startOfDay(d), hour);
-}
 
 function slotToBusy(s: RoomCalendarSlot): BusySegment {
   return {
@@ -77,11 +69,11 @@ export function buildRoomWeekTimeline(
     start: weekStart,
     end: lastDay,
   })) {
-    const displayStart = startOfDayWithHour(dayDate, dayStartH);
-    const displayEnd = startOfDayWithHour(dayDate, dayEndH);
+    const displayStart = atLocalHourOnCalendarDay(dayDate, dayStartH);
+    const displayEnd = atLocalHourOnCalendarDay(dayDate, dayEndH);
 
-    const dayEndMidnight = startOfDayWithHour(dayDate, 24);
-    const dayStartMidnight = startOfDayWithHour(dayDate, 0);
+    const dayEndMidnight = atLocalHourOnCalendarDay(dayDate, 24);
+    const dayStartMidnight = atLocalHourOnCalendarDay(dayDate, 0);
 
     const busy = busyAll
       .filter((b) => b.end > dayStartMidnight && b.start < dayEndMidnight)
