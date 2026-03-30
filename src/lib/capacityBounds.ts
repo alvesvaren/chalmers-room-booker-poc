@@ -17,3 +17,20 @@ export function roomMatchesCapacityFilter(room: { capacity: number | null }, min
   if (room.capacity == null) return true;
   return room.capacity >= minSeats && room.capacity <= maxSeats;
 }
+
+export function clampInt(n: number, lo: number, hi: number): number {
+  return Math.min(hi, Math.max(lo, n));
+}
+
+/** Keep slider selection inside observed room capacities; if inverted, reset to full span. */
+export function displayCapacityRange(
+  bounds: { min: number; max: number },
+  selection: { min: number; max: number },
+): { min: number; max: number } {
+  const lo = bounds.min;
+  const hi = bounds.max;
+  const a = clampInt(selection.min, lo, hi);
+  const b = clampInt(selection.max, lo, hi);
+  if (a > b) return { min: lo, max: hi };
+  return { min: a, max: b };
+}

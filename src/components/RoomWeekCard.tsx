@@ -1,5 +1,6 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import type { Booking, RoomWithBookings } from "../client/types.gen";
+import { useTickingNow } from "../hooks/useTickingNow";
 import { getRoomRating } from "../lib/roomRatings";
 import {
   buildRoomWeekTimeline,
@@ -12,15 +13,6 @@ import {
   type TimeInterval,
 } from "../lib/weekTimeline";
 import { Button } from "./ui/Button";
-
-function useTickingNow(intervalMs: number) {
-  const [now, setNow] = useState(() => new Date());
-  useEffect(() => {
-    const id = window.setInterval(() => setNow(new Date()), intervalMs);
-    return () => window.clearInterval(id);
-  }, [intervalMs]);
-  return now;
-}
 
 export function RoomWeekCard({
   room,
