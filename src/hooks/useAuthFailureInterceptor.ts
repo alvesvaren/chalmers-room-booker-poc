@@ -13,8 +13,9 @@ export function useAuthFailureInterceptor(token: string, logOut: LogOut, onSessi
   const tokenRef = useRef(token);
   const authFailureHandled = useRef(false);
 
+  tokenRef.current = token;
+
   useEffect(() => {
-    tokenRef.current = token;
     if (token) authFailureHandled.current = false;
   }, [token]);
 

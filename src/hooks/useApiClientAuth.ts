@@ -5,13 +5,17 @@ import { API_BASE, JWT_STORAGE_KEY } from "../config/api";
 /**
  * Keeps the OpenAPI client base URL + bearer token in sync with React auth state,
  * and mirrors the JWT to localStorage for reload persistence.
+ *
+ * Updates `client` config during render so the first post-login requests (e.g. Suspense
+ * queries in children) already send `Authorization` — `useEffect` would run too late.
  */
 export function useApiClientAuth(token: string) {
+  client.setConfig({
+    baseUrl: API_BASE,
+    auth: () => token || undefined,
+  });
+
   useEffect(() => {
-    client.setConfig({
-      baseUrl: API_BASE,
-      auth: () => token || undefined,
-    });
     try {
       if (token) localStorage.setItem(JWT_STORAGE_KEY, token);
       else localStorage.removeItem(JWT_STORAGE_KEY);
