@@ -40,6 +40,7 @@ import {
 import { AppTabs, type AppTabId } from "./AppTabs";
 import { BookingSheet, type BookingSheetInitial } from "./BookingSheet";
 import { MyBookingsTab } from "./MyBookingsTab";
+import { QueryErrorBoundary } from "./QueryErrorBoundary";
 import { RoomsTab } from "./RoomsTab";
 import { ScheduleTab } from "./ScheduleTab";
 
@@ -267,70 +268,72 @@ export function AuthenticatedWorkspace() {
     <div className="mt-10 space-y-6">
       <AppTabs active={activeTab} onChange={setActiveTab} />
 
-      <div className="border-te-border bg-te-surface rounded-2xl border p-5 shadow-sm sm:p-8">
-        {workspaceError ? (
-          <div
-            className="border-te-danger/30 bg-te-danger-bg text-te-danger mb-6 rounded-xl border px-4 py-3 text-sm"
-            role="alert"
-          >
-            {errorMessage(workspaceError)}
-          </div>
-        ) : null}
+      <QueryErrorBoundary>
+        <div className="border-te-border bg-te-surface rounded-2xl border p-5 shadow-sm sm:p-8">
+          {workspaceError ? (
+            <div
+              className="border-te-danger/30 bg-te-danger-bg text-te-danger mb-6 rounded-xl border px-4 py-3 text-sm"
+              role="alert"
+            >
+              {errorMessage(workspaceError)}
+            </div>
+          ) : null}
 
-        <section {...tabPanelProps("schedule")}>
-          <ScheduleTab
-            weekOffset={
-              roomsAvailabilityDate != null
-                ? effectiveBookingsWeekOffset
-                : weekOffset
-            }
-            onWeekOffsetChange={onWeekNavigate}
-            campusFilter={campusFilter}
-            onCampusFilter={setCampusFilterTransitioned}
-            qFilter={qFilter}
-            onQFilter={setQFilterTransitioned}
-            capacityBounds={capacityBounds}
-            capacityMin={capacityDisplay.min}
-            capacityMax={capacityDisplay.max}
-            onCapacityRangeChange={setCapacityRange}
-            bookings={bookingsQuery.data}
-            bookingsIsFetching={bookingsQuery.isFetching}
-            bookingsFailed={bookingsQuery.isError}
-            myBookings={myBookingsQuery.data}
-            myBookingsPending={myBookingsQuery.isPending}
-            onPickFree={handlePickFree}
-            onBookRoom={handleBookRoomFromSchedule}
-          />
-        </section>
+          <section {...tabPanelProps("schedule")}>
+            <ScheduleTab
+              weekOffset={
+                roomsAvailabilityDate != null
+                  ? effectiveBookingsWeekOffset
+                  : weekOffset
+              }
+              onWeekOffsetChange={onWeekNavigate}
+              campusFilter={campusFilter}
+              onCampusFilter={setCampusFilterTransitioned}
+              qFilter={qFilter}
+              onQFilter={setQFilterTransitioned}
+              capacityBounds={capacityBounds}
+              capacityMin={capacityDisplay.min}
+              capacityMax={capacityDisplay.max}
+              onCapacityRangeChange={setCapacityRange}
+              bookings={bookingsQuery.data}
+              bookingsIsFetching={bookingsQuery.isFetching}
+              bookingsFailed={bookingsQuery.isError}
+              myBookings={myBookingsQuery.data}
+              myBookingsPending={myBookingsQuery.isPending}
+              onPickFree={handlePickFree}
+              onBookRoom={handleBookRoomFromSchedule}
+            />
+          </section>
 
-        <section {...tabPanelProps("rooms")}>
-          <RoomsTab
-            rooms={roomsQuery.data}
-            roomsIsFetching={roomsQuery.isFetching}
-            bookings={bookingsQuery.data}
-            bookingsIsFetching={bookingsQuery.isFetching}
-            bookingsWeekStart={weekStart}
-            bookingsWeekEnd={weekEnd}
-            onRoomsAvailabilityDateChange={setRoomsAvailabilityDate}
-            onBookRoom={handleBookRoomFromDirectory}
-            isRoomBookable={isRoomBookable}
-            capacityBounds={capacityBounds}
-            capacityMin={capacityDisplay.min}
-            capacityMax={capacityDisplay.max}
-            onCapacityRangeChange={setCapacityRange}
-          />
-        </section>
+          <section {...tabPanelProps("rooms")}>
+            <RoomsTab
+              rooms={roomsQuery.data}
+              roomsIsFetching={roomsQuery.isFetching}
+              bookings={bookingsQuery.data}
+              bookingsIsFetching={bookingsQuery.isFetching}
+              bookingsWeekStart={weekStart}
+              bookingsWeekEnd={weekEnd}
+              onRoomsAvailabilityDateChange={setRoomsAvailabilityDate}
+              onBookRoom={handleBookRoomFromDirectory}
+              isRoomBookable={isRoomBookable}
+              capacityBounds={capacityBounds}
+              capacityMin={capacityDisplay.min}
+              capacityMax={capacityDisplay.max}
+              onCapacityRangeChange={setCapacityRange}
+            />
+          </section>
 
-        <section {...tabPanelProps("mine")}>
-          <MyBookingsTab
-            myBookings={myBookingsQuery.data}
-            loadPending={myBookingsQuery.isPending}
-            cancelMutation={cancelMutation}
-            onCancelRequest={handleCancelBooking}
-            cancelError={cancelMutation.isError ? cancelMutation.error : null}
-          />
-        </section>
-      </div>
+          <section {...tabPanelProps("mine")}>
+            <MyBookingsTab
+              myBookings={myBookingsQuery.data}
+              loadPending={myBookingsQuery.isPending}
+              cancelMutation={cancelMutation}
+              onCancelRequest={handleCancelBooking}
+              cancelError={cancelMutation.isError ? cancelMutation.error : null}
+            />
+          </section>
+        </div>
+      </QueryErrorBoundary>
 
       <BookingSheet
         open={bookingSheetOpen}

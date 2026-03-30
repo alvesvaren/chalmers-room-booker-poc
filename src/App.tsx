@@ -3,7 +3,6 @@ import { useCallback, useMemo, useState } from "react";
 import { postApiAuthLoginMutation } from "./client/@tanstack/react-query.gen";
 import { API_BASE, TOAST_DURATION_MS } from "./config/api";
 import { AuthenticatedWorkspace } from "./components/AuthenticatedWorkspace";
-import { QueryErrorBoundary } from "./components/QueryErrorBoundary";
 import { SignInPanel } from "./components/SignInPanel";
 import { useApiClientAuth } from "./hooks/useApiClientAuth";
 import { useAuthFailureInterceptor } from "./hooks/useAuthFailureInterceptor";
@@ -106,9 +105,7 @@ export default function App() {
             Logga in för att se schema, rum och dina bokningar.
           </p>
         ) : (
-          <QueryErrorBoundary>
-            <AuthenticatedWorkspace />
-          </QueryErrorBoundary>
+          <AuthenticatedWorkspace />
         )}
 
         <footer className="border-te-border text-te-muted mt-16 border-t pt-6 text-center text-xs">

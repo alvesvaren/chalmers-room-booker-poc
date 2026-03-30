@@ -1,4 +1,5 @@
 import {
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -133,6 +134,14 @@ function BookingSheetForm({
   );
 
   useEscapeKey(onClose);
+
+  useLayoutEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
 
   function applyIntervalClamped(startMs: number, endMs: number) {
     clearClientError();
@@ -333,26 +342,22 @@ function BookingSheetForm({
 
   return (
     <div
-      className="pointer-events-none fixed inset-0 z-50 flex min-h-0 items-end justify-center overflow-x-hidden sm:items-center sm:p-6"
+      className="fixed inset-0 z-100 flex min-h-0 items-end justify-center overflow-x-hidden overflow-y-auto sm:items-center sm:p-6"
       role="presentation"
     >
-      <button
-        type="button"
-        tabIndex={-1}
-        aria-label="Stäng dialog"
-        className="bg-te-text/35 pointer-events-auto absolute inset-0 cursor-default border-0 p-0"
+      <div
+        className="bg-te-text/35 absolute inset-0"
+        aria-hidden
         onPointerDown={(e) => {
-          if (e.button === 0) {
-            e.preventDefault();
-            onClose();
-          }
+          if (e.button === 0) onClose();
         }}
       />
       <div
-        className="border-te-border bg-te-surface pointer-events-auto relative z-10 flex max-h-[min(92vh,760px)] w-full max-w-[min(32rem,100vw)] min-w-0 flex-col overflow-x-hidden rounded-t-2xl border shadow-2xl sm:max-h-[90vh] sm:rounded-2xl"
+        className="border-te-border bg-te-surface relative z-10 mt-auto flex max-h-[min(92vh,760px)] w-full max-w-[min(32rem,100vw)] min-w-0 flex-col overflow-x-hidden rounded-t-2xl border shadow-2xl sm:mt-0 sm:max-h-[90vh] sm:rounded-2xl"
         role="dialog"
         aria-modal="true"
         aria-labelledby="booking-sheet-title"
+        onPointerDown={(e) => e.stopPropagation()}
       >
         <div className="border-te-border flex min-w-0 items-start justify-between gap-4 border-b px-5 py-4">
           <div className="min-w-0 flex-1">
