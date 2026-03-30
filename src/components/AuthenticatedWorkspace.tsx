@@ -1,4 +1,8 @@
-import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQueryClient,
+  useSuspenseQuery,
+} from "@tanstack/react-query";
 import { useCallback, useState, useTransition } from "react";
 import {
   deleteApiMyBookingsByIdMutation,
@@ -11,7 +15,11 @@ import {
 import type { Room, RoomWithBookings } from "../client/types.gen";
 import { TOAST_DURATION_MS } from "../config/api";
 import { useAutoDismiss } from "../hooks/useAutoDismiss";
-import { CAPACITY_SLIDER_FALLBACK_MAX, capacitySliderBounds, displayCapacityRange } from "../lib/capacityBounds";
+import {
+  CAPACITY_SLIDER_FALLBACK_MAX,
+  capacitySliderBounds,
+  displayCapacityRange,
+} from "../lib/capacityBounds";
 import { isBookingsGridQuery } from "../lib/bookingsQuery";
 import { roomWithBookingsFor } from "../lib/roomSchedule";
 import type { TimeInterval } from "../lib/weekTimeline";
@@ -36,15 +44,24 @@ export function AuthenticatedWorkspace() {
   const [weekOffset, setWeekOffset] = useState(0);
   const [campusFilter, setCampusFilter] = useState("");
   const [qFilter, setQFilter] = useState("");
-  const [capacityRange, setCapacityRange] = useState({ min: 1, max: CAPACITY_SLIDER_FALLBACK_MAX });
+  const [capacityRange, setCapacityRange] = useState({
+    min: 1,
+    max: CAPACITY_SLIDER_FALLBACK_MAX,
+  });
   const [activeTab, setActiveTab] = useState<AppTabId>("schedule");
   const [bookingSheetOpen, setBookingSheetOpen] = useState(false);
-  const [bookingInitial, setBookingInitial] = useState<BookingSheetInitial | null>(null);
+  const [bookingInitial, setBookingInitial] =
+    useState<BookingSheetInitial | null>(null);
   const [toast, setToast] = useState<string | null>(null);
-  const [roomsAvailabilityDate, setRoomsAvailabilityDate] = useState<string | null>(null);
+  const [roomsAvailabilityDate, setRoomsAvailabilityDate] = useState<
+    string | null
+  >(null);
 
   const roomsQuery = useSuspenseQuery(getApiRoomsOptions());
-  const effectiveBookingsWeekOffset = roomsAvailabilityDate != null ? weekOffsetForLocalDate(roomsAvailabilityDate) : weekOffset;
+  const effectiveBookingsWeekOffset =
+    roomsAvailabilityDate != null
+      ? weekOffsetForLocalDate(roomsAvailabilityDate)
+      : weekOffset;
 
   const bookingsQuery = useSuspenseQuery(
     getApiBookingsOptions({
@@ -83,7 +100,9 @@ export function AuthenticatedWorkspace() {
   const createBookingMutation = useMutation({
     ...postApiMyBookingsMutation(),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: getApiMyBookingsQueryKey() });
+      await queryClient.invalidateQueries({
+        queryKey: getApiMyBookingsQueryKey(),
+      });
       await queryClient.invalidateQueries({ predicate: isBookingsGridQuery });
     },
   });
@@ -91,16 +110,21 @@ export function AuthenticatedWorkspace() {
   const cancelMutation = useMutation({
     ...deleteApiMyBookingsByIdMutation(),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: getApiMyBookingsQueryKey() });
+      await queryClient.invalidateQueries({
+        queryKey: getApiMyBookingsQueryKey(),
+      });
       await queryClient.invalidateQueries({ predicate: isBookingsGridQuery });
     },
   });
 
-  const openBookingSheet = useCallback((initial: BookingSheetInitial) => {
-    createBookingMutation.reset();
-    setBookingInitial(initial);
-    setBookingSheetOpen(true);
-  }, [createBookingMutation]);
+  const openBookingSheet = useCallback(
+    (initial: BookingSheetInitial) => {
+      createBookingMutation.reset();
+      setBookingInitial(initial);
+      setBookingSheetOpen(true);
+    },
+    [createBookingMutation],
+  );
 
   const handlePickFree = useCallback(
     (room: RoomWithBookings, gap: TimeInterval) => {
@@ -119,12 +143,24 @@ export function AuthenticatedWorkspace() {
   );
 
   const handleBookRoomFromDirectory = useCallback(
-    (room: Room, slot?: { date: string; startTime: string; endTime: string }) => {
+    (
+      room: Room,
+      slot?: { date: string; startTime: string; endTime: string },
+    ) => {
       const rw = roomWithBookingsFor(room, bookingsQuery.data.rooms);
       if (slot) {
         const start = parseInstantOnDate(slot.date, slot.startTime);
         const end = parseInstantOnDate(slot.date, slot.endTime);
-        if (!roomAvailableForInterval(rw, weekStart, weekEnd, slot.date, start, end)) {
+        if (
+          !roomAvailableForInterval(
+            rw,
+            weekStart,
+            weekEnd,
+            slot.date,
+            start,
+            end,
+          )
+        ) {
           return;
         }
         openBookingSheet({
@@ -143,10 +179,13 @@ export function AuthenticatedWorkspace() {
     [bookingsQuery.data.rooms, openBookingSheet, weekStart, weekEnd],
   );
 
-  const handleCancelBooking = useCallback((id: string) => {
-    if (!window.confirm("Avboka denna reservation?")) return;
-    cancelMutation.mutate({ path: { id } });
-  }, [cancelMutation]);
+  const handleCancelBooking = useCallback(
+    (id: string) => {
+      if (!window.confirm("Avboka denna reservation?")) return;
+      cancelMutation.mutate({ path: { id } });
+    },
+    [cancelMutation],
+  );
 
   const isRoomBookable = useCallback(
     (room: Room) => {
@@ -156,15 +195,15 @@ export function AuthenticatedWorkspace() {
     [bookingsQuery.data.rooms, weekStart, weekEnd],
   );
 
-  const onWeekNavigate = useCallback(
-    (next: number) => {
-      setRoomsAvailabilityDate(null);
-      setWeekOffset(next);
-    },
+  const onWeekNavigate = useCallback((next: number) => {
+    setRoomsAvailabilityDate(null);
+    setWeekOffset(next);
+  }, []);
+
+  const showBookingToast = useCallback(
+    (message: string) => setToast(message),
     [],
   );
-
-  const showBookingToast = useCallback((message: string) => setToast(message), []);
 
   const clearBookingToast = useCallback(() => setToast(null), []);
   useAutoDismiss(toast, clearBookingToast, TOAST_DURATION_MS);
@@ -177,18 +216,22 @@ export function AuthenticatedWorkspace() {
 
   return (
     <>
-      <div className='mt-10 space-y-6'>
+      <div className="mt-10 space-y-6">
         <AppTabs active={activeTab} onChange={setActiveTab} />
 
         <div
-          role='tabpanel'
+          role="tabpanel"
           id={`panel-${activeTab}`}
           aria-labelledby={`tab-${activeTab}`}
-          className='rounded-2xl border border-te-border bg-te-surface p-5 shadow-sm sm:p-8'
+          className="rounded-2xl border border-te-border bg-te-surface p-5 shadow-sm sm:p-8"
         >
           {activeTab === "schedule" ? (
             <ScheduleTab
-              weekOffset={roomsAvailabilityDate != null ? effectiveBookingsWeekOffset : weekOffset}
+              weekOffset={
+                roomsAvailabilityDate != null
+                  ? effectiveBookingsWeekOffset
+                  : weekOffset
+              }
               onWeekOffsetChange={onWeekNavigate}
               campusFilter={campusFilter}
               onCampusFilter={setCampusFilterTransitioned}
@@ -239,11 +282,11 @@ export function AuthenticatedWorkspace() {
         initial={bookingInitial}
         scheduleRooms={bookingsQuery.data.rooms}
         myBookings={myBookingsQuery.data}
-        onSubmit={body =>
+        onSubmit={(body) =>
           createBookingMutation.mutate(
             { body },
             {
-              onSuccess: data => {
+              onSuccess: (data) => {
                 closeBookingSheet();
                 showBookingToast(`Bokning skapad · ${data.booking.id}`);
               },
@@ -251,14 +294,16 @@ export function AuthenticatedWorkspace() {
           )
         }
         isPending={createBookingMutation.isPending}
-        error={createBookingMutation.isError ? createBookingMutation.error : null}
+        error={
+          createBookingMutation.isError ? createBookingMutation.error : null
+        }
       />
 
       {toast ? (
         <div
-          className='fixed bottom-6 left-1/2 z-[60] max-w-md -translate-x-1/2 rounded-xl border border-te-border bg-te-elevated px-4 py-3 text-sm text-te-text shadow-lg'
-          role='status'
-          aria-live='polite'
+          className="fixed bottom-6 left-1/2 z-[60] max-w-md -translate-x-1/2 rounded-xl border border-te-border bg-te-elevated px-4 py-3 text-sm text-te-text shadow-lg"
+          role="status"
+          aria-live="polite"
         >
           {toast}
         </div>

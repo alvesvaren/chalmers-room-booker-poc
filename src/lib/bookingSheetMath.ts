@@ -15,13 +15,23 @@ export function localDateTimeMs(dateStr: string, timeStr: string): number {
   const [hRaw, mRaw] = timeStr.trim().split(":");
   const h = Number(hRaw);
   const m = Number(mRaw ?? 0);
-  if (!Number.isFinite(Y) || !Number.isFinite(M) || !Number.isFinite(D) || !Number.isFinite(h) || !Number.isFinite(m)) {
+  if (
+    !Number.isFinite(Y) ||
+    !Number.isFinite(M) ||
+    !Number.isFinite(D) ||
+    !Number.isFinite(h) ||
+    !Number.isFinite(m)
+  ) {
     return NaN;
   }
   return new Date(Y, M - 1, D, h, m, 0, 0).getTime();
 }
 
-export function isLocalStartInPast(dateStr: string, timeStr: string, now: Date): boolean {
+export function isLocalStartInPast(
+  dateStr: string,
+  timeStr: string,
+  now: Date,
+): boolean {
   const t = localDateTimeMs(dateStr, timeStr);
   if (Number.isNaN(t)) return false;
   return t <= now.getTime();
@@ -41,27 +51,45 @@ export function clampNum(n: number, lo: number, hi: number): number {
   return Math.min(hi, Math.max(lo, n));
 }
 
-export function intervalFitsInFreeGaps(s: number, e: number, gaps: TimeInterval[]): boolean {
+export function intervalFitsInFreeGaps(
+  s: number,
+  e: number,
+  gaps: TimeInterval[],
+): boolean {
   if (e <= s) return false;
-  return gaps.some(g => s >= g.start.getTime() && e <= g.end.getTime());
+  return gaps.some((g) => s >= g.start.getTime() && e <= g.end.getTime());
 }
 
 /** Snap interval into a single free gap; picks closest valid slot to the proposed times. */
-export function clampToFreeGaps(s: number, e: number, gaps: TimeInterval[], dateStr: string): [number, number] {
+export function clampToFreeGaps(
+  s: number,
+  e: number,
+  gaps: TimeInterval[],
+  dateStr: string,
+): [number, number] {
   const snap = (ms: number) => snapInstantMsToQuarterOnDate(ms, dateStr);
   if (gaps.length === 0) {
     const s0 = snap(s);
     let dur = e - s;
-    dur = Math.max(MIN_BOOK_DURATION_MIN * 60_000, Math.round(dur / QUARTER_HOUR_MS) * QUARTER_HOUR_MS);
+    dur = Math.max(
+      MIN_BOOK_DURATION_MIN * 60_000,
+      Math.round(dur / QUARTER_HOUR_MS) * QUARTER_HOUR_MS,
+    );
     dur = Math.min(dur, MAX_BOOK_DURATION_MIN * 60_000);
     return [s0, snap(s0 + dur)];
   }
 
   let dur = e - s;
-  if (dur < MIN_BOOK_DURATION_MIN * 60_000) dur = MIN_BOOK_DURATION_MIN * 60_000;
-  if (dur > MAX_BOOK_DURATION_MIN * 60_000) dur = MAX_BOOK_DURATION_MIN * 60_000;
+  if (dur < MIN_BOOK_DURATION_MIN * 60_000)
+    dur = MIN_BOOK_DURATION_MIN * 60_000;
+  if (dur > MAX_BOOK_DURATION_MIN * 60_000)
+    dur = MAX_BOOK_DURATION_MIN * 60_000;
   dur = Math.round(dur / QUARTER_HOUR_MS) * QUARTER_HOUR_MS;
-  dur = clampNum(dur, MIN_BOOK_DURATION_MIN * 60_000, MAX_BOOK_DURATION_MIN * 60_000);
+  dur = clampNum(
+    dur,
+    MIN_BOOK_DURATION_MIN * 60_000,
+    MAX_BOOK_DURATION_MIN * 60_000,
+  );
 
   const sAdj = s;
   const eAdj = sAdj + dur;
@@ -81,7 +109,8 @@ export function clampToFreeGaps(s: number, e: number, gaps: TimeInterval[], date
     const maxDurAll = Math.min(MAX_BOOK_DURATION_MIN * 60_000, room);
     if (room < minDur) continue;
 
-    const maxDurQuarter = Math.floor(maxDurAll / QUARTER_HOUR_MS) * QUARTER_HOUR_MS;
+    const maxDurQuarter =
+      Math.floor(maxDurAll / QUARTER_HOUR_MS) * QUARTER_HOUR_MS;
     if (maxDurQuarter < minDur) continue;
 
     const durUse = clampNum(dur, minDur, maxDurQuarter);

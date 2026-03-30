@@ -1,4 +1,8 @@
-import type { Booking, RoomCalendarSlot, RoomWithBookings } from "../client/types.gen";
+import type {
+  Booking,
+  RoomCalendarSlot,
+  RoomWithBookings,
+} from "../client/types.gen";
 
 /** Monday 00:00 local of the week containing `anchor`, plus `weekOffset` full weeks. `weekEnd` is exclusive (next Monday 00:00). */
 export function getWeekRange(weekOffset: number, anchor: Date = new Date()) {
@@ -14,14 +18,19 @@ export function getWeekRange(weekOffset: number, anchor: Date = new Date()) {
 }
 
 /** Monday-based week offset for the week containing `dateStr` (YYYY-MM-DD), relative to `getWeekRange(0, anchor)`. */
-export function weekOffsetForLocalDate(dateStr: string, anchor: Date = new Date()): number {
+export function weekOffsetForLocalDate(
+  dateStr: string,
+  anchor: Date = new Date(),
+): number {
   const [Y, M, D] = dateStr.split("-").map(Number);
   const target = new Date(Y, M - 1, D, 12, 0, 0, 0);
   if (Number.isNaN(target.getTime())) return 0;
   const { weekStart: anchorMonday } = getWeekRange(0, anchor);
   const { weekStart: targetMonday } = getWeekRange(0, target);
   const msPerWeek = 7 * 24 * 60 * 60_000;
-  return Math.round((targetMonday.getTime() - anchorMonday.getTime()) / msPerWeek);
+  return Math.round(
+    (targetMonday.getTime() - anchorMonday.getTime()) / msPerWeek,
+  );
 }
 
 /** API returns naive local wall-clock strings (no timezone suffix). */
@@ -58,14 +67,20 @@ export function parseInstantOnDate(dateStr: string, timeStr: string): Date {
 export const QUARTER_HOUR_MS = 15 * 60_000;
 
 /** Snap instant (local) to nearest quarter on the calendar day `dateStr` (YYYY-MM-DD). */
-export function snapInstantMsToQuarterOnDate(ms: number, dateStr: string): number {
+export function snapInstantMsToQuarterOnDate(
+  ms: number,
+  dateStr: string,
+): number {
   const [Y, M, D] = dateStr.split("-").map(Number);
   const day0 = new Date(Y, M - 1, D, 0, 0, 0, 0).getTime();
   const rel = ms - day0;
   return day0 + Math.round(rel / QUARTER_HOUR_MS) * QUARTER_HOUR_MS;
 }
 
-export function snapInstantMsToCeilQuarterOnDate(ms: number, dateStr: string): number {
+export function snapInstantMsToCeilQuarterOnDate(
+  ms: number,
+  dateStr: string,
+): number {
   const [Y, M, D] = dateStr.split("-").map(Number);
   const day0 = new Date(Y, M - 1, D, 0, 0, 0, 0).getTime();
   const rel = ms - day0;
@@ -93,7 +108,9 @@ const MIN_GAP_MS = 60_000;
 
 function mergeIntervals(intervals: TimeInterval[]): TimeInterval[] {
   if (intervals.length === 0) return [];
-  const sorted = [...intervals].sort((a, b) => a.start.getTime() - b.start.getTime());
+  const sorted = [...intervals].sort(
+    (a, b) => a.start.getTime() - b.start.getTime(),
+  );
   const out: TimeInterval[] = [{ ...sorted[0] }];
   for (let i = 1; i < sorted.length; i++) {
     const cur = sorted[i];
@@ -110,28 +127,44 @@ function mergeIntervals(intervals: TimeInterval[]): TimeInterval[] {
 }
 
 /** Busy segments clipped to the visible window and merged (for timeline-style blocks). */
-export function busyIntervalsForWindow(windowStart: Date, windowEnd: Date, segments: TimeInterval[]): TimeInterval[] {
+export function busyIntervalsForWindow(
+  windowStart: Date,
+  windowEnd: Date,
+  segments: TimeInterval[],
+): TimeInterval[] {
   const clipped = segments
-    .filter(b => b.end > windowStart && b.start < windowEnd)
-    .map(b => ({
-      start: new Date(Math.max(b.start.getTime(), windowStart.getTime())) as Date,
+    .filter((b) => b.end > windowStart && b.start < windowEnd)
+    .map((b) => ({
+      start: new Date(
+        Math.max(b.start.getTime(), windowStart.getTime()),
+      ) as Date,
       end: new Date(Math.min(b.end.getTime(), windowEnd.getTime())) as Date,
     }))
-    .filter(b => b.end > b.start);
+    .filter((b) => b.end > b.start);
   return mergeIntervals(clipped);
 }
 
 /** Free gaps inside [windowStart, windowEnd) given busy wall-clock segments (any length). */
-export function freeSlotsInWindow(windowStart: Date, windowEnd: Date, segments: TimeInterval[]): TimeInterval[] {
+export function freeSlotsInWindow(
+  windowStart: Date,
+  windowEnd: Date,
+  segments: TimeInterval[],
+): TimeInterval[] {
   const busy = busyIntervalsForWindow(windowStart, windowEnd, segments);
   return subtractBusyFromWindow(windowStart, windowEnd, busy);
 }
 
-function subtractBusyFromWindow(windowStart: Date, windowEnd: Date, busy: TimeInterval[]): TimeInterval[] {
+function subtractBusyFromWindow(
+  windowStart: Date,
+  windowEnd: Date,
+  busy: TimeInterval[],
+): TimeInterval[] {
   const clipped = busy
-    .filter(b => b.end > windowStart && b.start < windowEnd)
-    .map(b => ({
-      start: new Date(Math.max(b.start.getTime(), windowStart.getTime())) as Date,
+    .filter((b) => b.end > windowStart && b.start < windowEnd)
+    .map((b) => ({
+      start: new Date(
+        Math.max(b.start.getTime(), windowStart.getTime()),
+      ) as Date,
       end: new Date(Math.min(b.end.getTime(), windowEnd.getTime())) as Date,
     }));
   const merged = mergeIntervals(clipped);
@@ -146,11 +179,14 @@ function subtractBusyFromWindow(windowStart: Date, windowEnd: Date, busy: TimeIn
   if (cursor < windowEnd.getTime()) {
     gaps.push({ start: new Date(cursor), end: new Date(windowEnd.getTime()) });
   }
-  return gaps.filter(g => g.end.getTime() - g.start.getTime() >= MIN_GAP_MS);
+  return gaps.filter((g) => g.end.getTime() - g.start.getTime() >= MIN_GAP_MS);
 }
 
 /** Trim interval to only the part at or after `now`. Null if nothing usable remains. */
-export function clipIntervalToFuture(interval: TimeInterval, now: Date = new Date()): TimeInterval | null {
+export function clipIntervalToFuture(
+  interval: TimeInterval,
+  now: Date = new Date(),
+): TimeInterval | null {
   const startMs = Math.max(interval.start.getTime(), now.getTime());
   const endMs = interval.end.getTime();
   if (endMs - startMs < MIN_GAP_MS) return null;
@@ -161,7 +197,10 @@ export function clipIntervalToFuture(interval: TimeInterval, now: Date = new Dat
  * Split a free gap for the timeline: past (already elapsed) vs future (bookable).
  * If the remainder before gap.end is shorter than MIN_GAP_MS, the whole gap is treated as past.
  */
-export function splitFreeGapForDisplay(gap: TimeInterval, now: Date): { past: TimeInterval | null; future: TimeInterval | null } {
+export function splitFreeGapForDisplay(
+  gap: TimeInterval,
+  now: Date,
+): { past: TimeInterval | null; future: TimeInterval | null } {
   const i0 = gap.start.getTime();
   const i1 = gap.end.getTime();
   const n = now.getTime();
@@ -173,7 +212,10 @@ export function splitFreeGapForDisplay(gap: TimeInterval, now: Date): { past: Ti
     if (!future) return { past: gap, future: null };
     return { past: null, future };
   }
-  const future = clipIntervalToFuture({ start: new Date(n), end: gap.end }, now);
+  const future = clipIntervalToFuture(
+    { start: new Date(n), end: gap.end },
+    now,
+  );
   if (!future) {
     return { past: gap, future: null };
   }
@@ -220,12 +262,13 @@ export function isMyCalendarBusy(
 ): boolean {
   if (!myBookings?.length) return false;
   if (segment.reservationId) {
-    return myBookings.some(m => m.id === segment.reservationId);
+    return myBookings.some((m) => m.id === segment.reservationId);
   }
   const s0 = segment.start.getTime();
   const s1 = segment.end.getTime();
-  return myBookings.some(m => {
-    const sameRoom = m.room.id != null ? m.room.id === roomId : m.room.name === roomName;
+  return myBookings.some((m) => {
+    const sameRoom =
+      m.room.id != null ? m.room.id === roomId : m.room.name === roomName;
     if (!sameRoom) return false;
     const ms = parseNaiveLocal(m.start).getTime();
     const me = parseNaiveLocal(m.end).getTime();
@@ -244,7 +287,11 @@ export function buildRoomWeekTimeline(
   const busyAll: BusySegment[] = room.bookings.map(slotToBusy);
 
   const days: DayTimeline[] = [];
-  for (let cursor = new Date(weekStart); cursor < weekEndExclusive; cursor.setDate(cursor.getDate() + 1)) {
+  for (
+    let cursor = new Date(weekStart);
+    cursor < weekEndExclusive;
+    cursor.setDate(cursor.getDate() + 1)
+  ) {
     const dayDate = new Date(cursor);
     const displayStart = startOfDayWithHour(dayDate, dayStartH);
     const displayEnd = startOfDayWithHour(dayDate, dayEndH);
@@ -253,16 +300,18 @@ export function buildRoomWeekTimeline(
     const dayStartMidnight = startOfDayWithHour(dayDate, 0);
 
     const busy = busyAll
-      .filter(b => b.end > dayStartMidnight && b.start < dayEndMidnight)
-      .map(b => ({
-        start: new Date(Math.max(b.start.getTime(), dayStartMidnight.getTime())),
+      .filter((b) => b.end > dayStartMidnight && b.start < dayEndMidnight)
+      .map((b) => ({
+        start: new Date(
+          Math.max(b.start.getTime(), dayStartMidnight.getTime()),
+        ),
         end: new Date(Math.min(b.end.getTime(), dayEndMidnight.getTime())),
         label: b.label,
         reservationId: b.reservationId,
       }))
-      .filter(b => b.end > b.start);
+      .filter((b) => b.end > b.start);
 
-    const busyForGaps = busy.map(b => ({ start: b.start, end: b.end }));
+    const busyForGaps = busy.map((b) => ({ start: b.start, end: b.end }));
     const mergedBusy = mergeIntervals(busyForGaps);
     const free = subtractBusyFromWindow(displayStart, displayEnd, mergedBusy);
 
@@ -301,8 +350,14 @@ export function roomAvailableForInterval(
   if (intervalEnd.getTime() - intervalStart.getTime() < MIN_GAP_MS) {
     return false;
   }
-  const days = buildRoomWeekTimeline(room, weekStart, weekEndExclusive, dayStartH, dayEndH);
-  const day = days.find(d => d.dateStr === dateStr);
+  const days = buildRoomWeekTimeline(
+    room,
+    weekStart,
+    weekEndExclusive,
+    dayStartH,
+    dayEndH,
+  );
+  const day = days.find((d) => d.dateStr === dateStr);
   if (!day) return false;
   const t0 = intervalStart.getTime();
   const t1 = intervalEnd.getTime();
@@ -312,11 +367,15 @@ export function roomAvailableForInterval(
   if (formatLocalDate(now) === dateStr && t0 < now.getTime()) {
     return false;
   }
-  return day.free.some(g => g.start.getTime() <= t0 && g.end.getTime() >= t1);
+  return day.free.some((g) => g.start.getTime() <= t0 && g.end.getTime() >= t1);
 }
 
 /** Position as % of [windowStart, windowEnd]: { left, width } for CSS. */
-export function intervalToPercent(interval: TimeInterval, windowStart: Date, windowEnd: Date) {
+export function intervalToPercent(
+  interval: TimeInterval,
+  windowStart: Date,
+  windowEnd: Date,
+) {
   const w0 = windowStart.getTime();
   const w1 = windowEnd.getTime();
   const span = w1 - w0;
@@ -363,7 +422,10 @@ export function toBookingDraft(
   }
   endMs = Math.min(endMs, gap.end.getTime());
   let dur = endMs - startMs;
-  dur = Math.max(QUARTER_HOUR_MS, Math.round(dur / QUARTER_HOUR_MS) * QUARTER_HOUR_MS);
+  dur = Math.max(
+    QUARTER_HOUR_MS,
+    Math.round(dur / QUARTER_HOUR_MS) * QUARTER_HOUR_MS,
+  );
   endMs = Math.min(startMs + dur, gap.end.getTime());
   endMs = snapInstantMsToQuarterOnDate(endMs, dateStr);
   if (endMs <= startMs) {
@@ -382,8 +444,19 @@ export function toBookingDraft(
  * First free gap in the visible week that still has time left from `now` onward
  * (not in the past, not overlapping busy — same as free segments).
  */
-export function firstFreeGapInWeek(room: RoomWithBookings, weekStart: Date, weekEndExclusive: Date, now: Date = new Date()): TimeInterval | null {
-  const days = buildRoomWeekTimeline(room, weekStart, weekEndExclusive, DEFAULT_DAY_START_H, DEFAULT_DAY_END_H);
+export function firstFreeGapInWeek(
+  room: RoomWithBookings,
+  weekStart: Date,
+  weekEndExclusive: Date,
+  now: Date = new Date(),
+): TimeInterval | null {
+  const days = buildRoomWeekTimeline(
+    room,
+    weekStart,
+    weekEndExclusive,
+    DEFAULT_DAY_START_H,
+    DEFAULT_DAY_END_H,
+  );
   for (const d of days) {
     for (const g of d.free) {
       const clipped = clipIntervalToFuture(g, now);

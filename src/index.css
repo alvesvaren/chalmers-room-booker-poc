@@ -94,7 +94,11 @@
     font-family: var(--font-sans);
     background-color: var(--te-bg);
     color: var(--te-text);
-    background-image: radial-gradient(ellipse 120% 80% at 50% -20%, var(--te-accent-muted), transparent 55%);
+    background-image: radial-gradient(
+      ellipse 120% 80% at 50% -20%,
+      var(--te-accent-muted),
+      transparent 55%
+    );
     min-height: 100svh;
   }
 }

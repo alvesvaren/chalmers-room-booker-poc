@@ -27,12 +27,12 @@ The build runs `gen:room-ratings` (bundles room rating data), then TypeScript an
 
 ## Other scripts
 
-| Command | Purpose |
-|--------|---------|
-| `pnpm lint` | ESLint |
-| `pnpm preview` | Preview production build |
-| `pnpm openapi-ts` | Regenerate `src/client` from the OpenAPI URL (`openapi-ts.config.ts`) |
-| `pnpm gen:room-ratings` | Regenerate `src/data/roomRatings.gen.ts` |
+| Command                 | Purpose                                                               |
+| ----------------------- | --------------------------------------------------------------------- |
+| `pnpm lint`             | ESLint                                                                |
+| `pnpm preview`          | Preview production build                                              |
+| `pnpm openapi-ts`       | Regenerate `src/client` from the OpenAPI URL (`openapi-ts.config.ts`) |
+| `pnpm gen:room-ratings` | Regenerate `src/data/roomRatings.gen.ts`                              |
 
 ## Scope
 

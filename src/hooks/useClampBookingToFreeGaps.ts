@@ -1,6 +1,13 @@
 import { useEffect } from "react";
-import { clampToFreeGaps, intervalFitsInFreeGaps } from "../lib/bookingSheetMath";
-import { formatLocalTime, parseInstantOnDate, type TimeInterval } from "../lib/weekTimeline";
+import {
+  clampToFreeGaps,
+  intervalFitsInFreeGaps,
+} from "../lib/bookingSheetMath";
+import {
+  formatLocalTime,
+  parseInstantOnDate,
+  type TimeInterval,
+} from "../lib/weekTimeline";
 
 /**
  * When the schedule grid changes (room/day), re-clamp the draft interval so it stays inside free gaps.

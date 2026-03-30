@@ -13,7 +13,7 @@ Apply these conventions when writing or changing **React UI** code. Shared **Typ
 
 - Prefer **TanStack Query** for server/async state. Consider **Zustand** (or similar) when **local** UI state is large or cross-cutting.
 - Renders should stay **pure**: no hidden side effects; derive UI from props, local state, and query results.
-- **`useEffect`**: default mental model is *almost never*. Prefer query `select`/callbacks, event handlers, derived state, or URL/search params first.
+- **`useEffect`**: default mental model is _almost never_. Prefer query `select`/callbacks, event handlers, derived state, or URL/search params first.
 - **Default**: put remaining effect logic in a dedicated hook (`useThing()`), not scattered in the component.
 - **Exceptional**: a genuinely tiny one-off sync that cannot live elsewhere may stay **inline**—treat as rare; do not normalize sloppy effects.
 

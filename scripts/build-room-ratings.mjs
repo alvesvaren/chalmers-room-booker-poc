@@ -2,80 +2,79 @@
  * Reads "Group room ratings - Group Rooms.csv" and writes src/data/roomRatings.gen.ts
  * Run from repo root: node scripts/build-room-ratings.mjs
  */
-import fs from 'node:fs'
-import path from 'node:path'
-import { fileURLToPath } from 'node:url'
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const root = path.join(__dirname, '..')
-const csvPath = path.join(
-  root,
-  'Group room ratings - Group Rooms.csv',
-)
-const outPath = path.join(root, 'src', 'data', 'roomRatings.gen.ts')
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const root = path.join(__dirname, "..");
+const csvPath = path.join(root, "Group room ratings - Group Rooms.csv");
+const outPath = path.join(root, "src", "data", "roomRatings.gen.ts");
 
 /** CSV "Room" cell -> exact API `room.name` values (when they differ) */
 const ROOM_ALIASES = {
-  KG1198: ['K-G1198'],
-  'EG-2515': ['Ideläran-G2515'],
-  'EG-2516': ['Ideläran-G2516'],
-  'EG-3503': ['Ideläran-G3503'],
-  'EG-3504': ['Ideläran-G3504'],
-  'EG-3505': ['Ideläran-G3505'],
-  'EG-3506': ['Ideläran-G3506'],
-  'EG-3507': ['Ideläran-G3507'],
-  'EG-3508': ['Ideläran-G3508'],
-}
+  KG1198: ["K-G1198"],
+  "EG-2515": ["Ideläran-G2515"],
+  "EG-2516": ["Ideläran-G2516"],
+  "EG-3503": ["Ideläran-G3503"],
+  "EG-3504": ["Ideläran-G3504"],
+  "EG-3505": ["Ideläran-G3505"],
+  "EG-3506": ["Ideläran-G3506"],
+  "EG-3507": ["Ideläran-G3507"],
+  "EG-3508": ["Ideläran-G3508"],
+};
 
-const SKIP_ROOMS = new Set(['', 'average', 'unbookable :('])
+const SKIP_ROOMS = new Set(["", "average", "unbookable :("]);
 
 function parseCsv(text) {
-  const rows = []
-  let row = []
-  let cur = ''
-  let inQuotes = false
+  const rows = [];
+  let row = [];
+  let cur = "";
+  let inQuotes = false;
   for (let i = 0; i < text.length; i++) {
-    const c = text[i]
+    const c = text[i];
     if (inQuotes) {
       if (c === '"') {
         if (text[i + 1] === '"') {
-          cur += '"'
-          i++
-        } else inQuotes = false
-      } else cur += c
+          cur += '"';
+          i++;
+        } else inQuotes = false;
+      } else cur += c;
     } else if (c === '"') {
-      inQuotes = true
-    } else if (c === ',') {
-      row.push(cur)
-      cur = ''
-    } else if (c === '\n') {
-      row.push(cur)
-      if (row.some((cell) => cell.length > 0)) rows.push(row)
-      row = []
-      cur = ''
-    } else if (c === '\r') {
+      inQuotes = true;
+    } else if (c === ",") {
+      row.push(cur);
+      cur = "";
+    } else if (c === "\n") {
+      row.push(cur);
+      if (row.some((cell) => cell.length > 0)) rows.push(row);
+      row = [];
+      cur = "";
+    } else if (c === "\r") {
       // ignore, \n follows
-    } else cur += c
+    } else cur += c;
   }
-  row.push(cur)
-  if (row.some((cell) => cell.length > 0)) rows.push(row)
-  return rows
+  row.push(cur);
+  if (row.some((cell) => cell.length > 0)) rows.push(row);
+  return rows;
 }
 
 function parseOverall(raw) {
-  if (raw == null) return NaN
-  const t = String(raw).trim().replace(/\u2212/g, '-')
-  if (!t || t === '−' || t === '-') return NaN
-  const n = Number(t.replace(',', '.'))
-  return Number.isFinite(n) ? n : NaN
+  if (raw == null) return NaN;
+  const t = String(raw)
+    .trim()
+    .replace(/\u2212/g, "-");
+  if (!t || t === "−" || t === "-") return NaN;
+  const n = Number(t.replace(",", "."));
+  return Number.isFinite(n) ? n : NaN;
 }
 
 function escapeTsString(s) {
   return s
-    .replace(/\\/g, '\\\\')
+    .replace(/\\/g, "\\\\")
     .replace(/'/g, "\\'")
-    .replace(/\r\n/g, '\n')
-    .replace(/\r/g, '\n')
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n");
 }
 
 /**
@@ -83,73 +82,73 @@ function escapeTsString(s) {
  * @param {string} [apiNamen] optional last column: semicolon-separated API names
  */
 function apiNamesForRow(room, apiNamen) {
-  const extra = (apiNamen ?? '').trim()
+  const extra = (apiNamen ?? "").trim();
   if (extra) {
     return extra
       .split(/[;]+/)
       .map((s) => s.trim())
-      .filter(Boolean)
+      .filter(Boolean);
   }
-  const r = room.trim()
-  const alias = ROOM_ALIASES[r]
-  if (alias) return [...alias]
-  const m = r.match(/^(.+?)A\/B$/i)
-  if (m) return [`${m[1]}A`, `${m[1]}B`]
-  return [r]
+  const r = room.trim();
+  const alias = ROOM_ALIASES[r];
+  if (alias) return [...alias];
+  const m = r.match(/^(.+?)A\/B$/i);
+  if (m) return [`${m[1]}A`, `${m[1]}B`];
+  return [r];
 }
 
-const text = fs.readFileSync(csvPath, 'utf8')
-const rows = parseCsv(text)
-const header = rows[0]
-const iRoom = header.indexOf('Room')
-const iOverall = header.indexOf('Overall')
-const iNotes = header.indexOf('Notes')
-const iApi = header.indexOf('apiNamen')
+const text = fs.readFileSync(csvPath, "utf8");
+const rows = parseCsv(text);
+const header = rows[0];
+const iRoom = header.indexOf("Room");
+const iOverall = header.indexOf("Overall");
+const iNotes = header.indexOf("Notes");
+const iApi = header.indexOf("apiNamen");
 if (iRoom < 0 || iOverall < 0 || iNotes < 0) {
-  console.error('Missing Room, Overall, or Notes column')
-  process.exit(1)
+  console.error("Missing Room, Overall, or Notes column");
+  process.exit(1);
 }
 
 /** @type {Map<string, { overall: number; comment: string }>} */
-const merged = new Map()
+const merged = new Map();
 
 for (let r = 1; r < rows.length; r++) {
-  const line = rows[r]
-  const room = (line[iRoom] ?? '').trim()
-  const keyLower = room.toLowerCase()
-  if (SKIP_ROOMS.has(keyLower)) continue
+  const line = rows[r];
+  const room = (line[iRoom] ?? "").trim();
+  const keyLower = room.toLowerCase();
+  if (SKIP_ROOMS.has(keyLower)) continue;
 
-  const overall = parseOverall(line[iOverall])
-  if (!Number.isFinite(overall)) continue
+  const overall = parseOverall(line[iOverall]);
+  if (!Number.isFinite(overall)) continue;
 
-  const comment = (line[iNotes] ?? '').trim()
-  const apiExtra = iApi >= 0 ? line[iApi] : ''
-  const keys = apiNamesForRow(room, apiExtra)
+  const comment = (line[iNotes] ?? "").trim();
+  const apiExtra = iApi >= 0 ? line[iApi] : "";
+  const keys = apiNamesForRow(room, apiExtra);
 
   for (const k of keys) {
-    if (!k) continue
-    const prev = merged.get(k)
+    if (!k) continue;
+    const prev = merged.get(k);
     if (prev) {
       if (prev.overall !== overall) {
         console.warn(
           `Duplicate API name "${k}": earlier ${prev.overall}, row "${room}" ${overall} — keeping first`,
-        )
+        );
       }
-      continue
+      continue;
     }
-    merged.set(k, { overall, comment })
+    merged.set(k, { overall, comment });
   }
 }
 
-const sortedKeys = [...merged.keys()].sort((a, b) => a.localeCompare(b, 'sv'))
+const sortedKeys = [...merged.keys()].sort((a, b) => a.localeCompare(b, "sv"));
 const entries = sortedKeys.map((k) => {
-  const { overall, comment } = merged.get(k)
-  return `  '${escapeTsString(k)}': { overall: ${overall}, comment: '${escapeTsString(comment)}' },`
-})
+  const { overall, comment } = merged.get(k);
+  return `  '${escapeTsString(k)}': { overall: ${overall}, comment: '${escapeTsString(comment)}' },`;
+});
 
 const file = `/** Generated by scripts/build-room-ratings.mjs — do not edit. */
 const roomRatingsGen = {
-${entries.join('\n')}
+${entries.join("\n")}
 } as const
 
 export type RoomRatingEntry = {
@@ -160,8 +159,10 @@ export type RoomRatingEntry = {
 export type RoomRatingsMap = Record<string, RoomRatingEntry>
 
 export default roomRatingsGen as RoomRatingsMap
-`
+`;
 
-fs.mkdirSync(path.dirname(outPath), { recursive: true })
-fs.writeFileSync(outPath, file, 'utf8')
-console.log(`Wrote ${merged.size} room keys -> ${path.relative(root, outPath)}`)
+fs.mkdirSync(path.dirname(outPath), { recursive: true });
+fs.writeFileSync(outPath, file, "utf8");
+console.log(
+  `Wrote ${merged.size} room keys -> ${path.relative(root, outPath)}`,
+);

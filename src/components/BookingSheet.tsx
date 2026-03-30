@@ -1,5 +1,14 @@
-import { useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import type { Booking, CreateBookingRequest, RoomWithBookings } from "../client/types.gen";
+import {
+  useMemo,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
+import type {
+  Booking,
+  CreateBookingRequest,
+  RoomWithBookings,
+} from "../client/types.gen";
 import {
   clampNum,
   clampToFreeGaps,
@@ -75,9 +84,9 @@ function BookingSheetForm({
   const { start: displayStart, end: displayEnd } = dayDisplayBounds(date);
 
   const busyClipped = useMemo(() => {
-    const slots = scheduleRooms?.find(r => r.id === roomId)?.bookings ?? [];
+    const slots = scheduleRooms?.find((r) => r.id === roomId)?.bookings ?? [];
     return slots
-      .map(slot => {
+      .map((slot) => {
         const a = parseNaiveLocal(slot.start);
         const b = parseNaiveLocal(slot.end);
         const t0 = Math.max(a.getTime(), displayStart.getTime());
@@ -93,15 +102,34 @@ function BookingSheetForm({
       .filter((x): x is NonNullable<typeof x> => x != null);
   }, [scheduleRooms, roomId, displayStart, displayEnd]);
 
-  const busyForConstraints: TimeInterval[] = useMemo(() => busyClipped.map(b => ({ start: b.start, end: b.end })), [busyClipped]);
+  const busyForConstraints: TimeInterval[] = useMemo(
+    () => busyClipped.map((b) => ({ start: b.start, end: b.end })),
+    [busyClipped],
+  );
 
-  const freeGaps = useMemo(() => freeSlotsInWindow(displayStart, displayEnd, busyForConstraints), [displayStart, displayEnd, busyForConstraints]);
+  const freeGaps = useMemo(
+    () => freeSlotsInWindow(displayStart, displayEnd, busyForConstraints),
+    [displayStart, displayEnd, busyForConstraints],
+  );
 
-  const freeGapsLayoutKey = useMemo(() => freeGaps.map(g => `${+g.start}-${+g.end}`).join("|"), [freeGaps]);
+  const freeGapsLayoutKey = useMemo(
+    () => freeGaps.map((g) => `${+g.start}-${+g.end}`).join("|"),
+    [freeGaps],
+  );
 
   const clearClientError = () => setClientError(null);
 
-  useClampBookingToFreeGaps(date, roomId, freeGaps, freeGapsLayoutKey, startTime, endTime, setStartTime, setEndTime, clearClientError);
+  useClampBookingToFreeGaps(
+    date,
+    roomId,
+    freeGaps,
+    freeGapsLayoutKey,
+    startTime,
+    endTime,
+    setStartTime,
+    setEndTime,
+    clearClientError,
+  );
 
   useEscapeKey(onClose);
 
@@ -129,9 +157,19 @@ function BookingSheetForm({
     end: parseInstantOnDate(date, endTime),
   };
 
-  const durationMin = Math.max(0, Math.round((bookingInterval.end.getTime() - bookingInterval.start.getTime()) / 60_000));
+  const durationMin = Math.max(
+    0,
+    Math.round(
+      (bookingInterval.end.getTime() - bookingInterval.start.getTime()) /
+        60_000,
+    ),
+  );
 
-  const { leftPct, widthPct } = intervalToPercent(bookingInterval, displayStart, displayEnd);
+  const { leftPct, widthPct } = intervalToPercent(
+    bookingInterval,
+    displayStart,
+    displayEnd,
+  );
   const previewWidthPct = widthPct > 0 ? Math.max(widthPct, 1.2) : 0;
 
   function applyDurationFromStart(minutes: number) {
@@ -163,7 +201,8 @@ function BookingSheetForm({
     const w0 = displayStart.getTime();
     const w1 = displayEnd.getTime();
     const clickMs = snapInstantMsToQuarterOnDate(clientXToMs(clientX), date);
-    const durMs = bookingInterval.end.getTime() - bookingInterval.start.getTime();
+    const durMs =
+      bookingInterval.end.getTime() - bookingInterval.start.getTime();
     if (durMs < MIN_BOOK_DURATION_MIN * 60_000) return;
     let startMs = snapInstantMsToQuarterOnDate(clickMs - durMs / 2, date);
     let endMs = startMs + durMs;
@@ -248,7 +287,10 @@ function BookingSheetForm({
         }
       } else if (d.kind === "resize-start") {
         const endFixed = d.endMs;
-        let newStart = snapInstantMsToQuarterOnDate(clientXToMs(ev.clientX), date);
+        let newStart = snapInstantMsToQuarterOnDate(
+          clientXToMs(ev.clientX),
+          date,
+        );
         const lo = Math.max(w0, endFixed - MAX_BOOK_DURATION_MIN * 60_000);
         const hi = endFixed - MIN_BOOK_DURATION_MIN * 60_000;
         newStart = clampNum(newStart, lo, hi);
@@ -256,7 +298,10 @@ function BookingSheetForm({
         endMsN = endFixed;
       } else {
         const startFixed = d.startMs;
-        let newEnd = snapInstantMsToQuarterOnDate(clientXToMs(ev.clientX), date);
+        let newEnd = snapInstantMsToQuarterOnDate(
+          clientXToMs(ev.clientX),
+          date,
+        );
         const lo = startFixed + MIN_BOOK_DURATION_MIN * 60_000;
         const hi = Math.min(w1, startFixed + MAX_BOOK_DURATION_MIN * 60_000);
         newEnd = clampNum(newEnd, lo, hi);
@@ -287,43 +332,52 @@ function BookingSheetForm({
 
   return (
     <div
-      className='fixed inset-0 z-50 flex min-h-0 items-end justify-center overflow-x-hidden sm:items-center sm:p-6'
-      role='presentation'
-      onMouseDown={e => {
+      className="fixed inset-0 z-50 flex min-h-0 items-end justify-center overflow-x-hidden sm:items-center sm:p-6"
+      role="presentation"
+      onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className='absolute inset-0 bg-te-text/25 backdrop-blur-[2px]' aria-hidden />
       <div
-        className='relative z-10 flex max-h-[min(92vh,760px)] w-full min-w-0 max-w-[min(32rem,100vw)] flex-col overflow-x-hidden rounded-t-2xl border border-te-border bg-te-surface shadow-2xl sm:max-h-[90vh] sm:rounded-2xl'
-        role='dialog'
-        aria-modal='true'
-        aria-labelledby='booking-sheet-title'
+        className="absolute inset-0 bg-te-text/25 backdrop-blur-[2px]"
+        aria-hidden
+      />
+      <div
+        className="relative z-10 flex max-h-[min(92vh,760px)] w-full min-w-0 max-w-[min(32rem,100vw)] flex-col overflow-x-hidden rounded-t-2xl border border-te-border bg-te-surface shadow-2xl sm:max-h-[90vh] sm:rounded-2xl"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="booking-sheet-title"
       >
-        <div className='flex min-w-0 items-start justify-between gap-4 border-b border-te-border px-5 py-4'>
-          <div className='min-w-0 flex-1'>
-            <h2 id='booking-sheet-title' className='font-display text-lg font-semibold tracking-tight text-te-text'>
+        <div className="flex min-w-0 items-start justify-between gap-4 border-b border-te-border px-5 py-4">
+          <div className="min-w-0 flex-1">
+            <h2
+              id="booking-sheet-title"
+              className="font-display text-lg font-semibold tracking-tight text-te-text"
+            >
               Ny bokning
             </h2>
             {roomName ? (
-              <p className='mt-0.5 truncate text-sm text-te-muted' title={roomName}>
+              <p
+                className="mt-0.5 truncate text-sm text-te-muted"
+                title={roomName}
+              >
                 {roomName}
               </p>
             ) : null}
           </div>
           <button
-            type='button'
+            type="button"
             onClick={onClose}
-            className='rounded-lg p-1.5 text-te-muted hover:bg-te-accent-muted hover:text-te-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-te-accent'
-            aria-label='Stäng'
+            className="rounded-lg p-1.5 text-te-muted hover:bg-te-accent-muted hover:text-te-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-te-accent"
+            aria-label="Stäng"
           >
             ✕
           </button>
         </div>
 
         <form
-          className='flex min-h-0 min-w-0 flex-1 flex-col gap-5 overflow-y-auto overflow-x-hidden px-5 py-4'
-          onSubmit={e => {
+          className="flex min-h-0 min-w-0 flex-1 flex-col gap-5 overflow-y-auto overflow-x-hidden px-5 py-4"
+          onSubmit={(e) => {
             e.preventDefault();
             clearClientError();
             let sMs = parseInstantOnDate(date, startTime).getTime();
@@ -335,7 +389,10 @@ function BookingSheetForm({
             sMs = snapInstantMsToQuarterOnDate(sMs, date);
             eMs = snapInstantMsToQuarterOnDate(eMs, date);
             let durMs = eMs - sMs;
-            durMs = Math.max(MIN_BOOK_DURATION_MIN * 60_000, Math.round(durMs / QUARTER_HOUR_MS) * QUARTER_HOUR_MS);
+            durMs = Math.max(
+              MIN_BOOK_DURATION_MIN * 60_000,
+              Math.round(durMs / QUARTER_HOUR_MS) * QUARTER_HOUR_MS,
+            );
             durMs = Math.min(durMs, MAX_BOOK_DURATION_MIN * 60_000);
             eMs = sMs + durMs;
             const startNorm = formatLocalTime(new Date(sMs));
@@ -353,45 +410,81 @@ function BookingSheetForm({
             });
           }}
         >
-          <label className='grid gap-1 text-sm'>
-            <span className='font-medium text-te-text'>Titel</span>
-            <input className={inputClass} value={title} onChange={e => setTitle(e.target.value)} placeholder='Valfritt' />
+          <label className="grid gap-1 text-sm">
+            <span className="font-medium text-te-text">Titel</span>
+            <input
+              className={inputClass}
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Valfritt"
+            />
           </label>
 
-          <section className='space-y-2' aria-label='Förhandsvisning av bokning'>
-            <div className='flex min-w-0 flex-col gap-1 sm:flex-row sm:items-end sm:justify-between sm:gap-2' aria-live='polite'>
-              <span className='shrink-0 text-xs font-semibold uppercase tracking-[0.12em] text-te-muted'>Tid</span>
-              <span className='min-w-0 break-anywhere font-mono text-xs tabular-nums text-te-text sm:text-right'>
+          <section
+            className="space-y-2"
+            aria-label="Förhandsvisning av bokning"
+          >
+            <div
+              className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-end sm:justify-between sm:gap-2"
+              aria-live="polite"
+            >
+              <span className="shrink-0 text-xs font-semibold uppercase tracking-[0.12em] text-te-muted">
+                Tid
+              </span>
+              <span className="min-w-0 break-anywhere font-mono text-xs tabular-nums text-te-text sm:text-right">
                 {startTime}–{endTime}
-                <span className='ml-2 text-te-muted'>({durationMin} min)</span>
+                <span className="ml-2 text-te-muted">({durationMin} min)</span>
               </span>
             </div>
             <div
               ref={trackRef}
-              className='relative h-11 min-h-11 w-full cursor-default overflow-visible'
-              onPointerDownCapture={e => {
+              className="relative h-11 min-h-11 w-full cursor-default overflow-visible"
+              onPointerDownCapture={(e) => {
                 if (e.button !== 0) return;
                 const t = e.target as HTMLElement | null;
                 if (!t) return;
                 if (t.closest("[data-booking-preview-root]")) return;
-                const clicked = snapInstantMsToQuarterOnDate(clientXToMs(e.clientX), date);
-                if (busyClipped.some(b => clicked >= b.start.getTime() && clicked < b.end.getTime())) {
+                const clicked = snapInstantMsToQuarterOnDate(
+                  clientXToMs(e.clientX),
+                  date,
+                );
+                if (
+                  busyClipped.some(
+                    (b) =>
+                      clicked >= b.start.getTime() && clicked < b.end.getTime(),
+                  )
+                ) {
                   return;
                 }
                 e.preventDefault();
                 placeBookingAtTrackClick(e.clientX);
               }}
             >
-              <div className='pointer-events-none absolute inset-0 overflow-hidden rounded-lg bg-te-border/25'>
-                <div className='absolute inset-x-0 top-0 flex justify-between px-1 pt-1 text-[9px] font-medium uppercase tracking-wider text-te-muted/80'>
+              <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-lg bg-te-border/25">
+                <div className="absolute inset-x-0 top-0 flex justify-between px-1 pt-1 text-[9px] font-medium uppercase tracking-wider text-te-muted/80">
                   <span>07</span>
                   <span>13</span>
                   <span>22</span>
                 </div>
                 {busyClipped.map((b, i) => {
-                  const { leftPct: bl, widthPct: bw } = intervalToPercent({ start: b.start, end: b.end }, displayStart, displayEnd);
-                  const mine = isMyCalendarBusy(b, roomId, roomName, myBookings);
-                  const slotTitle = mine ? (b.label ? `Din bokning · ${b.label}` : "Din bokning") : b.label ? `Upptagen · ${b.label}` : "Upptagen";
+                  const { leftPct: bl, widthPct: bw } = intervalToPercent(
+                    { start: b.start, end: b.end },
+                    displayStart,
+                    displayEnd,
+                  );
+                  const mine = isMyCalendarBusy(
+                    b,
+                    roomId,
+                    roomName,
+                    myBookings,
+                  );
+                  const slotTitle = mine
+                    ? b.label
+                      ? `Din bokning · ${b.label}`
+                      : "Din bokning"
+                    : b.label
+                      ? `Upptagen · ${b.label}`
+                      : "Upptagen";
                   return (
                     <div
                       key={`busy-${b.start.getTime()}-${i}`}
@@ -407,7 +500,9 @@ function BookingSheetForm({
                       {b.label ? (
                         <span
                           className={`truncate text-center font-display text-[0.55rem] font-semibold leading-tight sm:text-[0.6rem] ${
-                            mine ? "text-te-mine-busy-text" : "text-white drop-shadow-sm"
+                            mine
+                              ? "text-te-mine-busy-text"
+                              : "text-white drop-shadow-sm"
                           }`}
                         >
                           {b.label}
@@ -419,53 +514,57 @@ function BookingSheetForm({
               </div>
               <div
                 data-booking-preview-root
-                className='absolute bottom-1 top-4 z-10'
+                className="absolute bottom-1 top-4 z-10"
                 style={{
                   left: `${leftPct}%`,
                   width: `${previewWidthPct}%`,
                 }}
               >
                 <button
-                  type='button'
-                  aria-label='Justera starttid (vänster kant)'
-                  className='absolute top-0 bottom-0 z-20 flex w-3 cursor-ew-resize touch-manipulation items-center justify-end bg-transparent pr-px'
+                  type="button"
+                  aria-label="Justera starttid (vänster kant)"
+                  className="absolute top-0 bottom-0 z-20 flex w-3 cursor-ew-resize touch-manipulation items-center justify-end bg-transparent pr-px"
                   style={{ right: "100%" }}
-                  onPointerDown={e => onPointerDownBar("resize-start", e)}
+                  onPointerDown={(e) => onPointerDownBar("resize-start", e)}
                 >
-                  <span className='pointer-events-none h-[62%] w-px rounded-full bg-te-accent shadow-[0_0_0_1px_rgba(0,0,0,0.07)]' />
+                  <span className="pointer-events-none h-[62%] w-px rounded-full bg-te-accent shadow-[0_0_0_1px_rgba(0,0,0,0.07)]" />
                 </button>
                 <div
-                  className='te-booking-preview-bar flex h-full min-h-0 w-full min-w-0 cursor-grab touch-manipulation select-none items-center justify-center rounded-md border border-te-accent/35 bg-te-free-hover px-1 active:cursor-grabbing'
-                  onPointerDown={e => onPointerDownBar("move", e)}
-                  aria-label={title.trim() ? `Bokning: ${title.trim()}` : "Bokning utan titel — dra för att flytta"}
+                  className="te-booking-preview-bar flex h-full min-h-0 w-full min-w-0 cursor-grab touch-manipulation select-none items-center justify-center rounded-md border border-te-accent/35 bg-te-free-hover px-1 active:cursor-grabbing"
+                  onPointerDown={(e) => onPointerDownBar("move", e)}
+                  aria-label={
+                    title.trim()
+                      ? `Bokning: ${title.trim()}`
+                      : "Bokning utan titel — dra för att flytta"
+                  }
                 >
                   {title.trim() ? (
-                    <span className='pointer-events-none truncate text-center font-display text-[0.6rem] font-semibold leading-tight tracking-tight text-te-accent drop-shadow-sm sm:text-[0.68rem] sm:leading-tight'>
+                    <span className="pointer-events-none truncate text-center font-display text-[0.6rem] font-semibold leading-tight tracking-tight text-te-accent drop-shadow-sm sm:text-[0.68rem] sm:leading-tight">
                       {title.trim()}
                     </span>
                   ) : null}
                 </div>
                 <button
-                  type='button'
-                  aria-label='Justera sluttid (höger kant)'
-                  className='absolute top-0 bottom-0 z-20 flex w-3 cursor-ew-resize touch-manipulation items-center justify-start bg-transparent pl-px'
+                  type="button"
+                  aria-label="Justera sluttid (höger kant)"
+                  className="absolute top-0 bottom-0 z-20 flex w-3 cursor-ew-resize touch-manipulation items-center justify-start bg-transparent pl-px"
                   style={{ left: "100%" }}
-                  onPointerDown={e => onPointerDownBar("resize-end", e)}
+                  onPointerDown={(e) => onPointerDownBar("resize-end", e)}
                 >
-                  <span className='pointer-events-none h-[62%] w-px rounded-full bg-te-accent shadow-[0_0_0_1px_rgba(0,0,0,0.07)]' />
+                  <span className="pointer-events-none h-[62%] w-px rounded-full bg-te-accent shadow-[0_0_0_1px_rgba(0,0,0,0.07)]" />
                 </button>
               </div>
             </div>
           </section>
 
-          <label className='grid gap-1 text-sm'>
-            <span className='font-medium text-te-text'>Datum</span>
+          <label className="grid gap-1 text-sm">
+            <span className="font-medium text-te-text">Datum</span>
             <input
               className={inputClass}
-              type='date'
+              type="date"
               value={date}
               min={minBookDate}
-              onChange={e => {
+              onChange={(e) => {
                 clearClientError();
                 setDate(e.target.value);
               }}
@@ -473,17 +572,21 @@ function BookingSheetForm({
             />
           </label>
 
-          <div className='grid gap-2'>
-            <span className='text-sm font-medium text-te-text'>Längd (snabbval)</span>
-            <div className='flex flex-wrap gap-2'>
-              {DURATION_CHIPS_MIN.map(m => {
+          <div className="grid gap-2">
+            <span className="text-sm font-medium text-te-text">
+              Längd (snabbval)
+            </span>
+            <div className="flex flex-wrap gap-2">
+              {DURATION_CHIPS_MIN.map((m) => {
                 const active = durationMin === m;
                 return (
                   <button
                     key={m}
-                    type='button'
+                    type="button"
                     className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
-                      active ? "border-te-accent bg-te-accent-muted text-te-accent" : "border-te-border text-te-muted hover:border-te-accent/50"
+                      active
+                        ? "border-te-accent bg-te-accent-muted text-te-accent"
+                        : "border-te-border text-te-muted hover:border-te-accent/50"
                     }`}
                     onClick={() => applyDurationFromStart(m)}
                   >
@@ -494,66 +597,79 @@ function BookingSheetForm({
             </div>
           </div>
 
-          <div className='grid gap-2 sm:grid-cols-2'>
-            <label className='grid gap-1 text-sm'>
-              <span className='font-medium text-te-text'>Starttid</span>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <label className="grid gap-1 text-sm">
+              <span className="font-medium text-te-text">Starttid</span>
               <input
                 className={inputClass + " font-mono text-base sm:text-xs"}
                 value={startTime}
-                onChange={e => {
+                onChange={(e) => {
                   clearClientError();
                   setStartTime(e.target.value);
                 }}
                 onBlur={commitManualTimes}
-                placeholder='09:00'
+                placeholder="09:00"
                 required
-                aria-label='Starttid'
+                aria-label="Starttid"
               />
             </label>
-            <label className='grid gap-1 text-sm'>
-              <span className='font-medium text-te-text'>Sluttid</span>
+            <label className="grid gap-1 text-sm">
+              <span className="font-medium text-te-text">Sluttid</span>
               <input
                 className={inputClass + " font-mono text-base sm:text-xs"}
                 value={endTime}
-                onChange={e => {
+                onChange={(e) => {
                   clearClientError();
                   setEndTime(e.target.value);
                 }}
                 onBlur={commitManualTimes}
                 required
-                aria-label='Sluttid'
+                aria-label="Sluttid"
               />
             </label>
           </div>
 
-          <div className='border-t border-te-border pt-3'>
-            <button type='button' className='text-xs font-medium text-te-accent hover:underline' onClick={() => setShowAdvanced(s => !s)}>
+          <div className="border-t border-te-border pt-3">
+            <button
+              type="button"
+              className="text-xs font-medium text-te-accent hover:underline"
+              onClick={() => setShowAdvanced((s) => !s)}
+            >
               {showAdvanced ? "Dölj" : "Rums-id"}
             </button>
             {showAdvanced ? (
-              <label className='mt-2 grid gap-1 text-sm'>
-                <span className='text-te-muted'>Rums-id (API)</span>
-                <input className={inputClass + " font-mono text-base sm:text-xs"} value={roomId} onChange={e => setRoomId(e.target.value)} required />
+              <label className="mt-2 grid gap-1 text-sm">
+                <span className="text-te-muted">Rums-id (API)</span>
+                <input
+                  className={inputClass + " font-mono text-base sm:text-xs"}
+                  value={roomId}
+                  onChange={(e) => setRoomId(e.target.value)}
+                  required
+                />
               </label>
             ) : null}
           </div>
 
           {clientError ? (
-            <p className='text-sm text-te-danger' role='alert'>
+            <p className="text-sm text-te-danger" role="alert">
               {clientError}
             </p>
           ) : null}
           {error ? (
-            <p className='text-sm text-te-danger' role='alert' aria-live='polite'>
+            <p
+              className="text-sm text-te-danger"
+              role="alert"
+              aria-live="polite"
+            >
               {errorMessage(error)}
             </p>
           ) : null}
 
-          <div className='mt-auto flex flex-wrap justify-end gap-2 border-t border-te-border pt-4'>
-            <Button type='button' variant='secondary' onClick={onClose}>
+          <div className="mt-auto flex flex-wrap justify-end gap-2 border-t border-te-border pt-4">
+            <Button type="button" variant="secondary" onClick={onClose}>
               Avbryt
             </Button>
-            <Button type='submit' disabled={isPending}>
+            <Button type="submit" disabled={isPending}>
               {isPending ? "Bokar…" : "Skapa bokning"}
             </Button>
           </div>

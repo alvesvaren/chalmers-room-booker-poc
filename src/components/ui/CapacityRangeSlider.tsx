@@ -17,13 +17,22 @@ type Props = {
 /**
  * Dual-thumb range for seat counts. Two stacked range inputs with accent thumbs and a filled track between values.
  */
-export function CapacityRangeSlider({ minBound, maxBound, valueMin, valueMax, onChange, disabled, label = "Platser" }: Props) {
+export function CapacityRangeSlider({
+  minBound,
+  maxBound,
+  valueMin,
+  valueMax,
+  onChange,
+  disabled,
+  label = "Platser",
+}: Props) {
   const labelId = useId();
   const [active, setActive] = useState<"min" | "max" | null>(null);
 
   const span = maxBound - minBound;
   const safeSpan = span <= 0 ? 1 : span;
-  const toPct = (v: number) => ((clamp(v, minBound, maxBound) - minBound) / safeSpan) * 100;
+  const toPct = (v: number) =>
+    ((clamp(v, minBound, maxBound) - minBound) / safeSpan) * 100;
   const loPct = toPct(Math.min(valueMin, valueMax));
   const hiPct = toPct(Math.max(valueMin, valueMax));
 
@@ -57,21 +66,24 @@ export function CapacityRangeSlider({ minBound, maxBound, valueMin, valueMax, on
 
   return (
     <div className={disabled ? "pointer-events-none opacity-50" : ""}>
-      <div className='flex items-baseline justify-between gap-2'>
-        <span id={labelId} className='text-sm font-medium text-te-muted'>
+      <div className="flex items-baseline justify-between gap-2">
+        <span id={labelId} className="text-sm font-medium text-te-muted">
           {label}
         </span>
-        <span className='font-display text-sm font-semibold tabular-nums text-te-text' aria-live='polite'>
+        <span
+          className="font-display text-sm font-semibold tabular-nums text-te-text"
+          aria-live="polite"
+        >
           {valueMin}–{valueMax}
         </span>
       </div>
-      <div className='relative mt-3 h-9' role='group' aria-labelledby={labelId}>
+      <div className="relative mt-3 h-9" role="group" aria-labelledby={labelId}>
         <div
-          className='pointer-events-none absolute left-0 right-0 top-1/2 h-2 -translate-y-1/2 rounded-full bg-te-border/70 shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)]'
+          className="pointer-events-none absolute left-0 right-0 top-1/2 h-2 -translate-y-1/2 rounded-full bg-te-border/70 shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)]"
           aria-hidden
         />
         <div
-          className='pointer-events-none absolute top-1/2 h-2 -translate-y-1/2 rounded-full bg-gradient-to-r from-te-accent/25 via-te-accent/45 to-te-accent/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)]'
+          className="pointer-events-none absolute top-1/2 h-2 -translate-y-1/2 rounded-full bg-gradient-to-r from-te-accent/25 via-te-accent/45 to-te-accent/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)]"
           style={{
             left: `${loPct}%`,
             width: `${Math.max(hiPct - loPct, 0)}%`,
@@ -79,13 +91,13 @@ export function CapacityRangeSlider({ minBound, maxBound, valueMin, valueMax, on
           aria-hidden
         />
         <input
-          type='range'
+          type="range"
           min={minBound}
           max={maxBound}
           step={1}
           value={valueMin}
           disabled={disabled}
-          aria-label='Minsta antal platser'
+          aria-label="Minsta antal platser"
           className={`${rangeClass} ${zMin} top-1/2 w-full -translate-y-1/2`}
           onChange={onMinInput}
           onPointerDown={() => setActive("min")}
@@ -93,13 +105,13 @@ export function CapacityRangeSlider({ minBound, maxBound, valueMin, valueMax, on
           onPointerCancel={() => setActive(null)}
         />
         <input
-          type='range'
+          type="range"
           min={minBound}
           max={maxBound}
           step={1}
           value={valueMax}
           disabled={disabled}
-          aria-label='Högsta antal platser'
+          aria-label="Högsta antal platser"
           className={`${rangeClass} ${zMax} top-1/2 w-full -translate-y-1/2`}
           onChange={onMaxInput}
           onPointerDown={() => setActive("max")}
@@ -107,7 +119,10 @@ export function CapacityRangeSlider({ minBound, maxBound, valueMin, valueMax, on
           onPointerCancel={() => setActive(null)}
         />
       </div>
-      <div className='mt-1 flex justify-between font-mono text-[0.65rem] font-medium uppercase tracking-wider text-te-muted/90' aria-hidden>
+      <div
+        className="mt-1 flex justify-between font-mono text-[0.65rem] font-medium uppercase tracking-wider text-te-muted/90"
+        aria-hidden
+      >
         <span>{minBound}</span>
         <span>{maxBound}</span>
       </div>

@@ -19,7 +19,10 @@ type State = { error: Error | null };
  * Catches render errors from suspense queries; pairs with `QueryErrorResetBoundary` so retry
  * can invalidate the TanStack error state as well as local boundary state.
  */
-class QueryErrorBoundaryInner extends Component<Props & { onResetQueries: () => void }, State> {
+class QueryErrorBoundaryInner extends Component<
+  Props & { onResetQueries: () => void },
+  State
+> {
   state: State = { error: null };
 
   static getDerivedStateFromError(error: Error): State {
@@ -46,10 +49,17 @@ class QueryErrorBoundaryInner extends Component<Props & { onResetQueries: () => 
 
 function defaultWorkspaceFallback({ error, reset }: FallbackRenderProps) {
   return (
-    <div className='rounded-xl border border-te-danger/30 bg-te-danger-bg px-4 py-6 text-center'>
-      <p className='text-sm font-medium text-te-danger'>Något gick fel när data skulle laddas.</p>
-      <p className='mt-2 text-xs text-te-muted'>{errorMessage(error)}</p>
-      <Button type='button' variant='secondary' className='mt-4' onClick={reset}>
+    <div className="rounded-xl border border-te-danger/30 bg-te-danger-bg px-4 py-6 text-center">
+      <p className="text-sm font-medium text-te-danger">
+        Något gick fel när data skulle laddas.
+      </p>
+      <p className="mt-2 text-xs text-te-muted">{errorMessage(error)}</p>
+      <Button
+        type="button"
+        variant="secondary"
+        className="mt-4"
+        onClick={reset}
+      >
         Försök igen
       </Button>
     </div>
