@@ -1,6 +1,6 @@
 # Chalmers room booker (POC)
 
-A small web app to browse Chalmers study rooms, see weekly availability on a schedule, filter by campus and capacity, and book time slots. Sign-in stores a JWT in `sessionStorage` for the session.
+A small web app to browse Chalmers study rooms, see weekly availability on a schedule, filter by campus and capacity, and book time slots. Sign-in stores a JWT in `localStorage` so it survives browser restarts until you sign out or clear site data.
 
 **Stack:** React 19, Vite, TypeScript, Tailwind CSS 4, TanStack Query. The HTTP client and query hooks are generated from the TimeEdit OpenAPI spec with [`@hey-api/openapi-ts`](https://heyapi.dev/).
 
