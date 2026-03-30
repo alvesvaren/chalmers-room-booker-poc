@@ -12,6 +12,8 @@ import {
   type TimeInterval,
 } from "../lib/weekTimeline";
 import { RoomWeekCard } from "./RoomWeekCard";
+import { WorkspaceSuspenseFallback } from "./skeletons/ScheduleGridSkeleton";
+import { VirtualizedWindowGrid } from "./VirtualizedWindowGrid";
 import { Button } from "./ui/Button";
 import { CapacityRangeSlider } from "./ui/CapacityRangeSlider";
 
@@ -28,7 +30,9 @@ export function ScheduleTab({
   onCapacityRangeChange,
   bookings,
   bookingsIsFetching,
+  bookingsFailed,
   myBookings,
+  myBookingsPending,
   onPickFree,
   onBookRoom,
 }: {
@@ -42,9 +46,11 @@ export function ScheduleTab({
   capacityMin: number;
   capacityMax: number;
   onCapacityRangeChange: (next: { min: number; max: number }) => void;
-  bookings: AllRoomsBookings;
+  bookings: AllRoomsBookings | undefined;
   bookingsIsFetching: boolean;
-  myBookings: Booking[];
+  bookingsFailed?: boolean;
+  myBookings: Booking[] | undefined;
+  myBookingsPending?: boolean;
   onPickFree: (room: RoomWithBookings, gap: TimeInterval) => void;
   onBookRoom: (room: RoomWithBookings) => void;
 }) {
@@ -53,7 +59,9 @@ export function ScheduleTab({
   const { weekStart, weekEnd } = getWeekRange(weekOffset);
   const label = formatWeekRangeLabel(weekStart, weekEnd);
 
+  const hasBookings = bookings != null;
   const roomsSorted = useMemo(() => {
+    if (!bookings) return [];
     const rooms = [...bookings.rooms].filter((r) =>
       roomMatchesCapacityFilter(r, capacityMin, capacityMax),
     );
@@ -63,16 +71,17 @@ export function ScheduleTab({
       return a.name.localeCompare(b.name, "sv");
     });
     return rooms;
-  }, [bookings.rooms, capacityMin, capacityMax]);
+  }, [bookings, capacityMin, capacityMax]);
 
   const filterGrid = "grid w-full grid-cols-1 gap-3 sm:grid-cols-2";
   const inputClass =
     "min-w-0 w-full rounded-lg border border-te-border bg-te-elevated px-3 py-2.5 text-base text-te-text outline-none focus:border-te-accent focus:ring-2 focus:ring-te-accent/20 sm:py-2 sm:text-sm";
   const scheduleGridClass =
     "grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(min(100%,26rem),1fr))]";
-  const panelBusyClass = bookingsIsFetching
-    ? "opacity-80 transition-opacity"
-    : "";
+  const panelBusyClass =
+    bookingsIsFetching || myBookingsPending
+      ? "opacity-80 transition-opacity"
+      : "";
 
   return (
     <div className={`te-reveal te-reveal-delay-1 space-y-6 ${panelBusyClass}`}>
@@ -135,11 +144,11 @@ export function ScheduleTab({
           valueMin={capacityMin}
           valueMax={capacityMax}
           onChange={onCapacityRangeChange}
-          disabled={bookingsIsFetching}
+          disabled={bookingsIsFetching || !hasBookings}
         />
       </div>
 
-      {bookings.errors?.length ? (
+      {hasBookings && bookings.errors?.length ? (
         <div className="rounded-xl border border-amber-500/35 bg-amber-500/10 px-4 py-3 text-sm text-amber-900 dark:text-amber-100">
           <ul className="list-inside list-disc">
             {bookings.errors.map((e) => (
@@ -151,7 +160,7 @@ export function ScheduleTab({
         </div>
       ) : null}
 
-      {bookings.bookingRules ? (
+      {hasBookings && bookings.bookingRules ? (
         <div className="border-te-border bg-te-surface rounded-xl border">
           <button
             type="button"
@@ -171,25 +180,32 @@ export function ScheduleTab({
         </div>
       ) : null}
 
-      <div className={scheduleGridClass}>
-        {roomsSorted.length === 0 ? (
+      {!hasBookings && !bookingsFailed ? (
+        <WorkspaceSuspenseFallback />
+      ) : hasBookings && roomsSorted.length === 0 ? (
+        <div className={scheduleGridClass}>
           <div className="border-te-border bg-te-elevated/50 text-te-muted col-span-full rounded-xl border border-dashed px-4 py-12 text-center text-sm">
             Inga rum för denna filtrering.
           </div>
-        ) : (
-          roomsSorted.map((room) => (
+        </div>
+      ) : hasBookings ? (
+        <VirtualizedWindowGrid
+          items={roomsSorted}
+          getItemKey={(r) => r.id}
+          minCardWidthPx={416}
+          estimateRowHeightPx={620}
+          renderItem={(room) => (
             <RoomWeekCard
-              key={room.id}
               room={room}
               weekStart={weekStart}
               weekEndExclusive={weekEnd}
               onPickFree={onPickFree}
               onBookRoom={onBookRoom}
-              myBookings={myBookings}
+              myBookings={myBookings ?? []}
             />
-          ))
-        )}
-      </div>
+          )}
+        />
+      ) : null}
     </div>
   );
 }

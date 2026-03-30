@@ -1,9 +1,10 @@
 import {
+  keepPreviousData,
   useMutation,
+  useQuery,
   useQueryClient,
-  useSuspenseQuery,
 } from "@tanstack/react-query";
-import { Suspense, useCallback, useState, useTransition } from "react";
+import { useCallback, useState, useTransition } from "react";
 import {
   deleteApiMyBookingsByIdMutation,
   getApiBookingsOptions,
@@ -25,6 +26,7 @@ import {
   displayCapacityRange,
 } from "../lib/capacityBounds";
 import { isBookingsGridQuery } from "../lib/bookingsQuery";
+import { errorMessage } from "../lib/errors";
 import { roomWithBookingsFor } from "../lib/roomSchedule";
 import type { TimeInterval } from "../lib/weekTimeline";
 import {
@@ -40,9 +42,8 @@ import { BookingSheet, type BookingSheetInitial } from "./BookingSheet";
 import { MyBookingsTab } from "./MyBookingsTab";
 import { RoomsTab } from "./RoomsTab";
 import { ScheduleTab } from "./ScheduleTab";
-import { WorkspaceSuspenseFallback } from "./skeletons/ScheduleGridSkeleton";
 
-function AuthenticatedWorkspaceContent({ activeTab }: { activeTab: AppTabId }) {
+export function AuthenticatedWorkspace() {
   const queryClient = useQueryClient();
   const [, startFilterTransition] = useTransition();
 
@@ -53,6 +54,7 @@ function AuthenticatedWorkspaceContent({ activeTab }: { activeTab: AppTabId }) {
     min: 1,
     max: CAPACITY_SLIDER_FALLBACK_MAX,
   });
+  const [activeTab, setActiveTab] = useState<AppTabId>("schedule");
   const [bookingSheetOpen, setBookingSheetOpen] = useState(false);
   const [bookingInitial, setBookingInitial] =
     useState<BookingSheetInitial | null>(null);
@@ -61,23 +63,31 @@ function AuthenticatedWorkspaceContent({ activeTab }: { activeTab: AppTabId }) {
     string | null
   >(null);
 
-  const roomsQuery = useSuspenseQuery(getApiRoomsOptions());
+  const roomsQuery = useQuery({
+    ...getApiRoomsOptions(),
+    staleTime: 60_000,
+  });
+
   const effectiveBookingsWeekOffset =
     roomsAvailabilityDate != null
       ? weekOffsetForLocalDate(roomsAvailabilityDate)
       : weekOffset;
 
-  const bookingsQuery = useSuspenseQuery(
-    getApiBookingsOptions({
+  const bookingsQuery = useQuery({
+    ...getApiBookingsOptions({
       query: {
         weekOffset: String(effectiveBookingsWeekOffset),
         campus: campusFilter.trim() || undefined,
         q: qFilter.trim() || undefined,
       },
     }),
-  );
+    placeholderData: keepPreviousData,
+  });
 
-  const myBookingsQuery = useSuspenseQuery(getApiMyBookingsOptions());
+  const myBookingsQuery = useQuery({
+    ...getApiMyBookingsOptions(),
+    staleTime: 30_000,
+  });
 
   const capacityBounds = capacitySliderBounds(roomsQuery.data);
   const capacityDisplay = displayCapacityRange(capacityBounds, capacityRange);
@@ -121,6 +131,8 @@ function AuthenticatedWorkspaceContent({ activeTab }: { activeTab: AppTabId }) {
     },
   });
 
+  const bookingsGrid = bookingsQuery.data;
+
   const openBookingSheet = useCallback(
     (initial: BookingSheetInitial) => {
       createBookingMutation.reset();
@@ -151,7 +163,8 @@ function AuthenticatedWorkspaceContent({ activeTab }: { activeTab: AppTabId }) {
       room: Room,
       slot?: { date: string; startTime: string; endTime: string },
     ) => {
-      const rw = roomWithBookingsFor(room, bookingsQuery.data.rooms);
+      if (!bookingsGrid) return;
+      const rw = roomWithBookingsFor(room, bookingsGrid.rooms);
       if (slot) {
         const start = parseInstantOnDate(slot.date, slot.startTime);
         const end = parseInstantOnDate(slot.date, slot.endTime);
@@ -180,7 +193,7 @@ function AuthenticatedWorkspaceContent({ activeTab }: { activeTab: AppTabId }) {
       if (!gap) return;
       openBookingSheet(toBookingDraft(room.id, room.name, gap));
     },
-    [bookingsQuery.data.rooms, openBookingSheet, weekStart, weekEnd],
+    [bookingsGrid, openBookingSheet, weekStart, weekEnd],
   );
 
   const handleCancelBooking = useCallback(
@@ -193,10 +206,11 @@ function AuthenticatedWorkspaceContent({ activeTab }: { activeTab: AppTabId }) {
 
   const isRoomBookable = useCallback(
     (room: Room) => {
-      const rw = roomWithBookingsFor(room, bookingsQuery.data.rooms);
+      if (!bookingsGrid) return false;
+      const rw = roomWithBookingsFor(room, bookingsGrid.rooms);
       return firstFreeGapInWeek(rw, weekStart, weekEnd) != null;
     },
-    [bookingsQuery.data.rooms, weekStart, weekEnd],
+    [bookingsGrid, weekStart, weekEnd],
   );
 
   const onWeekNavigate = useCallback((next: number) => {
@@ -233,62 +247,96 @@ function AuthenticatedWorkspaceContent({ activeTab }: { activeTab: AppTabId }) {
     [closeBookingSheet, createBookingMutation, showBookingToast],
   );
 
+  const workspaceError =
+    roomsQuery.isError || bookingsQuery.isError || myBookingsQuery.isError
+      ? (roomsQuery.error ??
+        bookingsQuery.error ??
+        myBookingsQuery.error ??
+        null)
+      : null;
+
+  const tabPanelProps = (id: AppTabId) => ({
+    id: `panel-${id}`,
+    role: "tabpanel" as const,
+    "aria-labelledby": `tab-${id}`,
+    hidden: activeTab !== id,
+    className: "space-y-0",
+  });
+
   return (
-    <>
-      {activeTab === "schedule" ? (
-        <ScheduleTab
-          weekOffset={
-            roomsAvailabilityDate != null
-              ? effectiveBookingsWeekOffset
-              : weekOffset
-          }
-          onWeekOffsetChange={onWeekNavigate}
-          campusFilter={campusFilter}
-          onCampusFilter={setCampusFilterTransitioned}
-          qFilter={qFilter}
-          onQFilter={setQFilterTransitioned}
-          capacityBounds={capacityBounds}
-          capacityMin={capacityDisplay.min}
-          capacityMax={capacityDisplay.max}
-          onCapacityRangeChange={setCapacityRange}
-          bookings={bookingsQuery.data}
-          bookingsIsFetching={bookingsQuery.isFetching}
-          myBookings={myBookingsQuery.data}
-          onPickFree={handlePickFree}
-          onBookRoom={handleBookRoomFromSchedule}
-        />
-      ) : null}
-      {activeTab === "rooms" ? (
-        <RoomsTab
-          rooms={roomsQuery.data}
-          roomsIsFetching={roomsQuery.isFetching}
-          bookings={bookingsQuery.data}
-          bookingsIsFetching={bookingsQuery.isFetching}
-          bookingsWeekStart={weekStart}
-          bookingsWeekEnd={weekEnd}
-          onRoomsAvailabilityDateChange={setRoomsAvailabilityDate}
-          onBookRoom={handleBookRoomFromDirectory}
-          isRoomBookable={isRoomBookable}
-          capacityBounds={capacityBounds}
-          capacityMin={capacityDisplay.min}
-          capacityMax={capacityDisplay.max}
-          onCapacityRangeChange={setCapacityRange}
-        />
-      ) : null}
-      {activeTab === "mine" ? (
-        <MyBookingsTab
-          myBookings={myBookingsQuery.data}
-          cancelMutation={cancelMutation}
-          onCancelRequest={handleCancelBooking}
-          cancelError={cancelMutation.isError ? cancelMutation.error : null}
-        />
-      ) : null}
+    <div className="mt-10 space-y-6">
+      <AppTabs active={activeTab} onChange={setActiveTab} />
+
+      <div className="border-te-border bg-te-surface rounded-2xl border p-5 shadow-sm sm:p-8">
+        {workspaceError ? (
+          <div
+            className="border-te-danger/30 bg-te-danger-bg text-te-danger mb-6 rounded-xl border px-4 py-3 text-sm"
+            role="alert"
+          >
+            {errorMessage(workspaceError)}
+          </div>
+        ) : null}
+
+        <section {...tabPanelProps("schedule")}>
+          <ScheduleTab
+            weekOffset={
+              roomsAvailabilityDate != null
+                ? effectiveBookingsWeekOffset
+                : weekOffset
+            }
+            onWeekOffsetChange={onWeekNavigate}
+            campusFilter={campusFilter}
+            onCampusFilter={setCampusFilterTransitioned}
+            qFilter={qFilter}
+            onQFilter={setQFilterTransitioned}
+            capacityBounds={capacityBounds}
+            capacityMin={capacityDisplay.min}
+            capacityMax={capacityDisplay.max}
+            onCapacityRangeChange={setCapacityRange}
+            bookings={bookingsQuery.data}
+            bookingsIsFetching={bookingsQuery.isFetching}
+            bookingsFailed={bookingsQuery.isError}
+            myBookings={myBookingsQuery.data}
+            myBookingsPending={myBookingsQuery.isPending}
+            onPickFree={handlePickFree}
+            onBookRoom={handleBookRoomFromSchedule}
+          />
+        </section>
+
+        <section {...tabPanelProps("rooms")}>
+          <RoomsTab
+            rooms={roomsQuery.data}
+            roomsIsFetching={roomsQuery.isFetching}
+            bookings={bookingsQuery.data}
+            bookingsIsFetching={bookingsQuery.isFetching}
+            bookingsWeekStart={weekStart}
+            bookingsWeekEnd={weekEnd}
+            onRoomsAvailabilityDateChange={setRoomsAvailabilityDate}
+            onBookRoom={handleBookRoomFromDirectory}
+            isRoomBookable={isRoomBookable}
+            capacityBounds={capacityBounds}
+            capacityMin={capacityDisplay.min}
+            capacityMax={capacityDisplay.max}
+            onCapacityRangeChange={setCapacityRange}
+          />
+        </section>
+
+        <section {...tabPanelProps("mine")}>
+          <MyBookingsTab
+            myBookings={myBookingsQuery.data}
+            loadPending={myBookingsQuery.isPending}
+            cancelMutation={cancelMutation}
+            onCancelRequest={handleCancelBooking}
+            cancelError={cancelMutation.isError ? cancelMutation.error : null}
+          />
+        </section>
+      </div>
 
       <BookingSheet
         open={bookingSheetOpen}
         onClose={closeBookingSheet}
         initial={bookingInitial}
-        scheduleRooms={bookingsQuery.data.rooms}
+        scheduleRooms={bookingsGrid?.rooms}
         myBookings={myBookingsQuery.data}
         onSubmit={submitBooking}
         isPending={createBookingMutation.isPending}
@@ -306,27 +354,6 @@ function AuthenticatedWorkspaceContent({ activeTab }: { activeTab: AppTabId }) {
           {toast}
         </div>
       ) : null}
-    </>
-  );
-}
-
-export function AuthenticatedWorkspace() {
-  const [activeTab, setActiveTab] = useState<AppTabId>("schedule");
-
-  return (
-    <div className="mt-10 space-y-6">
-      <AppTabs active={activeTab} onChange={setActiveTab} />
-
-      <div
-        role="tabpanel"
-        id={`panel-${activeTab}`}
-        aria-labelledby={`tab-${activeTab}`}
-        className="border-te-border bg-te-surface rounded-2xl border p-5 shadow-sm sm:p-8"
-      >
-        <Suspense fallback={<WorkspaceSuspenseFallback />}>
-          <AuthenticatedWorkspaceContent activeTab={activeTab} />
-        </Suspense>
-      </div>
     </div>
   );
 }

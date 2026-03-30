@@ -4,6 +4,7 @@ import {
   useState,
   type PointerEvent as ReactPointerEvent,
 } from "react";
+import { createPortal } from "react-dom";
 import type {
   Booking,
   CreateBookingRequest,
@@ -332,18 +333,23 @@ function BookingSheetForm({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex min-h-0 items-end justify-center overflow-x-hidden sm:items-center sm:p-6"
+      className="pointer-events-none fixed inset-0 z-50 flex min-h-0 items-end justify-center overflow-x-hidden sm:items-center sm:p-6"
       role="presentation"
-      onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
     >
-      <div
-        className="bg-te-text/35 absolute inset-0"
-        aria-hidden
+      <button
+        type="button"
+        tabIndex={-1}
+        aria-label="Stäng dialog"
+        className="bg-te-text/35 pointer-events-auto absolute inset-0 cursor-default border-0 p-0"
+        onPointerDown={(e) => {
+          if (e.button === 0) {
+            e.preventDefault();
+            onClose();
+          }
+        }}
       />
       <div
-        className="border-te-border bg-te-surface relative z-10 flex max-h-[min(92vh,760px)] w-full max-w-[min(32rem,100vw)] min-w-0 flex-col overflow-x-hidden rounded-t-2xl border shadow-2xl sm:max-h-[90vh] sm:rounded-2xl"
+        className="border-te-border bg-te-surface pointer-events-auto relative z-10 flex max-h-[min(92vh,760px)] w-full max-w-[min(32rem,100vw)] min-w-0 flex-col overflow-x-hidden rounded-t-2xl border shadow-2xl sm:max-h-[90vh] sm:rounded-2xl"
         role="dialog"
         aria-modal="true"
         aria-labelledby="booking-sheet-title"
@@ -698,9 +704,9 @@ export function BookingSheet({
   isPending: boolean;
   error: unknown | null;
 }) {
-  if (!open || !initial) return null;
+  if (!open || !initial || typeof document === "undefined") return null;
 
-  return (
+  return createPortal(
     <BookingSheetForm
       key={`${initial.roomId}-${initial.date}-${initial.startTime}-${initial.endTime}`}
       initial={initial}
@@ -710,6 +716,7 @@ export function BookingSheet({
       onSubmit={onSubmit}
       isPending={isPending}
       error={error}
-    />
+    />,
+    document.body,
   );
 }
