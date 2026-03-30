@@ -1,3 +1,5 @@
+import { setHours, startOfDay } from "date-fns";
+import { localWallClockMs } from "./datetime";
 import {
   DEFAULT_DAY_END_H,
   DEFAULT_DAY_START_H,
@@ -11,20 +13,7 @@ export const MAX_BOOK_DURATION_MIN = 240;
 export const DURATION_CHIPS_MIN = [15, 30, 60, 90, 120, 240] as const;
 
 export function localDateTimeMs(dateStr: string, timeStr: string): number {
-  const [Y, M, D] = dateStr.split("-").map(Number);
-  const [hRaw, mRaw] = timeStr.trim().split(":");
-  const h = Number(hRaw);
-  const m = Number(mRaw ?? 0);
-  if (
-    !Number.isFinite(Y) ||
-    !Number.isFinite(M) ||
-    !Number.isFinite(D) ||
-    !Number.isFinite(h) ||
-    !Number.isFinite(m)
-  ) {
-    return NaN;
-  }
-  return new Date(Y, M - 1, D, h, m, 0, 0).getTime();
+  return localWallClockMs(dateStr, timeStr);
 }
 
 export function isLocalStartInPast(
@@ -32,19 +21,18 @@ export function isLocalStartInPast(
   timeStr: string,
   now: Date,
 ): boolean {
-  const t = localDateTimeMs(dateStr, timeStr);
+  const t = localWallClockMs(dateStr, timeStr);
   if (Number.isNaN(t)) return false;
   return t <= now.getTime();
 }
 
 export function dayDisplayBounds(dateStr: string): { start: Date; end: Date } {
   const [Y, M, D] = dateStr.split("-").map(Number);
-  const day = new Date(Y, M - 1, D);
-  const start = new Date(day);
-  start.setHours(DEFAULT_DAY_START_H, 0, 0, 0);
-  const end = new Date(day);
-  end.setHours(DEFAULT_DAY_END_H, 0, 0, 0);
-  return { start, end };
+  const day = startOfDay(new Date(Y, M - 1, D));
+  return {
+    start: setHours(day, DEFAULT_DAY_START_H),
+    end: setHours(day, DEFAULT_DAY_END_H),
+  };
 }
 
 export function clampNum(n: number, lo: number, hi: number): number {

@@ -7,6 +7,8 @@
     "dev": "vite",
     "build": "pnpm run gen:room-ratings && tsc -b && vite build",
     "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "preview": "vite preview",
     "openapi-ts": "openapi-ts",
     "gen:room-ratings": "node scripts/build-room-ratings.mjs"
@@ -14,6 +16,7 @@
   "dependencies": {
     "@tailwindcss/vite": "^4.2.2",
     "@tanstack/react-query": "^5.95.2",
+    "date-fns": "^4.1.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "tailwindcss": "^4.2.2",
@@ -34,6 +37,7 @@
     "prettier-plugin-tailwindcss": "^0.7.2",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.57.0",
-    "vite": "^8.0.1"
+    "vite": "^8.0.1",
+    "vitest": "^4.1.2"
   }
 }

@@ -1,19 +1,41 @@
+import {
+  addDays,
+  addMinutes as addMinutesDateFns,
+  addWeeks,
+  differenceInCalendarWeeks,
+  eachDayOfInterval,
+  setHours,
+  startOfDay,
+  startOfWeek,
+  subDays,
+} from "date-fns";
 import type {
   Booking,
   RoomCalendarSlot,
   RoomWithBookings,
 } from "../client/types.gen";
+import {
+  formatLocalDateWire,
+  formatLocalTime24,
+  formatWeekdayShort,
+  parseInstantOnDate,
+  parseNaiveLocal,
+  startOfLocalDayMs,
+} from "./datetime";
+
+export {
+  formatLocalDateWire as formatLocalDate,
+  formatLocalTime24 as formatLocalTime,
+  formatWeekRangeLabel,
+  parseInstantOnDate,
+  parseNaiveLocal,
+} from "./datetime";
 
 /** Monday 00:00 local of the week containing `anchor`, plus `weekOffset` full weeks. `weekEnd` is exclusive (next Monday 00:00). */
 export function getWeekRange(weekOffset: number, anchor: Date = new Date()) {
-  const d = new Date(anchor);
-  d.setHours(0, 0, 0, 0);
-  const dow = d.getDay();
-  const toMonday = dow === 0 ? -6 : 1 - dow;
-  d.setDate(d.getDate() + toMonday + weekOffset * 7);
-  const weekStart = new Date(d);
-  const weekEnd = new Date(d);
-  weekEnd.setDate(weekEnd.getDate() + 7);
+  const monday0 = startOfWeek(startOfDay(anchor), { weekStartsOn: 1 });
+  const weekStart = addWeeks(monday0, weekOffset);
+  const weekEnd = addDays(weekStart, 7);
   return { weekStart, weekEnd };
 }
 
@@ -22,45 +44,13 @@ export function weekOffsetForLocalDate(
   dateStr: string,
   anchor: Date = new Date(),
 ): number {
-  const [Y, M, D] = dateStr.split("-").map(Number);
-  const target = new Date(Y, M - 1, D, 12, 0, 0, 0);
+  const target = parseInstantOnDate(dateStr, "12:00");
   if (Number.isNaN(target.getTime())) return 0;
-  const { weekStart: anchorMonday } = getWeekRange(0, anchor);
-  const { weekStart: targetMonday } = getWeekRange(0, target);
-  const msPerWeek = 7 * 24 * 60 * 60_000;
-  return Math.round(
-    (targetMonday.getTime() - anchorMonday.getTime()) / msPerWeek,
-  );
-}
-
-/** API returns naive local wall-clock strings (no timezone suffix). */
-export function parseNaiveLocal(isoLike: string): Date {
-  const normalized = isoLike.trim().replace(" ", "T");
-  const d = new Date(normalized);
-  if (Number.isNaN(d.getTime())) {
-    throw new Error(`Invalid datetime: ${isoLike}`);
-  }
-  return d;
-}
-
-export function formatLocalDate(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
-
-export function formatLocalTime(d: Date): string {
-  const h = String(d.getHours()).padStart(2, "0");
-  const min = String(d.getMinutes()).padStart(2, "0");
-  return `${h}:${min}`;
-}
-
-/** Local wall-clock instant for a calendar day (`YYYY-MM-DD`) and time (`HH:mm`). */
-export function parseInstantOnDate(dateStr: string, timeStr: string): Date {
-  const [Y, M, D] = dateStr.split("-").map(Number);
-  const [h, mi] = timeStr.split(":").map(Number);
-  return new Date(Y, M - 1, D, h, mi ?? 0, 0, 0);
+  const anchorMonday = startOfWeek(startOfDay(anchor), { weekStartsOn: 1 });
+  const targetMonday = startOfWeek(startOfDay(target), { weekStartsOn: 1 });
+  return differenceInCalendarWeeks(targetMonday, anchorMonday, {
+    weekStartsOn: 1,
+  });
 }
 
 /** TimeEdit only accepts bookings on quarter-hour boundaries in local time. */
@@ -71,8 +61,10 @@ export function snapInstantMsToQuarterOnDate(
   ms: number,
   dateStr: string,
 ): number {
-  const [Y, M, D] = dateStr.split("-").map(Number);
-  const day0 = new Date(Y, M - 1, D, 0, 0, 0, 0).getTime();
+  const day0 = startOfLocalDayMs(dateStr);
+  if (Number.isNaN(day0)) {
+    throw new Error(`Invalid date: ${dateStr}`);
+  }
   const rel = ms - day0;
   return day0 + Math.round(rel / QUARTER_HOUR_MS) * QUARTER_HOUR_MS;
 }
@@ -81,20 +73,12 @@ export function snapInstantMsToCeilQuarterOnDate(
   ms: number,
   dateStr: string,
 ): number {
-  const [Y, M, D] = dateStr.split("-").map(Number);
-  const day0 = new Date(Y, M - 1, D, 0, 0, 0, 0).getTime();
+  const day0 = startOfLocalDayMs(dateStr);
+  if (Number.isNaN(day0)) {
+    throw new Error(`Invalid date: ${dateStr}`);
+  }
   const rel = ms - day0;
   return day0 + Math.ceil(rel / QUARTER_HOUR_MS) * QUARTER_HOUR_MS;
-}
-
-export function formatWeekRangeLabel(weekStart: Date, weekEndExclusive: Date) {
-  const lastDay = new Date(weekEndExclusive);
-  lastDay.setDate(lastDay.getDate() - 1);
-  const fmt = new Intl.DateTimeFormat("sv-SE", {
-    day: "numeric",
-    month: "short",
-  });
-  return `${fmt.format(weekStart)}–${fmt.format(lastDay)}`;
 }
 
 export type TimeInterval = { start: Date; end: Date };
@@ -226,9 +210,7 @@ export function splitFreeGapForDisplay(
 }
 
 function startOfDayWithHour(d: Date, hour: number) {
-  const x = new Date(d);
-  x.setHours(hour, 0, 0, 0);
-  return x;
+  return setHours(startOfDay(d), hour);
 }
 
 export type DayTimeline = {
@@ -287,12 +269,11 @@ export function buildRoomWeekTimeline(
   const busyAll: BusySegment[] = room.bookings.map(slotToBusy);
 
   const days: DayTimeline[] = [];
-  for (
-    let cursor = new Date(weekStart);
-    cursor < weekEndExclusive;
-    cursor.setDate(cursor.getDate() + 1)
-  ) {
-    const dayDate = new Date(cursor);
+  const lastDay = subDays(weekEndExclusive, 1);
+  for (const dayDate of eachDayOfInterval({
+    start: weekStart,
+    end: lastDay,
+  })) {
     const displayStart = startOfDayWithHour(dayDate, dayStartH);
     const displayEnd = startOfDayWithHour(dayDate, dayEndH);
 
@@ -315,13 +296,11 @@ export function buildRoomWeekTimeline(
     const mergedBusy = mergeIntervals(busyForGaps);
     const free = subtractBusyFromWindow(displayStart, displayEnd, mergedBusy);
 
-    const weekdayShort = new Intl.DateTimeFormat("sv-SE", {
-      weekday: "short",
-    }).format(dayDate);
+    const weekdayShort = formatWeekdayShort(dayDate);
 
     days.push({
       date: dayDate,
-      dateStr: formatLocalDate(dayDate),
+      dateStr: formatLocalDateWire(dayDate),
       weekdayShort,
       displayStart,
       displayEnd,
@@ -364,7 +343,7 @@ export function roomAvailableForInterval(
   if (t0 < day.displayStart.getTime() || t1 > day.displayEnd.getTime()) {
     return false;
   }
-  if (formatLocalDate(now) === dateStr && t0 < now.getTime()) {
+  if (formatLocalDateWire(now) === dateStr && t0 < now.getTime()) {
     return false;
   }
   return day.free.some((g) => g.start.getTime() <= t0 && g.end.getTime() >= t1);
@@ -388,12 +367,12 @@ export function intervalToPercent(
 }
 
 export function addMinutes(d: Date, minutes: number): Date {
-  return new Date(d.getTime() + minutes * 60_000);
+  return addMinutesDateFns(d, minutes);
 }
 
 /** Default booking length when opening the sheet (1 h, capped by gap end). */
 export function defaultBookingWindow(gap: TimeInterval): TimeInterval {
-  const oneHour = addMinutes(gap.start, 60);
+  const oneHour = addMinutesDateFns(gap.start, 60);
   const endMs = Math.min(gap.end.getTime(), oneHour.getTime());
   return { start: gap.start, end: new Date(endMs) };
 }
@@ -410,7 +389,7 @@ export function toBookingDraft(
   endTime: string;
 } {
   const w = defaultBookingWindow(gap);
-  const dateStr = formatLocalDate(w.start);
+  const dateStr = formatLocalDateWire(w.start);
   let startMs = snapInstantMsToQuarterOnDate(w.start.getTime(), dateStr);
   if (startMs < gap.start.getTime()) {
     startMs = snapInstantMsToCeilQuarterOnDate(gap.start.getTime(), dateStr);
@@ -435,14 +414,14 @@ export function toBookingDraft(
     roomId,
     roomName,
     date: dateStr,
-    startTime: formatLocalTime(new Date(startMs)),
-    endTime: formatLocalTime(new Date(endMs)),
+    startTime: formatLocalTime24(new Date(startMs)),
+    endTime: formatLocalTime24(new Date(endMs)),
   };
 }
 
 /**
  * First free gap in the visible week that still has time left from `now` onward
- * (not in the past, not overlapping busy — same as free segments).
+ * (not in the past, not overlapping busy — same as bookable segments).
  */
 export function firstFreeGapInWeek(
   room: RoomWithBookings,
