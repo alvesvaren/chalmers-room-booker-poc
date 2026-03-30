@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useState, useTransition } from "react";
+import { useCallback, useMemo, useState, useTransition } from "react";
 import {
   deleteApiMyBookingsByIdMutation,
   getApiBookingsOptions,
@@ -9,6 +9,7 @@ import {
   postApiMyBookingsMutation,
 } from "../client/@tanstack/react-query.gen";
 import type {
+  AllRoomsBookings,
   CreateBookingRequest,
   Room,
   RoomWithBookings,
@@ -59,38 +60,59 @@ export function AuthenticatedWorkspace() {
     string | null
   >(null);
 
-  const roomsQuery = useQuery({
-    ...getApiRoomsOptions(),
-  });
+  const roomsQueryOptions = useMemo(() => getApiRoomsOptions(), []);
+  const roomsQuery = useQuery(roomsQueryOptions);
 
   const effectiveBookingsWeekOffset =
     roomsAvailabilityDate != null
       ? weekOffsetForLocalDate(roomsAvailabilityDate)
       : weekOffset;
 
-  const bookingsQuery = useQuery({
-    ...getApiBookingsOptions({
-      query: {
-        weekOffset: String(effectiveBookingsWeekOffset),
-        campus: campusFilter.trim() || undefined,
-        q: qFilter.trim() || undefined,
-      },
-    }),
-    placeholderData: (previousData, previousQuery) => {
-      if (!previousData || !previousQuery) return undefined;
-      const prev = previousQuery.queryKey[0] as {
-        query?: { weekOffset?: string };
-      };
-      if (prev?.query?.weekOffset !== String(effectiveBookingsWeekOffset)) {
+  const bookingsPlaceholderData = useCallback(
+    (
+      previousData: AllRoomsBookings | undefined,
+      previousQuery: unknown,
+    ): AllRoomsBookings | undefined => {
+      if (
+        previousData == null ||
+        previousQuery == null ||
+        typeof previousQuery !== "object"
+      ) {
+        return undefined;
+      }
+      const head = (previousQuery as { queryKey: readonly unknown[] })
+        .queryKey[0] as { query?: { weekOffset?: string } } | undefined;
+      if (head?.query?.weekOffset !== String(effectiveBookingsWeekOffset)) {
         return undefined;
       }
       return previousData;
     },
-  });
+    [effectiveBookingsWeekOffset],
+  );
 
-  const myBookingsQuery = useQuery({
-    ...getApiMyBookingsOptions(),
-  });
+  const bookingsQueryOptions = useMemo(
+    () => ({
+      ...getApiBookingsOptions({
+        query: {
+          weekOffset: String(effectiveBookingsWeekOffset),
+          campus: campusFilter.trim() || undefined,
+          q: qFilter.trim() || undefined,
+        },
+      }),
+      placeholderData: bookingsPlaceholderData,
+    }),
+    [
+      effectiveBookingsWeekOffset,
+      campusFilter,
+      qFilter,
+      bookingsPlaceholderData,
+    ],
+  );
+
+  const bookingsQuery = useQuery(bookingsQueryOptions);
+
+  const myBookingsQueryOptions = useMemo(() => getApiMyBookingsOptions(), []);
+  const myBookingsQuery = useQuery(myBookingsQueryOptions);
 
   const roomsUiStale =
     Boolean(roomsQuery.data) &&

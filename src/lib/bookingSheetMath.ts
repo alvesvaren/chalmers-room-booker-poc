@@ -1,4 +1,6 @@
 import {
+  formatLocalDateWire,
+  formatLocalTime24,
   LOCAL_MIDNIGHT_TIME,
   localWallClockMs,
   parseInstantOnDate,
@@ -8,6 +10,7 @@ import {
   DEFAULT_DAY_END_H,
   DEFAULT_DAY_START_H,
   QUARTER_HOUR_MS,
+  snapInstantMsToCeilQuarterOnDate,
   snapInstantMsToQuarterOnDate,
   type TimeInterval,
 } from "./weekTimeline";
@@ -15,6 +18,27 @@ import {
 export const MIN_BOOK_DURATION_MIN = 15;
 export const MAX_BOOK_DURATION_MIN = 240;
 export const DURATION_CHIPS_MIN = [15, 30, 60, 90, 120, 240] as const;
+
+/**
+ * Next quarter-hour start on `dateStr` relative to `now` (local).
+ * Past calendar days → default day start; future days → default day start;
+ * today → ceil current time to 15 minutes, clamped to 23:45 same day.
+ */
+export function defaultAvailabilityFilterStartTime(
+  dateStr: string,
+  now: Date = new Date(),
+): string {
+  const todayStr = formatLocalDateWire(now);
+  const dayStart = `${String(DEFAULT_DAY_START_H).padStart(2, "0")}:00`;
+  if (dateStr !== todayStr) {
+    return dayStart;
+  }
+  const ceiled = snapInstantMsToCeilQuarterOnDate(now.getTime(), dateStr);
+  if (formatLocalDateWire(new Date(ceiled)) !== dateStr) {
+    return "23:45";
+  }
+  return formatLocalTime24(new Date(ceiled));
+}
 
 export function isLocalStartInPast(
   dateStr: string,

@@ -1,6 +1,10 @@
 import { useCallback, useMemo, useState } from "react";
 import type { AllRoomsBookings, Room } from "../client/types.gen";
 import { roomMatchesCapacityFilter } from "../lib/capacityBounds";
+import {
+  defaultAvailabilityFilterStartTime,
+  DURATION_CHIPS_MIN,
+} from "../lib/bookingSheetMath";
 import { roomWithBookingsFor } from "../lib/roomSchedule";
 import { getRoomRating, ratingSortValue } from "../lib/roomRatings";
 import {
@@ -62,7 +66,9 @@ export function RoomsTab({
   const [sort, setSort] = useState<SortKey>("rating");
   const [slotFilterActive, setSlotFilterActive] = useState(false);
   const [slotDate, setSlotDate] = useState(() => formatLocalDate(new Date()));
-  const [slotStartTime, setSlotStartTime] = useState("13:30");
+  const [slotStartTime, setSlotStartTime] = useState(() =>
+    defaultAvailabilityFilterStartTime(formatLocalDate(new Date())),
+  );
   const [slotDurationMin, setSlotDurationMin] = useState(60);
 
   const minBookDate = formatLocalDate(new Date());
@@ -70,6 +76,9 @@ export function RoomsTab({
   const setSlotFilterActiveSynced = useCallback(
     (checked: boolean) => {
       setSlotFilterActive(checked);
+      if (checked) {
+        setSlotStartTime(defaultAvailabilityFilterStartTime(slotDate));
+      }
       onRoomsAvailabilityDateChange(checked ? slotDate : null);
     },
     [onRoomsAvailabilityDateChange, slotDate],
@@ -78,6 +87,9 @@ export function RoomsTab({
   const setSlotDateSynced = useCallback(
     (nextDate: string) => {
       setSlotDate(nextDate);
+      if (nextDate === formatLocalDate(new Date())) {
+        setSlotStartTime(defaultAvailabilityFilterStartTime(nextDate));
+      }
       if (slotFilterActive) onRoomsAvailabilityDateChange(nextDate);
     },
     [onRoomsAvailabilityDateChange, slotFilterActive],
@@ -300,6 +312,28 @@ export function RoomsTab({
                   "—"
                 )}
               </p>
+            </div>
+            <div className="flex min-w-0 flex-col gap-2 sm:col-span-2 lg:col-span-4">
+              <span className="text-te-muted font-medium">Längd (snabbval)</span>
+              <div className="flex flex-wrap gap-2">
+                {DURATION_CHIPS_MIN.map((m) => {
+                  const active = slotDurationMin === m;
+                  return (
+                    <button
+                      key={m}
+                      type="button"
+                      className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                        active
+                          ? "border-te-accent bg-te-accent-muted text-te-accent"
+                          : "border-te-border text-te-muted hover:border-te-accent/50"
+                      }`}
+                      onClick={() => setSlotDurationMin(m)}
+                    >
+                      {m} min
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
         ) : null}
