@@ -47,6 +47,13 @@ export function formatLocalTime(d: Date): string {
   return `${h}:${min}`;
 }
 
+/** Local wall-clock instant for a calendar day (`YYYY-MM-DD`) and time (`HH:mm`). */
+export function parseInstantOnDate(dateStr: string, timeStr: string): Date {
+  const [Y, M, D] = dateStr.split("-").map(Number);
+  const [h, mi] = timeStr.split(":").map(Number);
+  return new Date(Y, M - 1, D, h, mi ?? 0, 0, 0);
+}
+
 /** TimeEdit only accepts bookings on quarter-hour boundaries in local time. */
 export const QUARTER_HOUR_MS = 15 * 60_000;
 

@@ -1,124 +1,30 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import type { Booking, CreateBookingRequest, RoomWithBookings } from "../client/types.gen";
-import { errorMessage } from "../lib/errors";
 import {
-  DEFAULT_DAY_END_H,
-  DEFAULT_DAY_START_H,
+  clampNum,
+  clampToFreeGaps,
+  dayDisplayBounds,
+  DURATION_CHIPS_MIN,
+  isLocalStartInPast,
+  MAX_BOOK_DURATION_MIN,
+  MIN_BOOK_DURATION_MIN,
+} from "../lib/bookingSheetMath";
+import { errorMessage } from "../lib/errors";
+import { useClampBookingToFreeGaps } from "../hooks/useClampBookingToFreeGaps";
+import { useEscapeKey } from "../hooks/useEscapeKey";
+import {
   formatLocalDate,
   formatLocalTime,
   freeSlotsInWindow,
   intervalToPercent,
   isMyCalendarBusy,
+  parseInstantOnDate,
   parseNaiveLocal,
   QUARTER_HOUR_MS,
   snapInstantMsToQuarterOnDate,
   type TimeInterval,
 } from "../lib/weekTimeline";
 import { Button } from "./ui/Button";
-
-const MIN_DURATION_MIN = 15;
-const MAX_DURATION_MIN = 240;
-const DURATION_CHIPS_MIN = [15, 30, 60, 90, 120, 240] as const;
-
-function localDateTimeMs(dateStr: string, timeStr: string): number {
-  const [Y, M, D] = dateStr.split("-").map(Number);
-  const [hRaw, mRaw] = timeStr.trim().split(":");
-  const h = Number(hRaw);
-  const m = Number(mRaw ?? 0);
-  if (!Number.isFinite(Y) || !Number.isFinite(M) || !Number.isFinite(D) || !Number.isFinite(h) || !Number.isFinite(m)) {
-    return NaN;
-  }
-  return new Date(Y, M - 1, D, h, m, 0, 0).getTime();
-}
-
-function isLocalStartInPast(dateStr: string, timeStr: string, now: Date): boolean {
-  const t = localDateTimeMs(dateStr, timeStr);
-  if (Number.isNaN(t)) return false;
-  return t <= now.getTime();
-}
-
-function parseInstantOnDate(dateStr: string, timeStr: string): Date {
-  const [Y, M, D] = dateStr.split("-").map(Number);
-  const [h, mi] = timeStr.split(":").map(Number);
-  return new Date(Y, M - 1, D, h, mi ?? 0, 0, 0);
-}
-
-function dayDisplayBounds(dateStr: string): { start: Date; end: Date } {
-  const [Y, M, D] = dateStr.split("-").map(Number);
-  const day = new Date(Y, M - 1, D);
-  const start = new Date(day);
-  start.setHours(DEFAULT_DAY_START_H, 0, 0, 0);
-  const end = new Date(day);
-  end.setHours(DEFAULT_DAY_END_H, 0, 0, 0);
-  return { start, end };
-}
-
-function clamp(n: number, lo: number, hi: number): number {
-  return Math.min(hi, Math.max(lo, n));
-}
-
-function intervalFitsInFreeGaps(s: number, e: number, gaps: TimeInterval[]): boolean {
-  if (e <= s) return false;
-  return gaps.some(g => s >= g.start.getTime() && e <= g.end.getTime());
-}
-
-/** Snap interval into a single free gap; picks closest valid slot to the proposed times. */
-function clampToFreeGaps(s: number, e: number, gaps: TimeInterval[], dateStr: string): [number, number] {
-  const snap = (ms: number) => snapInstantMsToQuarterOnDate(ms, dateStr);
-  if (gaps.length === 0) {
-    const s0 = snap(s);
-    let dur = e - s;
-    dur = Math.max(MIN_DURATION_MIN * 60_000, Math.round(dur / QUARTER_HOUR_MS) * QUARTER_HOUR_MS);
-    dur = Math.min(dur, MAX_DURATION_MIN * 60_000);
-    return [s0, snap(s0 + dur)];
-  }
-
-  let dur = e - s;
-  if (dur < MIN_DURATION_MIN * 60_000) dur = MIN_DURATION_MIN * 60_000;
-  if (dur > MAX_DURATION_MIN * 60_000) dur = MAX_DURATION_MIN * 60_000;
-  dur = Math.round(dur / QUARTER_HOUR_MS) * QUARTER_HOUR_MS;
-  dur = clamp(dur, MIN_DURATION_MIN * 60_000, MAX_DURATION_MIN * 60_000);
-
-  const sAdj = s;
-  const eAdj = sAdj + dur;
-
-  if (intervalFitsInFreeGaps(sAdj, eAdj, gaps)) {
-    return [snap(sAdj), snap(eAdj)];
-  }
-
-  let best: [number, number] | null = null;
-  let bestDist = Infinity;
-
-  for (const g of gaps) {
-    const g0 = g.start.getTime();
-    const g1 = g.end.getTime();
-    const room = g1 - g0;
-    const minDur = MIN_DURATION_MIN * 60_000;
-    const maxDurAll = Math.min(MAX_DURATION_MIN * 60_000, room);
-    if (room < minDur) continue;
-
-    const maxDurQuarter = Math.floor(maxDurAll / QUARTER_HOUR_MS) * QUARTER_HOUR_MS;
-    if (maxDurQuarter < minDur) continue;
-
-    const durUse = clamp(dur, minDur, maxDurQuarter);
-    const durUseQ = Math.round(durUse / QUARTER_HOUR_MS) * QUARTER_HOUR_MS;
-    const durF = clamp(durUseQ, minDur, maxDurQuarter);
-    const sLo = g0;
-    const sHi = g1 - durF;
-    if (sHi < sLo) continue;
-
-    const sClamped = clamp(sAdj, sLo, sHi);
-    const eClamped = sClamped + durF;
-    const dist = Math.abs(sClamped - s) + Math.abs(eClamped - e);
-    if (dist < bestDist) {
-      bestDist = dist;
-      best = [sClamped, eClamped];
-    }
-  }
-
-  if (!best) return [snap(sAdj), snap(eAdj)];
-  return [snap(best[0]), snap(best[1])];
-}
 
 type DragKind = "move" | "resize-start" | "resize-end";
 
@@ -166,7 +72,7 @@ function BookingSheetForm({
     pointerId: number;
   } | null>(null);
 
-  const { start: displayStart, end: displayEnd } = useMemo(() => dayDisplayBounds(date), [date]);
+  const { start: displayStart, end: displayEnd } = dayDisplayBounds(date);
 
   const busyClipped = useMemo(() => {
     const slots = scheduleRooms?.find(r => r.id === roomId)?.bookings ?? [];
@@ -193,59 +99,35 @@ function BookingSheetForm({
 
   const freeGapsLayoutKey = useMemo(() => freeGaps.map(g => `${+g.start}-${+g.end}`).join("|"), [freeGaps]);
 
-  useEffect(() => {
-    setClientError(null);
-  }, [date, startTime, endTime]);
+  const clearClientError = () => setClientError(null);
+
+  useClampBookingToFreeGaps(date, roomId, freeGaps, freeGapsLayoutKey, startTime, endTime, setStartTime, setEndTime, clearClientError);
+
+  useEscapeKey(onClose);
 
   function applyIntervalClamped(startMs: number, endMs: number) {
+    clearClientError();
     const [s2, e2] = clampToFreeGaps(startMs, endMs, freeGaps, date);
     setStartTime(formatLocalTime(new Date(s2)));
     setEndTime(formatLocalTime(new Date(e2)));
   }
 
   function commitManualTimes() {
+    clearClientError();
     const s = parseInstantOnDate(date, startTime).getTime();
     let e = parseInstantOnDate(date, endTime).getTime();
     if (!Number.isFinite(s) || !Number.isFinite(e)) return;
-    if (e <= s) e = s + MIN_DURATION_MIN * 60_000;
+    if (e <= s) e = s + MIN_BOOK_DURATION_MIN * 60_000;
     const d = (e - s) / 60_000;
-    if (d < MIN_DURATION_MIN) e = s + MIN_DURATION_MIN * 60_000;
-    else if (d > MAX_DURATION_MIN) e = s + MAX_DURATION_MIN * 60_000;
+    if (d < MIN_BOOK_DURATION_MIN) e = s + MIN_BOOK_DURATION_MIN * 60_000;
+    else if (d > MAX_BOOK_DURATION_MIN) e = s + MAX_BOOK_DURATION_MIN * 60_000;
     applyIntervalClamped(s, e);
   }
 
-  useEffect(() => {
-    if (freeGaps.length === 0) return;
-    const s = parseInstantOnDate(date, startTime).getTime();
-    const e = parseInstantOnDate(date, endTime).getTime();
-    if (!Number.isFinite(s) || !Number.isFinite(e) || e <= s) return;
-    if (intervalFitsInFreeGaps(s, e, freeGaps)) return;
-    const [s2, e2] = clampToFreeGaps(s, e, freeGaps, date);
-    const ns = formatLocalTime(new Date(s2));
-    const ne = formatLocalTime(new Date(e2));
-    if (ns !== startTime || ne !== endTime) {
-      setStartTime(ns);
-      setEndTime(ne);
-    }
-    // Only re-sync when the room/day grid or free gaps change — not while typing times.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [date, roomId, freeGapsLayoutKey]);
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
-  const bookingInterval = useMemo(
-    () => ({
-      start: parseInstantOnDate(date, startTime),
-      end: parseInstantOnDate(date, endTime),
-    }),
-    [date, startTime, endTime],
-  );
+  const bookingInterval = {
+    start: parseInstantOnDate(date, startTime),
+    end: parseInstantOnDate(date, endTime),
+  };
 
   const durationMin = Math.max(0, Math.round((bookingInterval.end.getTime() - bookingInterval.start.getTime()) / 60_000));
 
@@ -253,7 +135,7 @@ function BookingSheetForm({
   const previewWidthPct = widthPct > 0 ? Math.max(widthPct, 1.2) : 0;
 
   function applyDurationFromStart(minutes: number) {
-    const m = clamp(minutes, MIN_DURATION_MIN, MAX_DURATION_MIN);
+    const m = clampNum(minutes, MIN_BOOK_DURATION_MIN, MAX_BOOK_DURATION_MIN);
     const startMs = parseInstantOnDate(date, startTime).getTime();
     applyIntervalClamped(startMs, startMs + m * 60_000);
   }
@@ -270,19 +152,19 @@ function BookingSheetForm({
   function clientXToMs(clientX: number) {
     const m = trackMetrics();
     if (!m) return displayStart.getTime();
-    const ratio = clamp((clientX - m.rect.left) / m.rect.width, 0, 1);
+    const ratio = clampNum((clientX - m.rect.left) / m.rect.width, 0, 1);
     return displayStart.getTime() + ratio * m.spanMs;
   }
 
-  /** Center current booking length on the tapped time (then clamp to window + free gaps). */
   function placeBookingAtTrackClick(clientX: number) {
+    clearClientError();
     const m = trackMetrics();
     if (!m) return;
     const w0 = displayStart.getTime();
     const w1 = displayEnd.getTime();
     const clickMs = snapInstantMsToQuarterOnDate(clientXToMs(clientX), date);
     const durMs = bookingInterval.end.getTime() - bookingInterval.start.getTime();
-    if (durMs < MIN_DURATION_MIN * 60_000) return;
+    if (durMs < MIN_BOOK_DURATION_MIN * 60_000) return;
     let startMs = snapInstantMsToQuarterOnDate(clickMs - durMs / 2, date);
     let endMs = startMs + durMs;
     if (endMs > w1) {
@@ -296,7 +178,7 @@ function BookingSheetForm({
       endMs += under;
     }
     if (endMs > w1) endMs = w1;
-    if ((endMs - startMs) / 60_000 < MIN_DURATION_MIN) return;
+    if ((endMs - startMs) / 60_000 < MIN_BOOK_DURATION_MIN) return;
     const [a, b] = clampToFreeGaps(startMs, endMs, freeGaps, date);
     setStartTime(formatLocalTime(new Date(a)));
     setEndTime(formatLocalTime(new Date(b)));
@@ -314,7 +196,7 @@ function BookingSheetForm({
     dragRef.current = null;
   }
 
-  function onPointerDownBar(kind: DragKind, e: React.PointerEvent) {
+  function onPointerDownBar(kind: DragKind, e: ReactPointerEvent) {
     if (e.button !== 0) return;
     e.preventDefault();
     e.stopPropagation();
@@ -331,6 +213,7 @@ function BookingSheetForm({
     el?.setPointerCapture(e.pointerId);
 
     const onMove = (ev: PointerEvent) => {
+      clearClientError();
       const d = dragRef.current;
       if (!d) return;
       const m = trackMetrics();
@@ -359,24 +242,24 @@ function BookingSheetForm({
         }
         if (endMsN > w1) endMsN = w1;
         const durMinNow = (endMsN - startMsN) / 60_000;
-        if (durMinNow < MIN_DURATION_MIN) {
+        if (durMinNow < MIN_BOOK_DURATION_MIN) {
           startMsN = d.startMs;
           endMsN = d.endMs;
         }
       } else if (d.kind === "resize-start") {
         const endFixed = d.endMs;
         let newStart = snapInstantMsToQuarterOnDate(clientXToMs(ev.clientX), date);
-        const lo = Math.max(w0, endFixed - MAX_DURATION_MIN * 60_000);
-        const hi = endFixed - MIN_DURATION_MIN * 60_000;
-        newStart = clamp(newStart, lo, hi);
+        const lo = Math.max(w0, endFixed - MAX_BOOK_DURATION_MIN * 60_000);
+        const hi = endFixed - MIN_BOOK_DURATION_MIN * 60_000;
+        newStart = clampNum(newStart, lo, hi);
         startMsN = newStart;
         endMsN = endFixed;
       } else {
         const startFixed = d.startMs;
         let newEnd = snapInstantMsToQuarterOnDate(clientXToMs(ev.clientX), date);
-        const lo = startFixed + MIN_DURATION_MIN * 60_000;
-        const hi = Math.min(w1, startFixed + MAX_DURATION_MIN * 60_000);
-        newEnd = clamp(newEnd, lo, hi);
+        const lo = startFixed + MIN_BOOK_DURATION_MIN * 60_000;
+        const hi = Math.min(w1, startFixed + MAX_BOOK_DURATION_MIN * 60_000);
+        newEnd = clampNum(newEnd, lo, hi);
         startMsN = startFixed;
         endMsN = newEnd;
       }
@@ -442,6 +325,7 @@ function BookingSheetForm({
           className='flex min-h-0 min-w-0 flex-1 flex-col gap-5 overflow-y-auto overflow-x-hidden px-5 py-4'
           onSubmit={e => {
             e.preventDefault();
+            clearClientError();
             let sMs = parseInstantOnDate(date, startTime).getTime();
             let eMs = parseInstantOnDate(date, endTime).getTime();
             if (!Number.isFinite(sMs) || !Number.isFinite(eMs)) {
@@ -451,8 +335,8 @@ function BookingSheetForm({
             sMs = snapInstantMsToQuarterOnDate(sMs, date);
             eMs = snapInstantMsToQuarterOnDate(eMs, date);
             let durMs = eMs - sMs;
-            durMs = Math.max(MIN_DURATION_MIN * 60_000, Math.round(durMs / QUARTER_HOUR_MS) * QUARTER_HOUR_MS);
-            durMs = Math.min(durMs, MAX_DURATION_MIN * 60_000);
+            durMs = Math.max(MIN_BOOK_DURATION_MIN * 60_000, Math.round(durMs / QUARTER_HOUR_MS) * QUARTER_HOUR_MS);
+            durMs = Math.min(durMs, MAX_BOOK_DURATION_MIN * 60_000);
             eMs = sMs + durMs;
             const startNorm = formatLocalTime(new Date(sMs));
             const endNorm = formatLocalTime(new Date(eMs));
@@ -507,11 +391,11 @@ function BookingSheetForm({
                 {busyClipped.map((b, i) => {
                   const { leftPct: bl, widthPct: bw } = intervalToPercent({ start: b.start, end: b.end }, displayStart, displayEnd);
                   const mine = isMyCalendarBusy(b, roomId, roomName, myBookings);
-                  const title = mine ? (b.label ? `Din bokning · ${b.label}` : "Din bokning") : b.label ? `Upptagen · ${b.label}` : "Upptagen";
+                  const slotTitle = mine ? (b.label ? `Din bokning · ${b.label}` : "Din bokning") : b.label ? `Upptagen · ${b.label}` : "Upptagen";
                   return (
                     <div
                       key={`busy-${b.start.getTime()}-${i}`}
-                      title={title}
+                      title={slotTitle}
                       className={`absolute bottom-1 top-4 z-[1] flex items-center justify-center overflow-hidden rounded-sm px-0.5 shadow-inner ${
                         mine ? "bg-te-mine-busy/85" : "bg-te-busy-strong/85"
                       }`}
@@ -576,7 +460,17 @@ function BookingSheetForm({
 
           <label className='grid gap-1 text-sm'>
             <span className='font-medium text-te-text'>Datum</span>
-            <input className={inputClass} type='date' value={date} min={minBookDate} onChange={e => setDate(e.target.value)} required />
+            <input
+              className={inputClass}
+              type='date'
+              value={date}
+              min={minBookDate}
+              onChange={e => {
+                clearClientError();
+                setDate(e.target.value);
+              }}
+              required
+            />
           </label>
 
           <div className='grid gap-2'>
@@ -606,7 +500,10 @@ function BookingSheetForm({
               <input
                 className={inputClass + " font-mono text-base sm:text-xs"}
                 value={startTime}
-                onChange={e => setStartTime(e.target.value)}
+                onChange={e => {
+                  clearClientError();
+                  setStartTime(e.target.value);
+                }}
                 onBlur={commitManualTimes}
                 placeholder='09:00'
                 required
@@ -618,7 +515,10 @@ function BookingSheetForm({
               <input
                 className={inputClass + " font-mono text-base sm:text-xs"}
                 value={endTime}
-                onChange={e => setEndTime(e.target.value)}
+                onChange={e => {
+                  clearClientError();
+                  setEndTime(e.target.value);
+                }}
                 onBlur={commitManualTimes}
                 required
                 aria-label='Sluttid'
