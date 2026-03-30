@@ -302,6 +302,7 @@ export function AuthenticatedWorkspace() {
               myBookingsPending={myBookingsQuery.isPending}
               onPickFree={handlePickFree}
               onBookRoom={handleBookRoomFromSchedule}
+              isTabActive={activeTab === "schedule"}
             />
           </section>
 
@@ -320,6 +321,7 @@ export function AuthenticatedWorkspace() {
               capacityMin={capacityDisplay.min}
               capacityMax={capacityDisplay.max}
               onCapacityRangeChange={setCapacityRange}
+              isTabActive={activeTab === "rooms"}
             />
           </section>
 

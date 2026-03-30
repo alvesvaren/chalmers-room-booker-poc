@@ -13,7 +13,23 @@ export type VirtualizedWindowGridProps<T> = {
   overscan?: number;
   className?: string;
   renderItem: (item: T) => ReactNode;
+  /**
+   * When false, the grid is not mounted. Use while the host tab/panel is hidden
+   * (`display: none`); otherwise size is 0×0 and the window virtualizer gets a
+   * bogus scrollMargin until a lucky resize.
+   */
+  enabled?: boolean;
 };
+
+function isMeasurableHost(el: HTMLElement) {
+  if (typeof el.checkVisibility === "function") {
+    return el.checkVisibility();
+  }
+  const r = el.getBoundingClientRect();
+  return (
+    r.width > 0 || r.height > 0 || el.clientWidth > 0 || el.clientHeight > 0
+  );
+}
 
 /**
  * Window-scroll grid: each virtual row holds up to N columns derived from container width.
@@ -28,16 +44,19 @@ export function VirtualizedWindowGrid<T>({
   overscan = 4,
   className,
   renderItem,
+  enabled = true,
 }: VirtualizedWindowGridProps<T>) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [columns, setColumns] = useState(1);
   const [scrollMargin, setScrollMargin] = useState(0);
 
   useLayoutEffect(() => {
+    if (!enabled) return;
     const el = containerRef.current;
     if (!el) return;
 
     const update = () => {
+      if (!isMeasurableHost(el)) return;
       // Document Y of list top — `offsetTop` is wrong when offsetParent ≠ document body.
       const docTop =
         el.getBoundingClientRect().top + window.scrollY;
@@ -58,12 +77,12 @@ export function VirtualizedWindowGrid<T>({
       ro.disconnect();
       window.removeEventListener("resize", update);
     };
-  }, [gapPx, minCardWidthPx]);
+  }, [enabled, gapPx, minCardWidthPx]);
 
   const rowCount = Math.ceil(items.length / columns);
 
   const rowVirtualizer = useWindowVirtualizer({
-    count: rowCount,
+    count: enabled ? rowCount : 0,
     overscan,
     scrollMargin,
     gap: gapPx,
@@ -72,6 +91,8 @@ export function VirtualizedWindowGrid<T>({
   });
 
   const margin = rowVirtualizer.options.scrollMargin;
+
+  if (!enabled) return null;
 
   return (
     <div ref={containerRef} className={className}>

@@ -35,6 +35,7 @@ export function ScheduleTab({
   myBookingsPending,
   onPickFree,
   onBookRoom,
+  isTabActive,
 }: {
   weekOffset: number;
   onWeekOffsetChange: (n: number) => void;
@@ -53,6 +54,8 @@ export function ScheduleTab({
   myBookingsPending?: boolean;
   onPickFree: (room: RoomWithBookings, gap: TimeInterval) => void;
   onBookRoom: (room: RoomWithBookings) => void;
+  /** False while this tabpanel is `hidden` — keeps window virtualizer from measuring 0×0. */
+  isTabActive: boolean;
 }) {
   const rulesId = useId();
   const [rulesOpen, setRulesOpen] = useState(false);
@@ -190,6 +193,7 @@ export function ScheduleTab({
         </div>
       ) : hasBookings ? (
         <VirtualizedWindowGrid
+          enabled={isTabActive}
           items={roomsSorted}
           getItemKey={(r) => r.id}
           minCardWidthPx={416}

@@ -32,6 +32,7 @@ export function RoomsTab({
   capacityMin,
   capacityMax,
   onCapacityRangeChange,
+  isTabActive,
 }: {
   rooms: Room[] | undefined;
   roomsIsFetching: boolean;
@@ -49,6 +50,8 @@ export function RoomsTab({
   capacityMin: number;
   capacityMax: number;
   onCapacityRangeChange: (next: { min: number; max: number }) => void;
+  /** False while this tabpanel is `hidden` — keeps window virtualizer from measuring 0×0. */
+  isTabActive: boolean;
 }) {
   const [search, setSearch] = useState("");
   const [campusPick, setCampusPick] = useState("");
@@ -409,6 +412,7 @@ export function RoomsTab({
         </div>
       ) : (
         <VirtualizedWindowGrid
+          enabled={isTabActive}
           items={filtered}
           getItemKey={(r) => r.id}
           minCardWidthPx={272}
