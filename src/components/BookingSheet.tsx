@@ -339,7 +339,7 @@ function BookingSheetForm({
       }}
     >
       <div
-        className="bg-te-text/25 absolute inset-0 backdrop-blur-[2px]"
+        className="bg-te-text/35 absolute inset-0"
         aria-hidden
       />
       <div

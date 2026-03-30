@@ -1,15 +1,16 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Suspense, useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { postApiAuthLoginMutation } from "./client/@tanstack/react-query.gen";
 import { API_BASE, TOAST_DURATION_MS } from "./config/api";
 import { AuthenticatedWorkspace } from "./components/AuthenticatedWorkspace";
 import { QueryErrorBoundary } from "./components/QueryErrorBoundary";
 import { SignInPanel } from "./components/SignInPanel";
-import { WorkspaceSuspenseFallback } from "./components/skeletons/ScheduleGridSkeleton";
 import { useApiClientAuth } from "./hooks/useApiClientAuth";
 import { useAuthFailureInterceptor } from "./hooks/useAuthFailureInterceptor";
 import { useAutoDismiss } from "./hooks/useAutoDismiss";
 import { useSessionToken } from "./hooks/useSessionToken";
+import { accountLabelFromJwt } from "./lib/jwtAccountLabel";
+import { Button } from "./components/ui/Button";
 
 export default function App() {
   const queryClient = useQueryClient();
@@ -34,39 +35,61 @@ export default function App() {
     ...postApiAuthLoginMutation(),
   });
 
+  const accountLabel = useMemo(
+    () => (token ? accountLabelFromJwt(token) : null),
+    [token],
+  );
+
   return (
     <div className="text-te-text min-h-svh antialiased">
       <div className="w-full max-w-none px-4 py-8 sm:px-6 lg:px-8 xl:px-10 2xl:px-12">
-        <header className="te-reveal border-te-border mb-8 border-b pb-8">
-          <h1 className="font-display text-te-text text-3xl font-semibold tracking-tight sm:text-4xl">
-            TimeEdit demo
-          </h1>
-          <p className="text-te-muted mt-2 max-w-2xl text-sm leading-relaxed">
-            Grupprumsbokning · Chalmers-inloggning.
-          </p>
+        <header className="te-reveal border-te-border mb-8 flex flex-col gap-6 border-b pb-8 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h1 className="font-display text-te-text text-3xl font-semibold tracking-tight sm:text-4xl">
+              TimeEdit demo
+            </h1>
+            <p className="text-te-muted mt-2 max-w-2xl text-sm leading-relaxed">
+              Grupprumsbokning · Chalmers-inloggning.
+            </p>
+          </div>
+          {authed ? (
+            <div className="flex flex-wrap items-center gap-3 sm:shrink-0 sm:justify-end">
+              {accountLabel ? (
+                <span
+                  className="text-te-text max-w-48 truncate text-sm font-medium sm:max-w-none"
+                  title={accountLabel}
+                >
+                  {accountLabel}
+                </span>
+              ) : null}
+              <Button variant="secondary" onClick={logOut}>
+                Logga ut
+              </Button>
+            </div>
+          ) : null}
         </header>
 
-        <SignInPanel
-          authed={authed}
-          username={username}
-          password={password}
-          onUsername={setUsername}
-          onPassword={setPassword}
-          onSubmit={() => {
-            loginMutation.mutate(
-              { body: { username, password } },
-              {
-                onSuccess: (data) => {
-                  setToken(data.token);
-                  setPassword("");
+        {!authed ? (
+          <SignInPanel
+            username={username}
+            password={password}
+            onUsername={setUsername}
+            onPassword={setPassword}
+            onSubmit={() => {
+              loginMutation.mutate(
+                { body: { username, password } },
+                {
+                  onSuccess: (data) => {
+                    setToken(data.token);
+                    setPassword("");
+                  },
                 },
-              },
-            );
-          }}
-          onLogOut={logOut}
-          isPending={loginMutation.isPending}
-          submitError={loginMutation.isError ? loginMutation.error : null}
-        />
+              );
+            }}
+            isPending={loginMutation.isPending}
+            submitError={loginMutation.isError ? loginMutation.error : null}
+          />
+        ) : null}
 
         {sessionToast ? (
           <div
@@ -84,9 +107,7 @@ export default function App() {
           </p>
         ) : (
           <QueryErrorBoundary>
-            <Suspense fallback={<WorkspaceSuspenseFallback />}>
-              <AuthenticatedWorkspace />
-            </Suspense>
+            <AuthenticatedWorkspace />
           </QueryErrorBoundary>
         )}
 

@@ -3,7 +3,7 @@ import {
   useQueryClient,
   useSuspenseQuery,
 } from "@tanstack/react-query";
-import { useCallback, useState, useTransition } from "react";
+import { Suspense, useCallback, useState, useTransition } from "react";
 import {
   deleteApiMyBookingsByIdMutation,
   getApiBookingsOptions,
@@ -12,7 +12,11 @@ import {
   getApiRoomsOptions,
   postApiMyBookingsMutation,
 } from "../client/@tanstack/react-query.gen";
-import type { Room, RoomWithBookings } from "../client/types.gen";
+import type {
+  CreateBookingRequest,
+  Room,
+  RoomWithBookings,
+} from "../client/types.gen";
 import { TOAST_DURATION_MS } from "../config/api";
 import { useAutoDismiss } from "../hooks/useAutoDismiss";
 import {
@@ -36,8 +40,9 @@ import { BookingSheet, type BookingSheetInitial } from "./BookingSheet";
 import { MyBookingsTab } from "./MyBookingsTab";
 import { RoomsTab } from "./RoomsTab";
 import { ScheduleTab } from "./ScheduleTab";
+import { WorkspaceSuspenseFallback } from "./skeletons/ScheduleGridSkeleton";
 
-export function AuthenticatedWorkspace() {
+function AuthenticatedWorkspaceContent({ activeTab }: { activeTab: AppTabId }) {
   const queryClient = useQueryClient();
   const [, startFilterTransition] = useTransition();
 
@@ -48,7 +53,6 @@ export function AuthenticatedWorkspace() {
     min: 1,
     max: CAPACITY_SLIDER_FALLBACK_MAX,
   });
-  const [activeTab, setActiveTab] = useState<AppTabId>("schedule");
   const [bookingSheetOpen, setBookingSheetOpen] = useState(false);
   const [bookingInitial, setBookingInitial] =
     useState<BookingSheetInitial | null>(null);
@@ -214,67 +218,71 @@ export function AuthenticatedWorkspace() {
     createBookingMutation.reset();
   }, [createBookingMutation]);
 
+  const submitBooking = useCallback(
+    (body: CreateBookingRequest) => {
+      createBookingMutation.mutate(
+        { body },
+        {
+          onSuccess: (data) => {
+            closeBookingSheet();
+            showBookingToast(`Bokning skapad · ${data.booking.id}`);
+          },
+        },
+      );
+    },
+    [closeBookingSheet, createBookingMutation, showBookingToast],
+  );
+
   return (
     <>
-      <div className="mt-10 space-y-6">
-        <AppTabs active={activeTab} onChange={setActiveTab} />
-
-        <div
-          role="tabpanel"
-          id={`panel-${activeTab}`}
-          aria-labelledby={`tab-${activeTab}`}
-          className="border-te-border bg-te-surface rounded-2xl border p-5 shadow-sm sm:p-8"
-        >
-          {activeTab === "schedule" ? (
-            <ScheduleTab
-              weekOffset={
-                roomsAvailabilityDate != null
-                  ? effectiveBookingsWeekOffset
-                  : weekOffset
-              }
-              onWeekOffsetChange={onWeekNavigate}
-              campusFilter={campusFilter}
-              onCampusFilter={setCampusFilterTransitioned}
-              qFilter={qFilter}
-              onQFilter={setQFilterTransitioned}
-              capacityBounds={capacityBounds}
-              capacityMin={capacityDisplay.min}
-              capacityMax={capacityDisplay.max}
-              onCapacityRangeChange={setCapacityRange}
-              bookings={bookingsQuery.data}
-              bookingsIsFetching={bookingsQuery.isFetching}
-              myBookings={myBookingsQuery.data}
-              onPickFree={handlePickFree}
-              onBookRoom={handleBookRoomFromSchedule}
-            />
-          ) : null}
-          {activeTab === "rooms" ? (
-            <RoomsTab
-              rooms={roomsQuery.data}
-              roomsIsFetching={roomsQuery.isFetching}
-              bookings={bookingsQuery.data}
-              bookingsIsFetching={bookingsQuery.isFetching}
-              bookingsWeekStart={weekStart}
-              bookingsWeekEnd={weekEnd}
-              onRoomsAvailabilityDateChange={setRoomsAvailabilityDate}
-              onBookRoom={handleBookRoomFromDirectory}
-              isRoomBookable={isRoomBookable}
-              capacityBounds={capacityBounds}
-              capacityMin={capacityDisplay.min}
-              capacityMax={capacityDisplay.max}
-              onCapacityRangeChange={setCapacityRange}
-            />
-          ) : null}
-          {activeTab === "mine" ? (
-            <MyBookingsTab
-              myBookings={myBookingsQuery.data}
-              cancelMutation={cancelMutation}
-              onCancelRequest={handleCancelBooking}
-              cancelError={cancelMutation.isError ? cancelMutation.error : null}
-            />
-          ) : null}
-        </div>
-      </div>
+      {activeTab === "schedule" ? (
+        <ScheduleTab
+          weekOffset={
+            roomsAvailabilityDate != null
+              ? effectiveBookingsWeekOffset
+              : weekOffset
+          }
+          onWeekOffsetChange={onWeekNavigate}
+          campusFilter={campusFilter}
+          onCampusFilter={setCampusFilterTransitioned}
+          qFilter={qFilter}
+          onQFilter={setQFilterTransitioned}
+          capacityBounds={capacityBounds}
+          capacityMin={capacityDisplay.min}
+          capacityMax={capacityDisplay.max}
+          onCapacityRangeChange={setCapacityRange}
+          bookings={bookingsQuery.data}
+          bookingsIsFetching={bookingsQuery.isFetching}
+          myBookings={myBookingsQuery.data}
+          onPickFree={handlePickFree}
+          onBookRoom={handleBookRoomFromSchedule}
+        />
+      ) : null}
+      {activeTab === "rooms" ? (
+        <RoomsTab
+          rooms={roomsQuery.data}
+          roomsIsFetching={roomsQuery.isFetching}
+          bookings={bookingsQuery.data}
+          bookingsIsFetching={bookingsQuery.isFetching}
+          bookingsWeekStart={weekStart}
+          bookingsWeekEnd={weekEnd}
+          onRoomsAvailabilityDateChange={setRoomsAvailabilityDate}
+          onBookRoom={handleBookRoomFromDirectory}
+          isRoomBookable={isRoomBookable}
+          capacityBounds={capacityBounds}
+          capacityMin={capacityDisplay.min}
+          capacityMax={capacityDisplay.max}
+          onCapacityRangeChange={setCapacityRange}
+        />
+      ) : null}
+      {activeTab === "mine" ? (
+        <MyBookingsTab
+          myBookings={myBookingsQuery.data}
+          cancelMutation={cancelMutation}
+          onCancelRequest={handleCancelBooking}
+          cancelError={cancelMutation.isError ? cancelMutation.error : null}
+        />
+      ) : null}
 
       <BookingSheet
         open={bookingSheetOpen}
@@ -282,17 +290,7 @@ export function AuthenticatedWorkspace() {
         initial={bookingInitial}
         scheduleRooms={bookingsQuery.data.rooms}
         myBookings={myBookingsQuery.data}
-        onSubmit={(body) =>
-          createBookingMutation.mutate(
-            { body },
-            {
-              onSuccess: (data) => {
-                closeBookingSheet();
-                showBookingToast(`Bokning skapad · ${data.booking.id}`);
-              },
-            },
-          )
-        }
+        onSubmit={submitBooking}
         isPending={createBookingMutation.isPending}
         error={
           createBookingMutation.isError ? createBookingMutation.error : null
@@ -309,5 +307,26 @@ export function AuthenticatedWorkspace() {
         </div>
       ) : null}
     </>
+  );
+}
+
+export function AuthenticatedWorkspace() {
+  const [activeTab, setActiveTab] = useState<AppTabId>("schedule");
+
+  return (
+    <div className="mt-10 space-y-6">
+      <AppTabs active={activeTab} onChange={setActiveTab} />
+
+      <div
+        role="tabpanel"
+        id={`panel-${activeTab}`}
+        aria-labelledby={`tab-${activeTab}`}
+        className="border-te-border bg-te-surface rounded-2xl border p-5 shadow-sm sm:p-8"
+      >
+        <Suspense fallback={<WorkspaceSuspenseFallback />}>
+          <AuthenticatedWorkspaceContent activeTab={activeTab} />
+        </Suspense>
+      </div>
+    </div>
   );
 }
