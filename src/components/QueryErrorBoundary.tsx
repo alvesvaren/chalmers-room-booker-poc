@@ -16,8 +16,8 @@ type Props = {
 type State = { error: Error | null };
 
 /**
- * Catches render errors from suspense queries; pairs with `QueryErrorResetBoundary` so retry
- * can invalidate the TanStack error state as well as local boundary state.
+ * Catches React render errors in the workspace subtree; pairs with `QueryErrorResetBoundary`
+ * so retry clears TanStack query errors and this boundary’s local state.
  */
 class QueryErrorBoundaryInner extends Component<
   Props & { onResetQueries: () => void },

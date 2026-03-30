@@ -1,7 +1,16 @@
 import {
+  formatLocalDateWire,
+  formatLocalTime24,
+  LOCAL_MIDNIGHT_TIME,
+  localWallClockMs,
+  parseInstantOnDate,
+} from "./datetime";
+import { setHours } from "date-fns";
+import {
   DEFAULT_DAY_END_H,
   DEFAULT_DAY_START_H,
   QUARTER_HOUR_MS,
+  snapInstantMsToCeilQuarterOnDate,
   snapInstantMsToQuarterOnDate,
   type TimeInterval,
 } from "./weekTimeline";
@@ -10,21 +19,25 @@ export const MIN_BOOK_DURATION_MIN = 15;
 export const MAX_BOOK_DURATION_MIN = 240;
 export const DURATION_CHIPS_MIN = [15, 30, 60, 90, 120, 240] as const;
 
-export function localDateTimeMs(dateStr: string, timeStr: string): number {
-  const [Y, M, D] = dateStr.split("-").map(Number);
-  const [hRaw, mRaw] = timeStr.trim().split(":");
-  const h = Number(hRaw);
-  const m = Number(mRaw ?? 0);
-  if (
-    !Number.isFinite(Y) ||
-    !Number.isFinite(M) ||
-    !Number.isFinite(D) ||
-    !Number.isFinite(h) ||
-    !Number.isFinite(m)
-  ) {
-    return NaN;
+/**
+ * Next quarter-hour start on `dateStr` relative to `now` (local).
+ * Past calendar days → default day start; future days → default day start;
+ * today → ceil current time to 15 minutes, clamped to 23:45 same day.
+ */
+export function defaultAvailabilityFilterStartTime(
+  dateStr: string,
+  now: Date = new Date(),
+): string {
+  const todayStr = formatLocalDateWire(now);
+  const dayStart = `${String(DEFAULT_DAY_START_H).padStart(2, "0")}:00`;
+  if (dateStr !== todayStr) {
+    return dayStart;
   }
-  return new Date(Y, M - 1, D, h, m, 0, 0).getTime();
+  const ceiled = snapInstantMsToCeilQuarterOnDate(now.getTime(), dateStr);
+  if (formatLocalDateWire(new Date(ceiled)) !== dateStr) {
+    return "23:45";
+  }
+  return formatLocalTime24(new Date(ceiled));
 }
 
 export function isLocalStartInPast(
@@ -32,19 +45,17 @@ export function isLocalStartInPast(
   timeStr: string,
   now: Date,
 ): boolean {
-  const t = localDateTimeMs(dateStr, timeStr);
+  const t = localWallClockMs(dateStr, timeStr);
   if (Number.isNaN(t)) return false;
   return t <= now.getTime();
 }
 
 export function dayDisplayBounds(dateStr: string): { start: Date; end: Date } {
-  const [Y, M, D] = dateStr.split("-").map(Number);
-  const day = new Date(Y, M - 1, D);
-  const start = new Date(day);
-  start.setHours(DEFAULT_DAY_START_H, 0, 0, 0);
-  const end = new Date(day);
-  end.setHours(DEFAULT_DAY_END_H, 0, 0, 0);
-  return { start, end };
+  const day = parseInstantOnDate(dateStr, LOCAL_MIDNIGHT_TIME);
+  return {
+    start: setHours(day, DEFAULT_DAY_START_H),
+    end: setHours(day, DEFAULT_DAY_END_H),
+  };
 }
 
 export function clampNum(n: number, lo: number, hi: number): number {

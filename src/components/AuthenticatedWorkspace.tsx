@@ -1,18 +1,25 @@
 import {
   useMutation,
+  useQuery,
   useQueryClient,
-  useSuspenseQuery,
+  type QueryFunctionContext,
 } from "@tanstack/react-query";
-import { useCallback, useState, useTransition } from "react";
+import { useCallback, useMemo, useState, useTransition } from "react";
 import {
   deleteApiMyBookingsByIdMutation,
   getApiBookingsOptions,
+  getApiBookingsQueryKey,
   getApiMyBookingsOptions,
   getApiMyBookingsQueryKey,
   getApiRoomsOptions,
   postApiMyBookingsMutation,
 } from "../client/@tanstack/react-query.gen";
-import type { Room, RoomWithBookings } from "../client/types.gen";
+import { getApiBookings } from "../client/sdk.gen";
+import type {
+  CreateBookingRequest,
+  Room,
+  RoomWithBookings,
+} from "../client/types.gen";
 import { TOAST_DURATION_MS } from "../config/api";
 import { useAutoDismiss } from "../hooks/useAutoDismiss";
 import {
@@ -21,6 +28,7 @@ import {
   displayCapacityRange,
 } from "../lib/capacityBounds";
 import { isBookingsGridQuery } from "../lib/bookingsQuery";
+import { errorMessage } from "../lib/errors";
 import { roomWithBookingsFor } from "../lib/roomSchedule";
 import type { TimeInterval } from "../lib/weekTimeline";
 import {
@@ -34,6 +42,7 @@ import {
 import { AppTabs, type AppTabId } from "./AppTabs";
 import { BookingSheet, type BookingSheetInitial } from "./BookingSheet";
 import { MyBookingsTab } from "./MyBookingsTab";
+import { QueryErrorBoundary } from "./QueryErrorBoundary";
 import { RoomsTab } from "./RoomsTab";
 import { ScheduleTab } from "./ScheduleTab";
 
@@ -57,23 +66,60 @@ export function AuthenticatedWorkspace() {
     string | null
   >(null);
 
-  const roomsQuery = useSuspenseQuery(getApiRoomsOptions());
   const effectiveBookingsWeekOffset =
     roomsAvailabilityDate != null
       ? weekOffsetForLocalDate(roomsAvailabilityDate)
       : weekOffset;
 
-  const bookingsQuery = useSuspenseQuery(
-    getApiBookingsOptions({
-      query: {
-        weekOffset: String(effectiveBookingsWeekOffset),
-        campus: campusFilter.trim() || undefined,
-        q: qFilter.trim() || undefined,
-      },
-    }),
-  );
+  const bookingsRequestQuery = useMemo(() => {
+    const c = campusFilter.trim();
+    const q = qFilter.trim();
+    const base: { weekOffset: string; campus?: string; q?: string } = {
+      weekOffset: String(effectiveBookingsWeekOffset),
+    };
+    if (c) base.campus = c;
+    if (q) base.q = q;
+    return base;
+  }, [effectiveBookingsWeekOffset, campusFilter, qFilter]);
 
-  const myBookingsQuery = useSuspenseQuery(getApiMyBookingsOptions());
+  const roomsQueryOptions = useMemo(() => getApiRoomsOptions(), []);
+  const roomsQuery = useQuery(roomsQueryOptions);
+
+  const bookingsQueryOptions = useMemo(() => {
+    const base = getApiBookingsOptions({ query: bookingsRequestQuery });
+    type BookingsQK = ReturnType<typeof getApiBookingsQueryKey>;
+    return {
+      ...base,
+      /**
+       * Omit TanStack's `signal` so leaving this query (e.g. week change) does not mark the
+       * fetch as abort-consuming; in-flight requests finish and populate the cache in the background.
+       */
+      queryFn: async ({ queryKey }: QueryFunctionContext<BookingsQK>) => {
+        const { data } = await getApiBookings({
+          ...queryKey[0],
+          throwOnError: true,
+        });
+        return data;
+      },
+    };
+  }, [bookingsRequestQuery]);
+  const bookingsQuery = useQuery(bookingsQueryOptions);
+
+  const myBookingsQueryOptions = useMemo(() => getApiMyBookingsOptions(), []);
+  const myBookingsQuery = useQuery(myBookingsQueryOptions);
+
+  const bookingsGrid = bookingsQuery.data;
+
+  const bookingsUiStale =
+    Boolean(bookingsGrid) &&
+    bookingsQuery.isFetching &&
+    bookingsQuery.isStale;
+  const roomsUiStale =
+    Boolean(roomsQuery.data) && roomsQuery.isFetching && roomsQuery.isStale;
+  const myBookingsUiStale =
+    Boolean(myBookingsQuery.data) &&
+    myBookingsQuery.isFetching &&
+    myBookingsQuery.isStale;
 
   const capacityBounds = capacitySliderBounds(roomsQuery.data);
   const capacityDisplay = displayCapacityRange(capacityBounds, capacityRange);
@@ -147,7 +193,8 @@ export function AuthenticatedWorkspace() {
       room: Room,
       slot?: { date: string; startTime: string; endTime: string },
     ) => {
-      const rw = roomWithBookingsFor(room, bookingsQuery.data.rooms);
+      if (!bookingsGrid) return;
+      const rw = roomWithBookingsFor(room, bookingsGrid.rooms);
       if (slot) {
         const start = parseInstantOnDate(slot.date, slot.startTime);
         const end = parseInstantOnDate(slot.date, slot.endTime);
@@ -176,7 +223,7 @@ export function AuthenticatedWorkspace() {
       if (!gap) return;
       openBookingSheet(toBookingDraft(room.id, room.name, gap));
     },
-    [bookingsQuery.data.rooms, openBookingSheet, weekStart, weekEnd],
+    [bookingsGrid, openBookingSheet, weekStart, weekEnd],
   );
 
   const handleCancelBooking = useCallback(
@@ -189,10 +236,11 @@ export function AuthenticatedWorkspace() {
 
   const isRoomBookable = useCallback(
     (room: Room) => {
-      const rw = roomWithBookingsFor(room, bookingsQuery.data.rooms);
+      if (!bookingsGrid) return false;
+      const rw = roomWithBookingsFor(room, bookingsGrid.rooms);
       return firstFreeGapInWeek(rw, weekStart, weekEnd) != null;
     },
-    [bookingsQuery.data.rooms, weekStart, weekEnd],
+    [bookingsGrid, weekStart, weekEnd],
   );
 
   const onWeekNavigate = useCallback((next: number) => {
@@ -214,18 +262,53 @@ export function AuthenticatedWorkspace() {
     createBookingMutation.reset();
   }, [createBookingMutation]);
 
-  return (
-    <>
-      <div className="mt-10 space-y-6">
-        <AppTabs active={activeTab} onChange={setActiveTab} />
+  const submitBooking = useCallback(
+    (body: CreateBookingRequest) => {
+      createBookingMutation.mutate(
+        { body },
+        {
+          onSuccess: (data) => {
+            closeBookingSheet();
+            showBookingToast(`Bokning skapad · ${data.booking.id}`);
+          },
+        },
+      );
+    },
+    [closeBookingSheet, createBookingMutation, showBookingToast],
+  );
 
-        <div
-          role="tabpanel"
-          id={`panel-${activeTab}`}
-          aria-labelledby={`tab-${activeTab}`}
-          className="border-te-border bg-te-surface rounded-2xl border p-5 shadow-sm sm:p-8"
-        >
-          {activeTab === "schedule" ? (
+  const workspaceError =
+    roomsQuery.isError || bookingsQuery.isError || myBookingsQuery.isError
+      ? (roomsQuery.error ??
+        bookingsQuery.error ??
+        myBookingsQuery.error ??
+        null)
+      : null;
+
+  const tabPanelProps = (id: AppTabId) => ({
+    id: `panel-${id}`,
+    role: "tabpanel" as const,
+    "aria-labelledby": `tab-${id}`,
+    hidden: activeTab !== id,
+    className: "space-y-0",
+  });
+
+  return (
+    <div className="mt-10 space-y-6">
+      <AppTabs active={activeTab} onChange={setActiveTab} />
+
+      <QueryErrorBoundary>
+        <div className="border-te-border bg-te-surface rounded-2xl border p-5 shadow-sm sm:p-8">
+          {workspaceError ? (
+            <div
+              className="border-te-danger/30 bg-te-danger-bg text-te-danger mb-6 rounded-xl border px-4 py-3 text-sm"
+              role="alert"
+            >
+              {errorMessage(workspaceError)}
+            </div>
+          ) : null}
+
+          <section {...tabPanelProps("schedule")}>
             <ScheduleTab
               weekOffset={
                 roomsAvailabilityDate != null
@@ -241,19 +324,26 @@ export function AuthenticatedWorkspace() {
               capacityMin={capacityDisplay.min}
               capacityMax={capacityDisplay.max}
               onCapacityRangeChange={setCapacityRange}
-              bookings={bookingsQuery.data}
+              bookings={bookingsGrid}
               bookingsIsFetching={bookingsQuery.isFetching}
+              bookingsUiStale={bookingsUiStale}
+              bookingsFailed={bookingsQuery.isError}
               myBookings={myBookingsQuery.data}
+              myBookingsUiStale={myBookingsUiStale}
               onPickFree={handlePickFree}
               onBookRoom={handleBookRoomFromSchedule}
+              isTabActive={activeTab === "schedule"}
             />
-          ) : null}
-          {activeTab === "rooms" ? (
+          </section>
+
+          <section {...tabPanelProps("rooms")}>
             <RoomsTab
               rooms={roomsQuery.data}
               roomsIsFetching={roomsQuery.isFetching}
-              bookings={bookingsQuery.data}
+              roomsUiStale={roomsUiStale}
+              bookings={bookingsGrid}
               bookingsIsFetching={bookingsQuery.isFetching}
+              bookingsUiStale={bookingsUiStale}
               bookingsWeekStart={weekStart}
               bookingsWeekEnd={weekEnd}
               onRoomsAvailabilityDateChange={setRoomsAvailabilityDate}
@@ -263,36 +353,30 @@ export function AuthenticatedWorkspace() {
               capacityMin={capacityDisplay.min}
               capacityMax={capacityDisplay.max}
               onCapacityRangeChange={setCapacityRange}
+              isTabActive={activeTab === "rooms"}
             />
-          ) : null}
-          {activeTab === "mine" ? (
+          </section>
+
+          <section {...tabPanelProps("mine")}>
             <MyBookingsTab
               myBookings={myBookingsQuery.data}
+              loadPending={myBookingsQuery.isPending}
+              uiStale={myBookingsUiStale}
               cancelMutation={cancelMutation}
               onCancelRequest={handleCancelBooking}
               cancelError={cancelMutation.isError ? cancelMutation.error : null}
             />
-          ) : null}
+          </section>
         </div>
-      </div>
+      </QueryErrorBoundary>
 
       <BookingSheet
         open={bookingSheetOpen}
         onClose={closeBookingSheet}
         initial={bookingInitial}
-        scheduleRooms={bookingsQuery.data.rooms}
+        scheduleRooms={bookingsGrid?.rooms}
         myBookings={myBookingsQuery.data}
-        onSubmit={(body) =>
-          createBookingMutation.mutate(
-            { body },
-            {
-              onSuccess: (data) => {
-                closeBookingSheet();
-                showBookingToast(`Bokning skapad · ${data.booking.id}`);
-              },
-            },
-          )
-        }
+        onSubmit={submitBooking}
         isPending={createBookingMutation.isPending}
         error={
           createBookingMutation.isError ? createBookingMutation.error : null
@@ -308,6 +392,6 @@ export function AuthenticatedWorkspace() {
           {toast}
         </div>
       ) : null}
-    </>
+    </div>
   );
 }

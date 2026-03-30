@@ -1,9 +1,11 @@
 import {
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
   type PointerEvent as ReactPointerEvent,
 } from "react";
+import { createPortal } from "react-dom";
 import type {
   Booking,
   CreateBookingRequest,
@@ -132,6 +134,14 @@ function BookingSheetForm({
   );
 
   useEscapeKey(onClose);
+
+  useLayoutEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
 
   function applyIntervalClamped(startMs: number, endMs: number) {
     clearClientError();
@@ -328,27 +338,28 @@ function BookingSheetForm({
   }
 
   const inputClass =
-    "w-full rounded-lg border border-te-border bg-te-elevated px-3 py-2 text-base text-te-text outline-none transition-shadow placeholder:text-te-muted/70 focus:border-te-accent focus:ring-2 focus:ring-te-accent/20 sm:text-sm";
+    "min-w-0 max-w-full w-full rounded-lg border border-te-border bg-te-elevated px-3 py-2 text-base text-te-text outline-none transition-shadow placeholder:text-te-muted/70 focus:border-te-accent focus:ring-2 focus:ring-te-accent/20 sm:text-sm";
 
   return (
     <div
-      className="fixed inset-0 z-50 flex min-h-0 items-end justify-center overflow-x-hidden sm:items-center sm:p-6"
+      className="fixed inset-0 z-100 flex min-h-0 items-end justify-center overflow-x-hidden overflow-y-auto sm:items-center sm:p-6"
       role="presentation"
-      onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
     >
       <div
-        className="bg-te-text/25 absolute inset-0 backdrop-blur-[2px]"
+        className="bg-te-text/35 absolute inset-0"
         aria-hidden
+        onPointerDown={(e) => {
+          if (e.button === 0) onClose();
+        }}
       />
       <div
-        className="border-te-border bg-te-surface relative z-10 flex max-h-[min(92vh,760px)] w-full max-w-[min(32rem,100vw)] min-w-0 flex-col overflow-x-hidden rounded-t-2xl border shadow-2xl sm:max-h-[90vh] sm:rounded-2xl"
+        className="border-te-border bg-te-surface relative z-10 mt-auto flex max-h-[min(92vh,760px)] w-full max-w-[min(32rem,100dvw)] min-w-0 flex-col overflow-x-hidden rounded-t-2xl border shadow-2xl sm:mt-0 sm:max-h-[90vh] sm:rounded-2xl"
         role="dialog"
         aria-modal="true"
         aria-labelledby="booking-sheet-title"
+        onPointerDown={(e) => e.stopPropagation()}
       >
-        <div className="border-te-border flex min-w-0 items-start justify-between gap-4 border-b px-5 py-4">
+        <div className="border-te-border flex min-w-0 items-start justify-between gap-4 border-b py-4 pl-[max(1.25rem,env(safe-area-inset-left,0px))] pr-[max(1.25rem,env(safe-area-inset-right,0px))]">
           <div className="min-w-0 flex-1">
             <h2
               id="booking-sheet-title"
@@ -376,7 +387,7 @@ function BookingSheetForm({
         </div>
 
         <form
-          className="flex min-h-0 min-w-0 flex-1 flex-col gap-5 overflow-x-hidden overflow-y-auto px-5 py-4"
+          className="flex min-h-0 min-w-0 flex-1 flex-col gap-5 overflow-x-hidden overflow-y-auto py-4 pl-[max(1.25rem,env(safe-area-inset-left,0px))] pr-[max(1.25rem,env(safe-area-inset-right,0px))]"
           onSubmit={(e) => {
             e.preventDefault();
             clearClientError();
@@ -410,7 +421,7 @@ function BookingSheetForm({
             });
           }}
         >
-          <label className="grid gap-1 text-sm">
+          <label className="grid min-w-0 gap-1 text-sm">
             <span className="text-te-text font-medium">Titel</span>
             <input
               className={inputClass}
@@ -557,7 +568,7 @@ function BookingSheetForm({
             </div>
           </section>
 
-          <label className="grid gap-1 text-sm">
+          <label className="grid min-w-0 gap-1 text-sm">
             <span className="text-te-text font-medium">Datum</span>
             <input
               className={inputClass}
@@ -597,8 +608,8 @@ function BookingSheetForm({
             </div>
           </div>
 
-          <div className="grid gap-2 sm:grid-cols-2">
-            <label className="grid gap-1 text-sm">
+          <div className="grid min-w-0 gap-2 sm:grid-cols-2">
+            <label className="grid min-w-0 gap-1 text-sm">
               <span className="text-te-text font-medium">Starttid</span>
               <input
                 className={inputClass + " font-mono text-base sm:text-xs"}
@@ -613,7 +624,7 @@ function BookingSheetForm({
                 aria-label="Starttid"
               />
             </label>
-            <label className="grid gap-1 text-sm">
+            <label className="grid min-w-0 gap-1 text-sm">
               <span className="text-te-text font-medium">Sluttid</span>
               <input
                 className={inputClass + " font-mono text-base sm:text-xs"}
@@ -638,7 +649,7 @@ function BookingSheetForm({
               {showAdvanced ? "Dölj" : "Rums-id"}
             </button>
             {showAdvanced ? (
-              <label className="mt-2 grid gap-1 text-sm">
+              <label className="mt-2 grid min-w-0 gap-1 text-sm">
                 <span className="text-te-muted">Rums-id (API)</span>
                 <input
                   className={inputClass + " font-mono text-base sm:text-xs"}
@@ -698,9 +709,9 @@ export function BookingSheet({
   isPending: boolean;
   error: unknown | null;
 }) {
-  if (!open || !initial) return null;
+  if (!open || !initial || typeof document === "undefined") return null;
 
-  return (
+  return createPortal(
     <BookingSheetForm
       key={`${initial.roomId}-${initial.date}-${initial.startTime}-${initial.endTime}`}
       initial={initial}
@@ -710,6 +721,7 @@ export function BookingSheet({
       onSubmit={onSubmit}
       isPending={isPending}
       error={error}
-    />
+    />,
+    document.body,
   );
 }

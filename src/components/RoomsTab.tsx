@@ -1,6 +1,10 @@
 import { useCallback, useMemo, useState } from "react";
 import type { AllRoomsBookings, Room } from "../client/types.gen";
 import { roomMatchesCapacityFilter } from "../lib/capacityBounds";
+import {
+  defaultAvailabilityFilterStartTime,
+  DURATION_CHIPS_MIN,
+} from "../lib/bookingSheetMath";
 import { roomWithBookingsFor } from "../lib/roomSchedule";
 import { getRoomRating, ratingSortValue } from "../lib/roomRatings";
 import {
@@ -11,6 +15,7 @@ import {
   parseInstantOnDate,
   roomAvailableForInterval,
 } from "../lib/weekTimeline";
+import { VirtualizedWindowGrid } from "./VirtualizedWindowGrid";
 import { Button } from "./ui/Button";
 import { CapacityRangeSlider } from "./ui/CapacityRangeSlider";
 import { Skeleton } from "./ui/Skeleton";
@@ -20,8 +25,10 @@ type SortKey = "rating" | "name" | "campus" | "capacity";
 export function RoomsTab({
   rooms,
   roomsIsFetching,
+  roomsUiStale,
   bookings,
   bookingsIsFetching,
+  bookingsUiStale,
   bookingsWeekStart,
   bookingsWeekEnd,
   onRoomsAvailabilityDateChange,
@@ -31,11 +38,14 @@ export function RoomsTab({
   capacityMin,
   capacityMax,
   onCapacityRangeChange,
+  isTabActive,
 }: {
-  rooms: Room[];
+  rooms: Room[] | undefined;
   roomsIsFetching: boolean;
-  bookings: AllRoomsBookings;
+  roomsUiStale: boolean;
+  bookings: AllRoomsBookings | undefined;
   bookingsIsFetching: boolean;
+  bookingsUiStale: boolean;
   bookingsWeekStart: Date;
   bookingsWeekEnd: Date;
   onRoomsAvailabilityDateChange: (date: string | null) => void;
@@ -48,13 +58,17 @@ export function RoomsTab({
   capacityMin: number;
   capacityMax: number;
   onCapacityRangeChange: (next: { min: number; max: number }) => void;
+  /** False while this tabpanel is `hidden` — keeps window virtualizer from measuring 0×0. */
+  isTabActive: boolean;
 }) {
   const [search, setSearch] = useState("");
   const [campusPick, setCampusPick] = useState("");
   const [sort, setSort] = useState<SortKey>("rating");
   const [slotFilterActive, setSlotFilterActive] = useState(false);
   const [slotDate, setSlotDate] = useState(() => formatLocalDate(new Date()));
-  const [slotStartTime, setSlotStartTime] = useState("13:30");
+  const [slotStartTime, setSlotStartTime] = useState(() =>
+    defaultAvailabilityFilterStartTime(formatLocalDate(new Date())),
+  );
   const [slotDurationMin, setSlotDurationMin] = useState(60);
 
   const minBookDate = formatLocalDate(new Date());
@@ -62,6 +76,9 @@ export function RoomsTab({
   const setSlotFilterActiveSynced = useCallback(
     (checked: boolean) => {
       setSlotFilterActive(checked);
+      if (checked) {
+        setSlotStartTime(defaultAvailabilityFilterStartTime(slotDate));
+      }
       onRoomsAvailabilityDateChange(checked ? slotDate : null);
     },
     [onRoomsAvailabilityDateChange, slotDate],
@@ -70,24 +87,29 @@ export function RoomsTab({
   const setSlotDateSynced = useCallback(
     (nextDate: string) => {
       setSlotDate(nextDate);
+      if (nextDate === formatLocalDate(new Date())) {
+        setSlotStartTime(defaultAvailabilityFilterStartTime(nextDate));
+      }
       if (slotFilterActive) onRoomsAvailabilityDateChange(nextDate);
     },
     [onRoomsAvailabilityDateChange, slotFilterActive],
   );
 
   const failedRoomIds = useMemo(() => {
-    const e = bookings.errors;
+    const e = bookings?.errors;
     if (!e?.length) return new Set<string>();
     return new Set(e.map((x) => x.roomId));
-  }, [bookings.errors]);
+  }, [bookings?.errors]);
+
+  const roomList = useMemo(() => rooms ?? [], [rooms]);
 
   const campuses = useMemo(() => {
     const s = new Set<string>();
-    for (const r of rooms) {
+    for (const r of roomList) {
       if (r.campus) s.add(r.campus);
     }
     return [...s].sort((a, b) => a.localeCompare(b, "sv"));
-  }, [rooms]);
+  }, [roomList]);
 
   const slotInterval = useMemo(() => {
     if (!slotFilterActive) return null;
@@ -103,6 +125,7 @@ export function RoomsTab({
 
   const roomSlotOk = useCallback(
     (room: Room): boolean => {
+      if (!bookings) return false;
       if (!slotFilterActive || !slotInterval || slotInterval.crossesDay) {
         return false;
       }
@@ -118,10 +141,10 @@ export function RoomsTab({
       );
     },
     [
+      bookings,
       slotFilterActive,
       slotInterval,
       failedRoomIds,
-      bookings.rooms,
       bookingsWeekStart,
       bookingsWeekEnd,
       slotDate,
@@ -141,7 +164,7 @@ export function RoomsTab({
   );
 
   const filtered = useMemo(() => {
-    let list = [...rooms];
+    let list = [...roomList];
     const q = search.trim().toLowerCase();
     if (q) {
       list = list.filter((r) => r.name.toLowerCase().includes(q));
@@ -183,7 +206,7 @@ export function RoomsTab({
     });
     return list;
   }, [
-    rooms,
+    roomList,
     search,
     campusPick,
     capacityMin,
@@ -196,14 +219,24 @@ export function RoomsTab({
   const filterGrid =
     "grid w-full grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3";
   const fieldClass =
-    "min-w-0 w-full rounded-lg border border-te-border bg-te-elevated px-3 py-2.5 text-base outline-none focus:border-te-accent focus:ring-2 focus:ring-te-accent/20 sm:py-2 sm:text-sm";
+    "min-w-0 max-w-full w-full rounded-lg border border-te-border bg-te-elevated px-3 py-2.5 text-base outline-none focus:border-te-accent focus:ring-2 focus:ring-te-accent/20 sm:py-2 sm:text-sm";
   const roomGridClass =
     "grid gap-3 sm:gap-4 [grid-template-columns:repeat(auto-fill,minmax(min(100%,17rem),1fr))]";
 
   const slotPanelClass =
     "rounded-2xl border border-te-accent/20 bg-gradient-to-br from-te-accent/[0.07] via-te-elevated to-te-surface p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] sm:p-5";
 
-  const slotBookingsPending = slotFilterActive && bookingsIsFetching;
+  const slotBookingsInitialLoad =
+    slotFilterActive && bookings == null && bookingsIsFetching;
+  const slotBookingsStaleUi =
+    slotFilterActive && bookings != null && bookingsUiStale;
+
+  const roomsLoadPending = rooms == null && roomsIsFetching;
+
+  const roomGridStaleClass =
+    roomsUiStale || slotBookingsStaleUi || bookingsUiStale
+      ? "opacity-60 saturate-[0.85] transition-[opacity,filter] duration-150"
+      : "";
 
   const bookingsWeekLabel = formatWeekRangeLabel(
     bookingsWeekStart,
@@ -228,7 +261,7 @@ export function RoomsTab({
         </label>
 
         {slotFilterActive ? (
-          <div className="border-te-border/60 mt-4 grid gap-3 border-t pt-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="border-te-border/60 mt-4 grid min-w-0 gap-3 border-t pt-4 sm:grid-cols-2 lg:grid-cols-4">
             <label className="flex min-w-0 flex-col gap-1 text-sm">
               <span className="text-te-muted font-medium">Dag</span>
               <input
@@ -280,10 +313,32 @@ export function RoomsTab({
                 )}
               </p>
             </div>
+            <div className="flex min-w-0 flex-col gap-2 sm:col-span-2 lg:col-span-4">
+              <span className="text-te-muted font-medium">Längd (snabbval)</span>
+              <div className="flex flex-wrap gap-2">
+                {DURATION_CHIPS_MIN.map((m) => {
+                  const active = slotDurationMin === m;
+                  return (
+                    <button
+                      key={m}
+                      type="button"
+                      className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                        active
+                          ? "border-te-accent bg-te-accent-muted text-te-accent"
+                          : "border-te-border text-te-muted hover:border-te-accent/50"
+                      }`}
+                      onClick={() => setSlotDurationMin(m)}
+                    >
+                      {m} min
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         ) : null}
 
-        {slotBookingsPending ? (
+        {slotBookingsInitialLoad ? (
           <div
             className="border-te-border/60 mt-4 space-y-3 border-t pt-4"
             role="status"
@@ -346,14 +401,14 @@ export function RoomsTab({
           valueMin={capacityMin}
           valueMax={capacityMax}
           onChange={onCapacityRangeChange}
-          disabled={roomsIsFetching}
+          disabled={roomsIsFetching || rooms == null}
         />
       </div>
 
-      {slotBookingsPending ? (
+      {roomsLoadPending ? (
         <div className="space-y-4">
           <p className="sr-only" role="status" aria-live="polite">
-            Uppdaterar tillgänglighet {bookingsWeekLabel}
+            Laddar rum
           </p>
           <div className={roomGridClass} aria-hidden>
             {Array.from({ length: 8 }).map((_, i) => (
@@ -370,115 +425,120 @@ export function RoomsTab({
             ))}
           </div>
         </div>
+      ) : filtered.length === 0 ? (
+        <div className={`${roomGridClass} ${roomGridStaleClass}`}>
+          <div className="border-te-border bg-te-elevated/50 text-te-muted col-span-full rounded-xl border border-dashed px-4 py-12 text-center text-sm">
+            {slotFilterActive && slotInterval?.crossesDay
+              ? "Intervallet är för långt för en kalenderdag — minska längden."
+              : slotFilterActive
+                ? "Inga rum är helt lediga vid vald tid med nuvarande filter."
+                : "Inga rum matchar."}
+          </div>
+        </div>
       ) : (
-        <div className={roomGridClass}>
-          {filtered.length === 0 ? (
-            <div className="border-te-border bg-te-elevated/50 text-te-muted col-span-full rounded-xl border border-dashed px-4 py-12 text-center text-sm">
-              {slotFilterActive && slotInterval?.crossesDay
-                ? "Intervallet är för långt för en kalenderdag — minska längden."
-                : slotFilterActive
-                  ? "Inga rum är helt lediga vid vald tid med nuvarande filter."
-                  : "Inga rum matchar."}
-            </div>
-          ) : (
-            filtered.map((room) => {
-              const rr = getRoomRating(room.name);
-              const betyg =
-                rr != null
-                  ? rr.overall.toLocaleString("sv-SE", {
-                      minimumFractionDigits: 1,
-                      maximumFractionDigits: 1,
-                    })
-                  : null;
-              const fetchFailed = failedRoomIds.has(room.id);
-              return (
-                <article
-                  key={room.id}
-                  className="group border-te-border bg-te-elevated hover:border-te-accent/25 flex h-full min-h-60 min-w-0 flex-col rounded-xl border p-4 shadow-sm transition-shadow duration-200 hover:shadow-md sm:p-5"
-                >
-                  <div className="min-h-0 min-w-0 flex-1 space-y-4">
-                    <header className="min-w-0">
-                      <h3 className="font-display text-te-text text-xl leading-[1.15] font-semibold tracking-tight sm:text-2xl">
-                        {room.name}
-                      </h3>
-                    </header>
+        <div className={roomGridStaleClass}>
+          <VirtualizedWindowGrid
+          enabled={isTabActive}
+          items={filtered}
+          getItemKey={(r) => r.id}
+          minCardWidthPx={272}
+          estimateRowHeightPx={312}
+          gapPx={16}
+          renderItem={(room) => {
+            const rr = getRoomRating(room.name);
+            const betyg =
+              rr != null
+                ? rr.overall.toLocaleString("sv-SE", {
+                    minimumFractionDigits: 1,
+                    maximumFractionDigits: 1,
+                  })
+                : null;
+            const fetchFailed = failedRoomIds.has(room.id);
+            return (
+              <article className="group border-te-border bg-te-elevated hover:border-te-accent/25 flex h-full min-h-60 min-w-0 flex-col rounded-xl border p-4 shadow-sm transition-shadow duration-200 hover:shadow-md sm:p-5">
+                <div className="min-h-0 min-w-0 flex-1 space-y-4">
+                  <header className="min-w-0">
+                    <h3 className="font-display text-te-text text-xl leading-[1.15] font-semibold tracking-tight sm:text-2xl">
+                      {room.name}
+                    </h3>
+                  </header>
 
-                    {fetchFailed ? (
-                      <p className="text-te-danger text-xs font-medium">
-                        Kunde inte ladda TimeEdit-schema för detta rum.
-                      </p>
-                    ) : null}
-
-                    {slotFilterActive &&
-                    slotInterval &&
-                    !slotInterval.crossesDay &&
-                    !fetchFailed ? (
-                      <p className="text-te-accent text-xs font-medium">
-                        Ledig {slotStartTime} – {slotInterval.endTime}
-                      </p>
-                    ) : null}
-
-                    {rr != null ? (
-                      <span
-                        className="font-display text-te-accent text-3xl leading-none font-semibold tabular-nums sm:text-[2.35rem]"
-                        title={rr.comment}
-                      >
-                        {betyg}
-                      </span>
-                    ) : null}
-
-                    <p
-                      className="text-te-muted text-sm leading-snug"
-                      title={`${room.campus} · ${room.capacity ?? "—"} platser`}
-                    >
-                      <span className="text-te-text/95 font-medium">
-                        {room.campus}
-                      </span>
-                      <span
-                        aria-hidden
-                        className="bg-te-border mx-2 inline-block h-3 w-px translate-y-px align-middle"
-                      />
-                      <span className="tabular-nums">
-                        {room.capacity ?? "—"} platser
-                      </span>
+                  {fetchFailed ? (
+                    <p className="text-te-danger text-xs font-medium">
+                      Kunde inte ladda TimeEdit-schema för detta rum.
                     </p>
-                  </div>
+                  ) : null}
 
-                  <Button
-                    variant="primary"
-                    className="mt-5 w-full touch-manipulation py-2.5 text-sm"
-                    disabled={!canBookRoom(room)}
-                    title={
-                      fetchFailed
-                        ? "Schema saknas från servern"
-                        : !canBookRoom(room)
-                          ? slotFilterActive
-                            ? "Inte ledigt hela intervallet (eller tiden har passerat)"
-                            : "Ingen ledig tid kvar denna vecka från och med nu"
-                          : undefined
-                    }
-                    onClick={() => {
-                      if (
-                        slotFilterActive &&
-                        slotInterval &&
-                        !slotInterval.crossesDay
-                      ) {
-                        onBookRoom(room, {
-                          date: slotDate,
-                          startTime: slotStartTime,
-                          endTime: slotInterval.endTime,
-                        });
-                        return;
-                      }
-                      onBookRoom(room);
-                    }}
+                  {slotFilterActive &&
+                  slotInterval &&
+                  !slotInterval.crossesDay &&
+                  !fetchFailed ? (
+                    <p className="text-te-accent text-xs font-medium">
+                      Ledig {slotStartTime} – {slotInterval.endTime}
+                    </p>
+                  ) : null}
+
+                  {rr != null ? (
+                    <span
+                      className="font-display text-te-accent text-3xl leading-none font-semibold tabular-nums sm:text-[2.35rem]"
+                      title={rr.comment}
+                    >
+                      {betyg}
+                    </span>
+                  ) : null}
+
+                  <p
+                    className="text-te-muted text-sm leading-snug"
+                    title={`${room.campus} · ${room.capacity ?? "—"} platser`}
                   >
-                    Boka
-                  </Button>
-                </article>
-              );
-            })
-          )}
+                    <span className="text-te-text/95 font-medium">
+                      {room.campus}
+                    </span>
+                    <span
+                      aria-hidden
+                      className="bg-te-border mx-2 inline-block h-3 w-px translate-y-px align-middle"
+                    />
+                    <span className="tabular-nums">
+                      {room.capacity ?? "—"} platser
+                    </span>
+                  </p>
+                </div>
+
+                <Button
+                  variant="primary"
+                  className="mt-5 w-full touch-manipulation py-2.5 text-sm"
+                  disabled={!canBookRoom(room)}
+                  title={
+                    fetchFailed
+                      ? "Schema saknas från servern"
+                      : !canBookRoom(room)
+                        ? slotFilterActive
+                          ? "Inte ledigt hela intervallet (eller tiden har passerat)"
+                          : "Ingen ledig tid kvar denna vecka från och med nu"
+                        : undefined
+                  }
+                  onClick={() => {
+                    if (
+                      slotFilterActive &&
+                      slotInterval &&
+                      !slotInterval.crossesDay
+                    ) {
+                      onBookRoom(room, {
+                        date: slotDate,
+                        startTime: slotStartTime,
+                        endTime: slotInterval.endTime,
+                      });
+                      return;
+                    }
+                    onBookRoom(room);
+                  }}
+                >
+                  Boka
+                </Button>
+              </article>
+            );
+          }}
+        />
         </div>
       )}
     </div>
