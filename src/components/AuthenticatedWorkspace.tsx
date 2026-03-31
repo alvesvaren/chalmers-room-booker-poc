@@ -18,7 +18,7 @@ import { getApiBookings } from "../client/sdk.gen";
 import type {
   CreateBookingRequest,
   Room,
-  RoomWithBookings,
+  RoomWithReservations,
 } from "../client/types.gen";
 import { TOAST_DURATION_MS } from "../config/api";
 import { useAutoDismiss } from "../hooks/useAutoDismiss";
@@ -173,14 +173,14 @@ export function AuthenticatedWorkspace() {
   );
 
   const handlePickFree = useCallback(
-    (room: RoomWithBookings, gap: TimeInterval) => {
+    (room: RoomWithReservations, gap: TimeInterval) => {
       openBookingSheet(toBookingDraft(room.id, room.name, gap));
     },
     [openBookingSheet],
   );
 
   const handleBookRoomFromSchedule = useCallback(
-    (room: RoomWithBookings) => {
+    (room: RoomWithReservations) => {
       const gap = firstFreeGapInWeek(room, weekStart, weekEnd);
       if (!gap) return;
       openBookingSheet(toBookingDraft(room.id, room.name, gap));
@@ -359,6 +359,7 @@ export function AuthenticatedWorkspace() {
 
           <section {...tabPanelProps("mine")}>
             <MyBookingsTab
+              rooms={roomsQuery.data}
               myBookings={myBookingsQuery.data}
               loadPending={myBookingsQuery.isPending}
               uiStale={myBookingsUiStale}

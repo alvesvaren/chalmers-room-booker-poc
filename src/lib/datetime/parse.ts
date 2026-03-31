@@ -1,4 +1,45 @@
 import { startOfDay } from "date-fns";
+import { formatLocalDateWire } from "./intlFormat";
+
+const END_TIME_ONLY_RE = /^\d{1,2}:\d{2}$/;
+
+/**
+ * Parses API v2 `interval` strings (Europe/Stockholm wall time): `YYYY-MM-DDTHH:mm/HH:mm` or
+ * `…/YYYY-MM-DDTHH:mm` for an end on another calendar day.
+ */
+export function parseApiInterval(interval: string): { start: Date; end: Date } {
+  const slash = interval.indexOf("/");
+  if (slash < 0) {
+    throw new Error(`Invalid interval (expected start/end): ${interval}`);
+  }
+  const startPart = interval.slice(0, slash).trim();
+  const endPart = interval.slice(slash + 1).trim();
+  if (!startPart || !endPart) {
+    throw new Error(`Invalid interval: ${interval}`);
+  }
+  const start = parseNaiveLocal(startPart);
+  if (END_TIME_ONLY_RE.test(endPart)) {
+    const dayWire = formatLocalDateWire(start);
+    const end = parseInstantOnDate(dayWire, endPart);
+    return { start, end };
+  }
+  const end = parseNaiveLocal(endPart);
+  return { start, end };
+}
+
+/** Builds the `interval` field for `POST /api/my/bookings` (same calendar day). */
+export function formatCreateBookingInterval(
+  date: string,
+  startTime: string,
+  endTime: string,
+): string {
+  const s = startTime.trim();
+  const e = endTime.trim();
+  if (!date || !s || !e) {
+    throw new Error("formatCreateBookingInterval: missing date or time");
+  }
+  return `${date}T${s}/${e}`;
+}
 
 /** API returns naive local wall-clock strings (no timezone suffix). */
 export function parseNaiveLocal(isoLike: string): Date {

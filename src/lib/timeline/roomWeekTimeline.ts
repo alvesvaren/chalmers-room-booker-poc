@@ -1,14 +1,14 @@
 import { eachDayOfInterval, subDays } from "date-fns";
 import type {
-  Booking,
-  RoomCalendarSlot,
-  RoomWithBookings,
+  MyBooking,
+  ReservationSlot,
+  RoomWithReservations,
 } from "../../client/types.gen";
 import {
   atLocalHourOnCalendarDay,
   formatLocalDateWire,
   formatWeekdayShort,
-  parseNaiveLocal,
+  parseApiInterval,
 } from "../datetime";
 import {
   clipIntervalToFuture,
@@ -21,12 +21,13 @@ import type { BusySegment, DayTimeline, TimeInterval } from "./types";
 export const DEFAULT_DAY_START_H = 7;
 export const DEFAULT_DAY_END_H = 22;
 
-function slotToBusy(s: RoomCalendarSlot): BusySegment {
+function slotToBusy(s: ReservationSlot): BusySegment {
+  const { start, end } = parseApiInterval(s.interval);
   return {
-    start: parseNaiveLocal(s.start),
-    end: parseNaiveLocal(s.end),
+    start,
+    end,
     label: s.label,
-    reservationId: s.reservationId,
+    reservationId: s.id,
   };
 }
 
@@ -34,8 +35,7 @@ function slotToBusy(s: RoomCalendarSlot): BusySegment {
 export function isMyCalendarBusy(
   segment: Pick<BusySegment, "start" | "end" | "reservationId">,
   roomId: string,
-  roomName: string,
-  myBookings: Booking[] | undefined,
+  myBookings: MyBooking[] | undefined,
 ): boolean {
   if (!myBookings?.length) return false;
   if (segment.reservationId) {
@@ -44,18 +44,15 @@ export function isMyCalendarBusy(
   const s0 = segment.start.getTime();
   const s1 = segment.end.getTime();
   return myBookings.some((m) => {
-    const sameRoom =
-      m.room.id != null ? m.room.id === roomId : m.room.name === roomName;
-    if (!sameRoom) return false;
-    const ms = parseNaiveLocal(m.start).getTime();
-    const me = parseNaiveLocal(m.end).getTime();
-    return ms < s1 && me > s0;
+    if (m.roomId !== roomId) return false;
+    const { start: ms, end: me } = parseApiInterval(m.interval);
+    return ms.getTime() < s1 && me.getTime() > s0;
   });
 }
 
 /** Build per-day busy + free gaps for timeline rendering (clips to visible hours). */
 export function buildRoomWeekTimeline(
-  room: RoomWithBookings,
+  room: RoomWithReservations,
   weekStart: Date,
   weekEndExclusive: Date,
   dayStartH: number = DEFAULT_DAY_START_H,
@@ -111,7 +108,7 @@ export function buildRoomWeekTimeline(
  * (subset of a single free gap), and starts at or after `now` when `dateStr` is today.
  */
 export function roomAvailableForInterval(
-  room: RoomWithBookings,
+  room: RoomWithReservations,
   weekStart: Date,
   weekEndExclusive: Date,
   dateStr: string,
@@ -149,7 +146,7 @@ export function roomAvailableForInterval(
  * (not in the past, not overlapping busy — same as bookable segments).
  */
 export function firstFreeGapInWeek(
-  room: RoomWithBookings,
+  room: RoomWithReservations,
   weekStart: Date,
   weekEndExclusive: Date,
   now: Date = new Date(),

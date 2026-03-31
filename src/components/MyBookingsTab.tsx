@@ -1,9 +1,15 @@
-import type { Booking } from "../client/types.gen";
+import type { MyBooking, Room } from "../client/types.gen";
 import { errorMessage } from "../lib/errors";
+import {
+  formatLocalDate,
+  formatLocalTime,
+  parseApiInterval,
+} from "../lib/weekTimeline";
 import { Button } from "./ui/Button";
 import { Skeleton } from "./ui/Skeleton";
 
 export function MyBookingsTab({
+  rooms,
   myBookings,
   loadPending,
   uiStale,
@@ -11,7 +17,8 @@ export function MyBookingsTab({
   onCancelRequest,
   cancelError,
 }: {
-  myBookings: Booking[] | undefined;
+  rooms: Room[] | undefined;
+  myBookings: MyBooking[] | undefined;
   loadPending?: boolean;
   uiStale?: boolean;
   cancelMutation: { isPending: boolean };
@@ -19,6 +26,7 @@ export function MyBookingsTab({
   cancelError: unknown | null;
 }) {
   const list = myBookings ?? [];
+  const roomNameById = new Map((rooms ?? []).map((r) => [r.id, r.name]));
 
   return (
     <div className="te-reveal te-reveal-delay-1 space-y-6">
@@ -51,7 +59,11 @@ export function MyBookingsTab({
           </li>
         ) : null}
         {!loadPending && list.length > 0
-          ? list.map((b) => (
+          ? list.map((b) => {
+              const { start, end } = parseApiInterval(b.interval);
+              const roomTitle =
+                roomNameById.get(b.roomId) ?? `Rum id ${b.roomId}`;
+              return (
             <li
               key={b.id}
               className="bg-te-mine-bg hover:bg-te-mine-row flex flex-wrap items-center justify-between gap-3 px-4 py-4 transition-colors"
@@ -59,12 +71,13 @@ export function MyBookingsTab({
               <div>
                 <p
                   className="text-te-text font-medium"
-                  title={b.room.id ? `id ${b.room.id}` : undefined}
+                  title={`id ${b.roomId}`}
                 >
-                  {b.room.name}
+                  {roomTitle}
                 </p>
                 <p className="text-te-muted text-sm">
-                  {b.start} → {b.end}
+                  {formatLocalDate(start)}{" "}
+                  {formatLocalTime(start)}–{formatLocalTime(end)}
                 </p>
               </div>
               <Button
@@ -76,7 +89,8 @@ export function MyBookingsTab({
                 Avboka
               </Button>
             </li>
-            ))
+              );
+            })
           : null}
       </ul>
 

@@ -7,9 +7,9 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import type {
-  Booking,
   CreateBookingRequest,
-  RoomWithBookings,
+  MyBooking,
+  RoomWithReservations,
 } from "../client/types.gen";
 import {
   clampNum,
@@ -26,11 +26,12 @@ import { useEscapeKey } from "../hooks/useEscapeKey";
 import {
   formatLocalDate,
   formatLocalTime,
+  formatCreateBookingInterval,
   freeSlotsInWindow,
   intervalToPercent,
   isMyCalendarBusy,
+  parseApiInterval,
   parseInstantOnDate,
-  parseNaiveLocal,
   QUARTER_HOUR_MS,
   snapInstantMsToQuarterOnDate,
   type TimeInterval,
@@ -57,8 +58,8 @@ function BookingSheetForm({
   error,
 }: {
   initial: BookingSheetInitial;
-  scheduleRooms: RoomWithBookings[] | undefined;
-  myBookings: Booking[] | undefined;
+  scheduleRooms: RoomWithReservations[] | undefined;
+  myBookings: MyBooking[] | undefined;
   onClose: () => void;
   onSubmit: (body: CreateBookingRequest) => void;
   isPending: boolean;
@@ -89,8 +90,7 @@ function BookingSheetForm({
     const slots = scheduleRooms?.find((r) => r.id === roomId)?.bookings ?? [];
     return slots
       .map((slot) => {
-        const a = parseNaiveLocal(slot.start);
-        const b = parseNaiveLocal(slot.end);
+        const { start: a, end: b } = parseApiInterval(slot.interval);
         const t0 = Math.max(a.getTime(), displayStart.getTime());
         const t1 = Math.min(b.getTime(), displayEnd.getTime());
         if (t1 <= t0) return null;
@@ -98,7 +98,7 @@ function BookingSheetForm({
           start: new Date(t0),
           end: new Date(t1),
           label: slot.label,
-          reservationId: slot.reservationId,
+          reservationId: slot.id,
         };
       })
       .filter((x): x is NonNullable<typeof x> => x != null);
@@ -414,9 +414,7 @@ function BookingSheetForm({
             }
             onSubmit({
               roomId,
-              date,
-              startTime: startNorm,
-              endTime: endNorm,
+              interval: formatCreateBookingInterval(date, startNorm, endNorm),
               title: title.trim() || undefined,
             });
           }}
@@ -483,12 +481,7 @@ function BookingSheetForm({
                     displayStart,
                     displayEnd,
                   );
-                  const mine = isMyCalendarBusy(
-                    b,
-                    roomId,
-                    roomName,
-                    myBookings,
-                  );
+                  const mine = isMyCalendarBusy(b, roomId, myBookings);
                   const slotTitle = mine
                     ? b.label
                       ? `Din bokning · ${b.label}`
@@ -703,8 +696,8 @@ export function BookingSheet({
   open: boolean;
   onClose: () => void;
   initial: BookingSheetInitial | null;
-  scheduleRooms: RoomWithBookings[] | undefined;
-  myBookings: Booking[] | undefined;
+  scheduleRooms: RoomWithReservations[] | undefined;
+  myBookings: MyBooking[] | undefined;
   onSubmit: (body: CreateBookingRequest) => void;
   isPending: boolean;
   error: unknown | null;

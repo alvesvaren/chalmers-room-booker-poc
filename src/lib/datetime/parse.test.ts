@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  formatCreateBookingInterval,
   localWallClockMs,
+  parseApiInterval,
   parseInstantOnDate,
   parseNaiveLocal,
   startOfLocalDayMs,
@@ -47,5 +49,37 @@ describe("parseInstantOnDate", () => {
   it("matches localWallClockMs", () => {
     const d = parseInstantOnDate("2026-07-01", "00:00");
     expect(d.getTime()).toBe(localWallClockMs("2026-07-01", "00:00"));
+  });
+});
+
+describe("parseApiInterval", () => {
+  it("parses same-day HH:mm end part", () => {
+    const { start, end } = parseApiInterval("2026-03-31T09:15/11:15");
+    expect(start.getTime()).toBe(
+      parseNaiveLocal("2026-03-31T09:15").getTime(),
+    );
+    expect(end.getTime()).toBe(parseInstantOnDate("2026-03-31", "11:15").getTime());
+  });
+
+  it("parses full end datetime", () => {
+    const { start, end } = parseApiInterval(
+      "2026-03-30T22:00/2026-03-31T02:00",
+    );
+    expect(start.getTime()).toBe(parseNaiveLocal("2026-03-30T22:00").getTime());
+    expect(end.getTime()).toBe(parseNaiveLocal("2026-03-31T02:00").getTime());
+  });
+
+  it("throws without slash", () => {
+    expect(() => parseApiInterval("2026-03-31T09:15")).toThrow(
+      /expected start\/end/,
+    );
+  });
+});
+
+describe("formatCreateBookingInterval", () => {
+  it("builds same-day interval wire", () => {
+    expect(formatCreateBookingInterval("2026-04-01", "09:00", "10:15")).toBe(
+      "2026-04-01T09:00/10:15",
+    );
   });
 });

@@ -1,8 +1,8 @@
 import { useId, useMemo, useState } from "react";
 import type {
   AllRoomsBookings,
-  Booking,
-  RoomWithBookings,
+  MyBooking,
+  RoomWithReservations,
 } from "../client/types.gen";
 import { roomMatchesCapacityFilter } from "../lib/capacityBounds";
 import { ratingSortValue } from "../lib/roomRatings";
@@ -52,10 +52,10 @@ export function ScheduleTab({
   bookingsIsFetching: boolean;
   bookingsUiStale: boolean;
   bookingsFailed?: boolean;
-  myBookings: Booking[] | undefined;
+  myBookings: MyBooking[] | undefined;
   myBookingsUiStale: boolean;
-  onPickFree: (room: RoomWithBookings, gap: TimeInterval) => void;
-  onBookRoom: (room: RoomWithBookings) => void;
+  onPickFree: (room: RoomWithReservations, gap: TimeInterval) => void;
+  onBookRoom: (room: RoomWithReservations) => void;
   /** False while this tabpanel is `hidden` — keeps window virtualizer from measuring 0×0. */
   isTabActive: boolean;
 }) {

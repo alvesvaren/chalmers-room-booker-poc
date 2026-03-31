@@ -1,4 +1,4 @@
-import type { Room, RoomWithBookings } from "../client/types.gen";
+import type { Room, RoomWithReservations } from "../client/types.gen";
 
 /**
  * Merge a room directory row with schedule payload from GET /api/bookings.
@@ -6,8 +6,8 @@ import type { Room, RoomWithBookings } from "../client/types.gen";
  */
 export function roomWithBookingsFor(
   room: Room,
-  scheduleRooms: RoomWithBookings[] | undefined,
-): RoomWithBookings {
+  scheduleRooms: RoomWithReservations[] | undefined,
+): RoomWithReservations {
   const hit = scheduleRooms?.find((r) => r.id === room.id);
   if (hit) return hit;
   return {

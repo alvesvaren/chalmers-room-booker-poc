@@ -1,9 +1,11 @@
 /** Public entry: room/week timeline and booking helpers (implementation in `./timeline/`). */
 
 export {
+  formatCreateBookingInterval,
   formatLocalDateWire as formatLocalDate,
   formatLocalTime24 as formatLocalTime,
   formatWeekRangeLabel,
+  parseApiInterval,
   parseInstantOnDate,
   parseNaiveLocal,
 } from "./datetime";

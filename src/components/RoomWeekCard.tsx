@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import type { Booking, RoomWithBookings } from "../client/types.gen";
+import type { MyBooking, RoomWithReservations } from "../client/types.gen";
 import { useTickingNow } from "../hooks/useTickingNow";
 import { getRoomRating } from "../lib/roomRatings";
 import {
@@ -22,12 +22,12 @@ export function RoomWeekCard({
   onBookRoom,
   myBookings,
 }: {
-  room: RoomWithBookings;
+  room: RoomWithReservations;
   weekStart: Date;
   weekEndExclusive: Date;
-  onPickFree: (room: RoomWithBookings, gap: TimeInterval) => void;
-  onBookRoom: (room: RoomWithBookings) => void;
-  myBookings: Booking[] | undefined;
+  onPickFree: (room: RoomWithReservations, gap: TimeInterval) => void;
+  onBookRoom: (room: RoomWithReservations) => void;
+  myBookings: MyBooking[] | undefined;
 }) {
   const [open, setOpen] = useState(true);
   const now = useTickingNow(60_000);
@@ -174,12 +174,7 @@ export function RoomWeekCard({
                     day.displayEnd,
                   );
                   const range = `${formatLocalTime(b.start)}–${formatLocalTime(b.end)}`;
-                  const mine = isMyCalendarBusy(
-                    b,
-                    room.id,
-                    room.name,
-                    myBookings,
-                  );
+                  const mine = isMyCalendarBusy(b, room.id, myBookings);
                   const title = mine
                     ? b.label
                       ? `Din bokning ${range} · ${b.label}`

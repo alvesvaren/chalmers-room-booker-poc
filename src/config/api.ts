@@ -1,5 +1,10 @@
-/** Base URL for the TimeEdit API wrapper (Vite app talks to this host). */
-export const API_BASE = "https://timeedit.svaren.dev";
+/**
+ * Base URL for the TimeEdit API wrapper (Vite app talks to this host).
+ * Override with `VITE_API_BASE` (e.g. production `https://timeedit.svaren.dev`).
+ */
+export const API_BASE =
+  import.meta.env.VITE_API_BASE ??
+  "https://timeedit-api-wrapper-git-v2-alvesvarens-projects.vercel.app";
 
 export const AUTH_LOGIN_PATH = "/api/auth/login";
 

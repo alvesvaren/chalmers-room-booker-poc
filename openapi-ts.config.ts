@@ -1,7 +1,8 @@
 import { defineConfig } from "@hey-api/openapi-ts";
 
 export default defineConfig({
-  input: "https://timeedit.svaren.dev/openapi",
+  input:
+    "https://timeedit-api-wrapper-git-v2-alvesvarens-projects.vercel.app/openapi",
   output: "src/client",
   plugins: [
     "@hey-api/client-fetch",
