@@ -4,7 +4,7 @@
  */
 export const API_BASE =
   import.meta.env.VITE_API_BASE ??
-  "https://timeedit-api-wrapper-git-v2-alvesvarens-projects.vercel.app";
+  "https://timeedit.svaren.dev";
 
 export const AUTH_LOGIN_PATH = "/api/auth/login";
 
