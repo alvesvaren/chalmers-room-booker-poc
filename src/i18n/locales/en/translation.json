@@ -1,6 +1,6 @@
 {
   "app": {
-    "title": "TimeEdit demo",
+    "title": "Book group rooms",
     "subtitle": "Group room booking · Chalmers sign-in.",
     "signInHint": "Sign in to see the schedule, rooms, and your bookings.",
     "apiLink": "API wrapper",

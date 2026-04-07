@@ -1,6 +1,6 @@
 {
   "app": {
-    "title": "TimeEdit demo",
+    "title": "Boka grupprum",
     "subtitle": "Grupprumsbokning · Chalmers-inloggning",
     "signInHint": "Logga in för att se schema, rum och dina bokningar.",
     "apiLink": "API-wrapper",

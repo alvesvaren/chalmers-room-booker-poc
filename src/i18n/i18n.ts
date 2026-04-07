@@ -41,12 +41,13 @@ void i18n.use(initReactI18next).init({
   interpolation: { escapeValue: false },
 });
 
-function syncHtmlLang(lng: string) {
+function syncDocumentFromLanguage(lng: string) {
   if (typeof document === "undefined") return;
   document.documentElement.lang = lng;
+  document.title = i18n.getFixedT(lng)("app.title");
 }
 
-i18n.on("languageChanged", syncHtmlLang);
-syncHtmlLang(i18n.language);
+i18n.on("languageChanged", syncDocumentFromLanguage);
+syncDocumentFromLanguage(i18n.language);
 
 export default i18n;
