@@ -1,6 +1,8 @@
 import { useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { AllRoomsBookings, Room } from "../client/types.gen";
 import { roomMatchesCapacityFilter } from "../lib/capacityBounds";
+import { appLocaleBcp47 } from "../lib/datetime/intlFormat";
 import {
   defaultAvailabilityFilterStartTime,
   DURATION_CHIPS_MIN,
@@ -61,6 +63,8 @@ export function RoomsTab({
   /** False while this tabpanel is `hidden` — keeps window virtualizer from measuring 0×0. */
   isTabActive: boolean;
 }) {
+  const { t } = useTranslation();
+  const collatorLocale = appLocaleBcp47();
   const [search, setSearch] = useState("");
   const [campusPick, setCampusPick] = useState("");
   const [sort, setSort] = useState<SortKey>("rating");
@@ -108,8 +112,8 @@ export function RoomsTab({
     for (const r of roomList) {
       if (r.campus) s.add(r.campus);
     }
-    return [...s].sort((a, b) => a.localeCompare(b, "sv"));
-  }, [roomList]);
+    return [...s].sort((a, b) => a.localeCompare(b, collatorLocale));
+  }, [roomList, collatorLocale]);
 
   const slotInterval = useMemo(() => {
     if (!slotFilterActive) return null;
@@ -184,25 +188,25 @@ export function RoomsTab({
       if (slotFilterActive) {
         const cmp = ratingSortValue(b.name) - ratingSortValue(a.name);
         if (cmp !== 0) return cmp;
-        return a.name.localeCompare(b.name, "sv");
+        return a.name.localeCompare(b.name, collatorLocale);
       }
       if (sort === "rating") {
         const cmp = ratingSortValue(b.name) - ratingSortValue(a.name);
         if (cmp !== 0) return cmp;
-        return a.name.localeCompare(b.name, "sv");
+        return a.name.localeCompare(b.name, collatorLocale);
       }
       if (sort === "name") {
-        return a.name.localeCompare(b.name, "sv");
+        return a.name.localeCompare(b.name, collatorLocale);
       }
       if (sort === "campus") {
-        const c = a.campus.localeCompare(b.campus, "sv");
+        const c = a.campus.localeCompare(b.campus, collatorLocale);
         if (c !== 0) return c;
-        return a.name.localeCompare(b.name, "sv");
+        return a.name.localeCompare(b.name, collatorLocale);
       }
       const ca = a.capacity ?? -1;
       const cb = b.capacity ?? -1;
       if (ca !== cb) return ca - cb;
-      return a.name.localeCompare(b.name, "sv");
+      return a.name.localeCompare(b.name, collatorLocale);
     });
     return list;
   }, [
@@ -214,6 +218,7 @@ export function RoomsTab({
     sort,
     slotFilterActive,
     roomSlotOk,
+    collatorLocale,
   ]);
 
   const filterGrid =
@@ -245,7 +250,9 @@ export function RoomsTab({
 
   return (
     <div className="te-reveal te-reveal-delay-1 space-y-6">
-      <h2 className="font-display text-te-text text-xl font-semibold">Rum</h2>
+      <h2 className="font-display text-te-text text-xl font-semibold">
+        {t("rooms.heading")}
+      </h2>
 
       <div className={slotPanelClass}>
         <label className="flex cursor-pointer items-start gap-3 select-none">
@@ -256,14 +263,16 @@ export function RoomsTab({
             onChange={(e) => setSlotFilterActiveSynced(e.target.checked)}
           />
           <span className="font-display text-te-text text-sm font-semibold">
-            Ledig vid tid
+            {t("rooms.freeAtTime")}
           </span>
         </label>
 
         {slotFilterActive ? (
           <div className="border-te-border/60 mt-4 grid min-w-0 gap-3 border-t pt-4 sm:grid-cols-2 lg:grid-cols-4">
             <label className="flex min-w-0 flex-col gap-1 text-sm">
-              <span className="text-te-muted font-medium">Dag</span>
+              <span className="text-te-muted font-medium">
+                {t("rooms.day")}
+              </span>
               <input
                 type="date"
                 className={fieldClass}
@@ -273,7 +282,9 @@ export function RoomsTab({
               />
             </label>
             <label className="flex min-w-0 flex-col gap-1 text-sm">
-              <span className="text-te-muted font-medium">Start</span>
+              <span className="text-te-muted font-medium">
+                {t("rooms.start")}
+              </span>
               <input
                 type="time"
                 className={fieldClass}
@@ -282,7 +293,9 @@ export function RoomsTab({
               />
             </label>
             <label className="flex min-w-0 flex-col gap-1 text-sm">
-              <span className="text-te-muted font-medium">Längd (min)</span>
+              <span className="text-te-muted font-medium">
+                {t("rooms.durationMin")}
+              </span>
               <input
                 type="number"
                 min={15}
@@ -298,7 +311,9 @@ export function RoomsTab({
               />
             </label>
             <div className="flex min-w-0 flex-col justify-end gap-1 text-sm">
-              <span className="text-te-muted font-medium">Intervall</span>
+              <span className="text-te-muted font-medium">
+                {t("rooms.interval")}
+              </span>
               <p className="border-te-border/80 bg-te-surface/80 text-te-text rounded-lg border border-dashed px-3 py-2.5 tabular-nums sm:py-2">
                 {slotInterval && !slotInterval.crossesDay ? (
                   <>
@@ -306,7 +321,7 @@ export function RoomsTab({
                   </>
                 ) : slotInterval?.crossesDay ? (
                   <span className="text-te-danger text-xs">
-                    Intervallet passerar midnatt — välj kortare längd.
+                    {t("rooms.crossesMidnight")}
                   </span>
                 ) : (
                   "—"
@@ -314,7 +329,9 @@ export function RoomsTab({
               </p>
             </div>
             <div className="flex min-w-0 flex-col gap-2 sm:col-span-2 lg:col-span-4">
-              <span className="text-te-muted font-medium">Längd (snabbval)</span>
+              <span className="text-te-muted font-medium">
+                {t("rooms.durationPresets")}
+              </span>
               <div className="flex flex-wrap gap-2">
                 {DURATION_CHIPS_MIN.map((m) => {
                   const active = slotDurationMin === m;
@@ -345,7 +362,9 @@ export function RoomsTab({
             aria-live="polite"
             aria-busy="true"
           >
-            <p className="sr-only">Hämtar bokningar {bookingsWeekLabel}</p>
+            <p className="sr-only">
+              {t("rooms.fetchingBookingsWeek", { week: bookingsWeekLabel })}
+            </p>
             <div className="flex flex-wrap items-center gap-3">
               <Skeleton className="h-2.5 w-full max-w-40 rounded-full sm:max-w-56" />
               <Skeleton className="hidden h-2.5 w-16 rounded-full sm:block" />
@@ -357,22 +376,24 @@ export function RoomsTab({
       <div className="space-y-4">
         <div className={filterGrid}>
           <label className="flex min-w-0 flex-col gap-1 text-sm">
-            <span className="text-te-muted font-medium">Namn</span>
+            <span className="text-te-muted font-medium">{t("rooms.name")}</span>
             <input
               className={fieldClass}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Sök rum"
+              placeholder={t("rooms.searchPlaceholder")}
             />
           </label>
           <label className="flex min-w-0 flex-col gap-1 text-sm">
-            <span className="text-te-muted font-medium">Campus</span>
+            <span className="text-te-muted font-medium">
+              {t("rooms.campus")}
+            </span>
             <select
               className={fieldClass}
               value={campusPick}
               onChange={(e) => setCampusPick(e.target.value)}
             >
-              <option value="">Alla</option>
+              <option value="">{t("rooms.allCampuses")}</option>
               {campuses.map((c) => (
                 <option key={c} value={c}>
                   {c}
@@ -381,17 +402,17 @@ export function RoomsTab({
             </select>
           </label>
           <label className="flex min-w-0 flex-col gap-1 text-sm sm:col-span-2 lg:col-span-1">
-            <span className="text-te-muted font-medium">Sortera</span>
+            <span className="text-te-muted font-medium">{t("rooms.sort")}</span>
             <select
               className={fieldClass}
               value={sort}
               onChange={(e) => setSort(e.target.value as SortKey)}
               disabled={slotFilterActive}
             >
-              <option value="rating">Betyg</option>
-              <option value="name">Namn</option>
-              <option value="campus">Campus</option>
-              <option value="capacity">Platser</option>
+              <option value="rating">{t("rooms.sortRating")}</option>
+              <option value="name">{t("rooms.sortName")}</option>
+              <option value="campus">{t("rooms.sortCampus")}</option>
+              <option value="capacity">{t("rooms.sortCapacity")}</option>
             </select>
           </label>
         </div>
@@ -408,7 +429,7 @@ export function RoomsTab({
       {roomsLoadPending ? (
         <div className="space-y-4">
           <p className="sr-only" role="status" aria-live="polite">
-            Laddar rum
+            {t("rooms.loadingRooms")}
           </p>
           <div className={roomGridClass} aria-hidden>
             {Array.from({ length: 8 }).map((_, i) => (
@@ -429,10 +450,10 @@ export function RoomsTab({
         <div className={`${roomGridClass} ${roomGridStaleClass}`}>
           <div className="border-te-border bg-te-elevated/50 text-te-muted col-span-full rounded-xl border border-dashed px-4 py-12 text-center text-sm">
             {slotFilterActive && slotInterval?.crossesDay
-              ? "Intervallet är för långt för en kalenderdag — minska längden."
+              ? t("rooms.emptyCrossesDay")
               : slotFilterActive
-                ? "Inga rum är helt lediga vid vald tid med nuvarande filter."
-                : "Inga rum matchar."}
+                ? t("rooms.emptySlotFilter")
+                : t("rooms.emptyNoMatch")}
           </div>
         </div>
       ) : (
@@ -448,7 +469,7 @@ export function RoomsTab({
             const rr = getRoomRating(room.name);
             const betyg =
               rr != null
-                ? rr.overall.toLocaleString("sv-SE", {
+                ? rr.overall.toLocaleString(appLocaleBcp47(), {
                     minimumFractionDigits: 1,
                     maximumFractionDigits: 1,
                   })
@@ -465,7 +486,7 @@ export function RoomsTab({
 
                   {fetchFailed ? (
                     <p className="text-te-danger text-xs font-medium">
-                      Kunde inte ladda TimeEdit-schema för detta rum.
+                      {t("rooms.fetchScheduleFailed")}
                     </p>
                   ) : null}
 
@@ -474,7 +495,10 @@ export function RoomsTab({
                   !slotInterval.crossesDay &&
                   !fetchFailed ? (
                     <p className="text-te-accent text-xs font-medium">
-                      Ledig {slotStartTime} – {slotInterval.endTime}
+                      {t("rooms.freeInterval", {
+                        start: slotStartTime,
+                        end: slotInterval.endTime,
+                      })}
                     </p>
                   ) : null}
 
@@ -489,7 +513,13 @@ export function RoomsTab({
 
                   <p
                     className="text-te-muted text-sm leading-snug"
-                    title={`${room.campus} · ${room.capacity ?? "—"} platser`}
+                    title={t("rooms.seatsTitle", {
+                      campus: room.campus,
+                      seats:
+                        room.capacity != null
+                          ? t("rooms.nSeats", { count: room.capacity })
+                          : "—",
+                    })}
                   >
                     <span className="text-te-text/95 font-medium">
                       {room.campus}
@@ -499,7 +529,9 @@ export function RoomsTab({
                       className="bg-te-border mx-2 inline-block h-3 w-px translate-y-px align-middle"
                     />
                     <span className="tabular-nums">
-                      {room.capacity ?? "—"} platser
+                      {room.capacity != null
+                        ? t("rooms.nSeats", { count: room.capacity })
+                        : "—"}
                     </span>
                   </p>
                 </div>
@@ -510,11 +542,11 @@ export function RoomsTab({
                   disabled={!canBookRoom(room)}
                   title={
                     fetchFailed
-                      ? "Schema saknas från servern"
+                      ? t("rooms.titleMissingSchedule")
                       : !canBookRoom(room)
                         ? slotFilterActive
-                          ? "Inte ledigt hela intervallet (eller tiden har passerat)"
-                          : "Ingen ledig tid kvar denna vecka från och med nu"
+                          ? t("rooms.titleNotAvailableSlot")
+                          : t("rooms.titleNoFreeWeek")
                         : undefined
                   }
                   onClick={() => {
@@ -533,7 +565,7 @@ export function RoomsTab({
                     onBookRoom(room);
                   }}
                 >
-                  Boka
+                  {t("rooms.book")}
                 </Button>
               </article>
             );

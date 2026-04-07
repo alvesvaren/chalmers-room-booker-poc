@@ -1,5 +1,6 @@
 import { QueryErrorResetBoundary } from "@tanstack/react-query";
 import { Component, type ErrorInfo, type ReactNode } from "react";
+import i18n from "../i18n/i18n";
 import { errorMessage } from "../lib/errors";
 import { Button } from "./ui/Button";
 
@@ -51,7 +52,7 @@ function defaultWorkspaceFallback({ error, reset }: FallbackRenderProps) {
   return (
     <div className="border-te-danger/30 bg-te-danger-bg rounded-xl border px-4 py-6 text-center">
       <p className="text-te-danger text-sm font-medium">
-        Något gick fel när data skulle laddas.
+        {i18n.t("errors.boundaryTitle")}
       </p>
       <p className="text-te-muted mt-2 text-xs">{errorMessage(error)}</p>
       <Button
@@ -60,7 +61,7 @@ function defaultWorkspaceFallback({ error, reset }: FallbackRenderProps) {
         className="mt-4"
         onClick={reset}
       >
-        Försök igen
+        {i18n.t("errors.retry")}
       </Button>
     </div>
   );

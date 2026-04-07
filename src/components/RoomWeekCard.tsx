@@ -1,6 +1,8 @@
 import { useState, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import type { MyBooking, RoomWithReservations } from "../client/types.gen";
 import { useTickingNow } from "../hooks/useTickingNow";
+import { appLocaleBcp47 } from "../lib/datetime/intlFormat";
 import { getRoomRating } from "../lib/roomRatings";
 import {
   buildRoomWeekTimeline,
@@ -29,6 +31,7 @@ export function RoomWeekCard({
   onBookRoom: (room: RoomWithReservations) => void;
   myBookings: MyBooking[] | undefined;
 }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(true);
   const now = useTickingNow(60_000);
   const days = buildRoomWeekTimeline(room, weekStart, weekEndExclusive);
@@ -50,8 +53,8 @@ export function RoomWeekCard({
           aria-expanded={open}
           aria-label={
             open
-              ? `Dölj tidslinje för ${room.name}`
-              : `Visa tidslinje för ${room.name}`
+              ? t("roomWeek.hideTimeline", { name: room.name })
+              : t("roomWeek.showTimeline", { name: room.name })
           }
         >
           <span className="font-display text-te-text block text-lg leading-tight font-semibold tracking-tight sm:text-xl">
@@ -63,7 +66,11 @@ export function RoomWeekCard({
               aria-hidden
               className="bg-te-border mx-2 inline-block h-3 w-px translate-y-px align-middle"
             />
-            <span className="tabular-nums">{room.capacity ?? "—"} platser</span>
+            <span className="tabular-nums">
+              {room.capacity != null
+                ? t("roomWeek.nSeats", { count: room.capacity })
+                : "—"}
+            </span>
             {rr != null ? (
               <>
                 <span
@@ -74,7 +81,7 @@ export function RoomWeekCard({
                   className="font-display text-te-accent cursor-help text-base font-semibold tabular-nums"
                   title={rr.comment}
                 >
-                  {rr.overall.toLocaleString("sv-SE", {
+                  {rr.overall.toLocaleString(appLocaleBcp47(), {
                     minimumFractionDigits: 1,
                     maximumFractionDigits: 1,
                   })}
@@ -88,15 +95,13 @@ export function RoomWeekCard({
           className="w-full shrink-0 touch-manipulation py-2.5 text-sm font-semibold sm:w-auto sm:px-5"
           disabled={!nextBookableGap}
           title={
-            !nextBookableGap
-              ? "Ingen ledig tid kvar denna vecka från och med nu"
-              : undefined
+            !nextBookableGap ? t("roomWeek.noFreeWeek") : undefined
           }
           onClick={() => {
             if (nextBookableGap) onBookRoom(room);
           }}
         >
-          Boka
+          {t("rooms.book")}
         </Button>
       </div>
 
@@ -135,7 +140,7 @@ export function RoomWeekCard({
                     els.push(
                       <div
                         key={`${day.dateStr}-past-${i}`}
-                        title="Passerad tid"
+                        title={t("roomWeek.pastTime")}
                         className="border-te-border/40 bg-te-border/50 pointer-events-none absolute inset-y-1 z-0 rounded border"
                         style={{
                           left: `${leftPct}%`,
@@ -155,7 +160,7 @@ export function RoomWeekCard({
                       <button
                         key={`${day.dateStr}-fut-${i}`}
                         type="button"
-                        title={`Boka ${label}`}
+                        title={t("roomWeek.bookSlot", { label })}
                         className="border-te-accent/25 bg-te-free-hover hover:bg-te-accent-muted absolute inset-y-1 z-0 rounded border"
                         style={{
                           left: `${leftPct}%`,
@@ -177,11 +182,17 @@ export function RoomWeekCard({
                   const mine = isMyCalendarBusy(b, room.id, myBookings);
                   const title = mine
                     ? b.label
-                      ? `Din bokning ${range} · ${b.label}`
-                      : `Din bokning ${range}`
+                      ? t("roomWeek.busyBlockMineLabeled", {
+                          range,
+                          label: b.label,
+                        })
+                      : t("roomWeek.busyBlockMine", { range })
                     : b.label
-                      ? `Upptagen ${range} · ${b.label}`
-                      : `Upptagen ${range}`;
+                      ? t("roomWeek.busyBlockOtherLabeled", {
+                          range,
+                          label: b.label,
+                        })
+                      : t("roomWeek.busyBlockOther", { range });
                   return (
                     <div
                       key={`b-${i}`}
@@ -216,9 +227,12 @@ export function RoomWeekCard({
             {days.flatMap((d) =>
               d.busy.map((b, j) => (
                 <li key={`${d.dateStr}-${j}`}>
-                  {d.weekdayShort} {formatLocalTime(b.start)} till{" "}
-                  {formatLocalTime(b.end)}
-                  {b.label ? `, ${b.label}` : ""}
+                  {t("roomWeek.srBusyLine", {
+                    weekday: d.weekdayShort,
+                    start: formatLocalTime(b.start),
+                    end: formatLocalTime(b.end),
+                    labelPart: b.label ? `, ${b.label}` : "",
+                  })}
                 </li>
               )),
             )}

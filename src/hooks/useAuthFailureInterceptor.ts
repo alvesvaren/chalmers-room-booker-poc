@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { client } from "../client/client.gen";
 import { AUTH_LOGIN_PATH, TIMEEDIT_AUTH_FAILED_ERROR } from "../config/api";
+import i18n from "../i18n/i18n";
 import { parseGatewayErrorBodyJson } from "../lib/gatewayErrorBody";
 
 type LogOut = () => void;
@@ -33,9 +34,7 @@ export function useAuthFailureInterceptor(
         if (!authFailureHandled.current) {
           authFailureHandled.current = true;
           logOut();
-          onSessionToast(
-            "Sessionen har gått ut eller är ogiltig. Logga in igen.",
-          );
+          onSessionToast(i18n.t("session.expired"));
         }
         return response;
       }
@@ -49,9 +48,7 @@ export function useAuthFailureInterceptor(
         ) {
           authFailureHandled.current = true;
           logOut();
-          onSessionToast(
-            "TimeEdit accepterade inte inloggningen. Logga in igen.",
-          );
+          onSessionToast(i18n.t("session.timeEditRejected"));
         }
       }
 

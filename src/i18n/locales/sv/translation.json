@@ -1,0 +1,136 @@
+{
+  "app": {
+    "title": "TimeEdit demo",
+    "subtitle": "Grupprumsbokning · Chalmers-inloggning",
+    "signInHint": "Logga in för att se schema, rum och dina bokningar.",
+    "apiLink": "API-wrapper",
+    "signOut": "Logga ut",
+    "language": "Språk",
+    "langEnglish": "Engelska",
+    "langSwedish": "Svenska"
+  },
+  "auth": {
+    "signIn": "Logga in",
+    "username": "Användarnamn",
+    "password": "Lösenord",
+    "signingIn": "Loggar in…",
+    "usernamePlaceholder": "cid@chalmers.se"
+  },
+  "session": {
+    "expired": "Sessionen har gått ut eller är ogiltig. Logga in igen.",
+    "timeEditRejected": "TimeEdit accepterade inte inloggningen. Logga in igen."
+  },
+  "tabs": {
+    "mainNav": "Huvudnavigering",
+    "rooms": "Rum",
+    "schedule": "Schema",
+    "mine": "Mina bokningar"
+  },
+  "rooms": {
+    "heading": "Rum",
+    "freeAtTime": "Ledig vid tid",
+    "day": "Dag",
+    "start": "Start",
+    "durationMin": "Längd (min)",
+    "interval": "Intervall",
+    "crossesMidnight": "Intervallet passerar midnatt — välj kortare längd.",
+    "durationPresets": "Längd (snabbval)",
+    "name": "Namn",
+    "campus": "Campus",
+    "allCampuses": "Alla",
+    "sort": "Sortera",
+    "sortRating": "Betyg",
+    "sortName": "Namn",
+    "sortCampus": "Campus",
+    "sortCapacity": "Platser",
+    "searchPlaceholder": "Sök rum",
+    "fetchingBookingsWeek": "Hämtar bokningar {{week}}",
+    "loadingRooms": "Laddar rum",
+    "emptyCrossesDay": "Intervallet är för långt för en kalenderdag — minska längden.",
+    "emptySlotFilter": "Inga rum är helt lediga vid vald tid med nuvarande filter.",
+    "emptyNoMatch": "Inga rum matchar.",
+    "fetchScheduleFailed": "Kunde inte ladda TimeEdit-schema för detta rum.",
+    "freeInterval": "Ledig {{start}} – {{end}}",
+    "seatsTitle": "{{campus}} · {{seats}}",
+    "nSeats": "{{count}} platser",
+    "book": "Boka",
+    "titleMissingSchedule": "Schema saknas från servern",
+    "titleNotAvailableSlot": "Inte ledigt hela intervallet (eller tiden har passerat)",
+    "titleNoFreeWeek": "Ingen ledig tid kvar denna vecka från och med nu",
+    "seatsLabel": "Platser"
+  },
+  "schedule": {
+    "heading": "Veckoschema",
+    "prev": "← Föregående",
+    "thisWeek": "Denna vecka",
+    "next": "Nästa →",
+    "name": "Namn",
+    "campusPlaceholder": "Johanneberg",
+    "searchPlaceholder": "Sök rum",
+    "bookingRules": "Bokningsregler",
+    "emptyFilter": "Inga rum för denna filtrering."
+  },
+  "mine": {
+    "heading": "Mina bokningar",
+    "empty": "Inga bokningar ännu.",
+    "roomIdFallback": "Rum id {{id}}",
+    "cancel": "Avboka"
+  },
+  "booking": {
+    "newBooking": "Ny bokning",
+    "close": "Stäng",
+    "invalidTimes": "Ogiltiga klockslag.",
+    "startInPast": "Välj en starttid som inte redan har passerat.",
+    "title": "Titel",
+    "titlePlaceholder": "Valfritt",
+    "previewAria": "Förhandsvisning av bokning",
+    "time": "Tid",
+    "minutesSuffix": "({{count}} min)",
+    "slotTitleMine": "Din bokning",
+    "slotTitleMineLabeled": "Din bokning · {{label}}",
+    "slotTitleBusy": "Upptagen",
+    "slotTitleBusyLabeled": "Upptagen · {{label}}",
+    "adjustStart": "Justera starttid (vänster kant)",
+    "adjustEnd": "Justera sluttid (höger kant)",
+    "previewGrabNoTitle": "Bokning utan titel — dra för att flytta",
+    "previewGrabTitle": "Bokning: {{title}}",
+    "date": "Datum",
+    "durationPresets": "Längd (snabbval)",
+    "startTime": "Starttid",
+    "endTime": "Sluttid",
+    "startTimeAria": "Starttid",
+    "endTimeAria": "Sluttid",
+    "showRoomId": "Rums-id",
+    "hide": "Dölj",
+    "roomIdApi": "Rums-id (API)",
+    "cancel": "Avbryt",
+    "creating": "Bokar…",
+    "submit": "Skapa bokning",
+    "createdToast": "Bokning skapad · {{id}}",
+    "confirmCancel": "Avboka denna reservation?"
+  },
+  "roomWeek": {
+    "hideTimeline": "Dölj tidslinje för {{name}}",
+    "showTimeline": "Visa tidslinje för {{name}}",
+    "nSeats": "{{count}} platser",
+    "noFreeWeek": "Ingen ledig tid kvar denna vecka från och med nu",
+    "pastTime": "Passerad tid",
+    "bookSlot": "Boka {{label}}",
+    "busyBlockMine": "Din bokning {{range}}",
+    "busyBlockMineLabeled": "Din bokning {{range}} · {{label}}",
+    "busyBlockOther": "Upptagen {{range}}",
+    "busyBlockOtherLabeled": "Upptagen {{range}} · {{label}}",
+    "srBusyLine": "{{weekday}} {{start}}–{{end}}{{labelPart}}"
+  },
+  "errors": {
+    "boundaryTitle": "Något gick fel när data skulle laddas.",
+    "retry": "Försök igen"
+  },
+  "workspace": {
+    "loading": "Laddar arbetsyta"
+  },
+  "capacity": {
+    "minSeats": "Minsta antal platser",
+    "maxSeats": "Högsta antal platser"
+  }
+}

@@ -1,6 +1,6 @@
 export { atLocalHourOnCalendarDay } from "./calendarDay";
 export {
-  APP_LOCALE,
+  appLocaleBcp47,
   formatLocalDateWire,
   formatLocalTime24,
   formatWeekdayShort,

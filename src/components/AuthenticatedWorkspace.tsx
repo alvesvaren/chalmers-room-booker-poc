@@ -5,6 +5,7 @@ import {
   type QueryFunctionContext,
 } from "@tanstack/react-query";
 import { useCallback, useMemo, useState, useTransition } from "react";
+import { useTranslation } from "react-i18next";
 import {
   deleteApiMyBookingsByIdMutation,
   getApiBookingsOptions,
@@ -47,6 +48,7 @@ import { RoomsTab } from "./RoomsTab";
 import { ScheduleTab } from "./ScheduleTab";
 
 export function AuthenticatedWorkspace() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [, startFilterTransition] = useTransition();
 
@@ -226,10 +228,10 @@ export function AuthenticatedWorkspace() {
 
   const handleCancelBooking = useCallback(
     (id: string) => {
-      if (!window.confirm("Avboka denna reservation?")) return;
+      if (!window.confirm(t("booking.confirmCancel"))) return;
       cancelMutation.mutate({ path: { id } });
     },
-    [cancelMutation],
+    [cancelMutation, t],
   );
 
   const isRoomBookable = useCallback(
@@ -267,12 +269,14 @@ export function AuthenticatedWorkspace() {
         {
           onSuccess: (data) => {
             closeBookingSheet();
-            showBookingToast(`Bokning skapad · ${data.booking.id}`);
+            showBookingToast(
+              t("booking.createdToast", { id: data.booking.id }),
+            );
           },
         },
       );
     },
-    [closeBookingSheet, createBookingMutation, showBookingToast],
+    [closeBookingSheet, createBookingMutation, showBookingToast, t],
   );
 
   const workspaceError =
