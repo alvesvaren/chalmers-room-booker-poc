@@ -1,0 +1,137 @@
+{
+  "app": {
+    "title": "Book group rooms",
+    "subtitle": "Group room booking · Chalmers sign-in.",
+    "signInHint": "Sign in to see the schedule, rooms, and your bookings.",
+    "apiLink": "API wrapper",
+    "signOut": "Sign out",
+    "language": "Language",
+    "langEnglish": "English",
+    "langSwedish": "Svenska"
+  },
+  "auth": {
+    "signIn": "Sign in",
+    "username": "Username",
+    "password": "Password",
+    "signingIn": "Signing in…",
+    "usernamePlaceholder": "cid@chalmers.se"
+  },
+  "session": {
+    "expired": "Your session has expired or is invalid. Please sign in again.",
+    "timeEditRejected": "TimeEdit did not accept the sign-in. Please sign in again.",
+    "timeRemaining": "Session expires in {{time}}"
+  },
+  "tabs": {
+    "mainNav": "Main navigation",
+    "rooms": "Rooms",
+    "schedule": "Schedule",
+    "mine": "My bookings"
+  },
+  "rooms": {
+    "heading": "Rooms",
+    "freeAtTime": "Free at time",
+    "day": "Day",
+    "start": "Start",
+    "durationMin": "Duration (min)",
+    "interval": "Interval",
+    "crossesMidnight": "Interval crosses midnight — choose a shorter duration.",
+    "durationPresets": "Duration (presets)",
+    "name": "Name",
+    "campus": "Campus",
+    "allCampuses": "All",
+    "sort": "Sort",
+    "sortRating": "Rating",
+    "sortName": "Name",
+    "sortCampus": "Campus",
+    "sortCapacity": "Seats",
+    "searchPlaceholder": "Search rooms",
+    "fetchingBookingsWeek": "Loading bookings for {{week}}",
+    "loadingRooms": "Loading rooms",
+    "emptyCrossesDay": "The interval is too long for one calendar day — reduce the duration.",
+    "emptySlotFilter": "No rooms are fully free at the selected time with the current filters.",
+    "emptyNoMatch": "No rooms match.",
+    "fetchScheduleFailed": "Could not load TimeEdit schedule for this room.",
+    "freeInterval": "Free {{start}} – {{end}}",
+    "seatsTitle": "{{campus}} · {{seats}}",
+    "nSeats": "{{count}} seats",
+    "book": "Book",
+    "titleMissingSchedule": "Schedule missing from server",
+    "titleNotAvailableSlot": "Not free for the whole slot (or the time has passed)",
+    "titleNoFreeWeek": "No free time left this week from now",
+    "seatsLabel": "Seats"
+  },
+  "schedule": {
+    "heading": "Week schedule",
+    "prev": "← Previous",
+    "thisWeek": "This week",
+    "next": "Next →",
+    "name": "Name",
+    "campusPlaceholder": "Johanneberg",
+    "searchPlaceholder": "Search rooms",
+    "bookingRules": "Booking rules",
+    "emptyFilter": "No rooms for this filter."
+  },
+  "mine": {
+    "heading": "My bookings",
+    "empty": "No bookings yet.",
+    "roomIdFallback": "Room id {{id}}",
+    "cancel": "Cancel booking"
+  },
+  "booking": {
+    "newBooking": "New booking",
+    "close": "Close",
+    "invalidTimes": "Invalid times.",
+    "startInPast": "Choose a start time that has not already passed.",
+    "title": "Title",
+    "titlePlaceholder": "Optional",
+    "previewAria": "Booking preview",
+    "time": "Time",
+    "minutesSuffix": "({{count}} min)",
+    "slotTitleMine": "Your booking",
+    "slotTitleMineLabeled": "Your booking · {{label}}",
+    "slotTitleBusy": "Busy",
+    "slotTitleBusyLabeled": "Busy · {{label}}",
+    "adjustStart": "Adjust start time (left edge)",
+    "adjustEnd": "Adjust end time (right edge)",
+    "previewGrabNoTitle": "Untitled booking — drag to move",
+    "previewGrabTitle": "Booking: {{title}}",
+    "date": "Date",
+    "durationPresets": "Duration (presets)",
+    "startTime": "Start time",
+    "endTime": "End time",
+    "startTimeAria": "Start time",
+    "endTimeAria": "End time",
+    "showRoomId": "Room id",
+    "hide": "Hide",
+    "roomIdApi": "Room id (API)",
+    "cancel": "Cancel",
+    "creating": "Creating…",
+    "submit": "Create booking",
+    "createdToast": "Booking created · {{id}}",
+    "confirmCancel": "Cancel this reservation?"
+  },
+  "roomWeek": {
+    "hideTimeline": "Hide timeline for {{name}}",
+    "showTimeline": "Show timeline for {{name}}",
+    "nSeats": "{{count}} seats",
+    "noFreeWeek": "No free time left this week from now",
+    "pastTime": "Past time",
+    "bookSlot": "Book {{label}}",
+    "busyBlockMine": "Your booking {{range}}",
+    "busyBlockMineLabeled": "Your booking {{range}} · {{label}}",
+    "busyBlockOther": "Busy {{range}}",
+    "busyBlockOtherLabeled": "Busy {{range}} · {{label}}",
+    "srBusyLine": "{{weekday}} {{start}}–{{end}}{{labelPart}}"
+  },
+  "errors": {
+    "boundaryTitle": "Something went wrong while loading data.",
+    "retry": "Try again"
+  },
+  "workspace": {
+    "loading": "Loading workspace"
+  },
+  "capacity": {
+    "minSeats": "Minimum seats",
+    "maxSeats": "Maximum seats"
+  }
+}

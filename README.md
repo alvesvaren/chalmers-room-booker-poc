@@ -6,7 +6,7 @@ A small web app to browse Chalmers study rooms, see weekly availability on a sch
 
 ## API
 
-The UI talks to **`https://timeedit.svaren.dev`** (see `API_BASE` in `src/App.tsx`). Types and clients are generated from **`/openapi`**.
+The UI talks to **`https://timeedit.svaren.dev`** by default (see `API_BASE` in `src/config/api.ts`; override with `VITE_API_BASE`). Types and clients are regenerated with `pnpm openapi-ts` from the OpenAPI URL in **`openapi-ts.config.ts`** (currently a Vercel preview host, not necessarily the same origin as runtime `API_BASE`).
 
 ## Development
 
@@ -30,6 +30,8 @@ The build runs `gen:room-ratings` (bundles room rating data), then TypeScript an
 | Command                 | Purpose                                                               |
 | ----------------------- | --------------------------------------------------------------------- |
 | `pnpm lint`             | ESLint                                                                |
+| `pnpm test`             | Vitest (run once)                                                     |
+| `pnpm test:watch`       | Vitest (watch mode)                                                   |
 | `pnpm preview`          | Preview production build                                              |
 | `pnpm openapi-ts`       | Regenerate `src/client` from the OpenAPI URL (`openapi-ts.config.ts`) |
 | `pnpm gen:room-ratings` | Regenerate `src/data/roomRatings.gen.ts`                              |

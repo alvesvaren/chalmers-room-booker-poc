@@ -1,16 +1,20 @@
 import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { postApiAuthLoginMutation } from "./client/@tanstack/react-query.gen";
 import { API_BASE, TOAST_DURATION_MS } from "./config/api";
 import { AuthenticatedWorkspace } from "./components/AuthenticatedWorkspace";
 import { SignInPanel } from "./components/SignInPanel";
+import { SessionAccountLabel } from "./components/SessionAccountLabel";
 import { useApiClientAuth } from "./hooks/useApiClientAuth";
 import { useAuthFailureInterceptor } from "./hooks/useAuthFailureInterceptor";
+import { useJwtExpiryLogout } from "./hooks/useJwtExpiryLogout";
 import { useAutoDismiss } from "./hooks/useAutoDismiss";
 import { useSessionToken } from "./hooks/useSessionToken";
 import { reactQueryPersistStorageKey } from "./lib/reactQueryPersistKey";
 import { accountLabelFromJwt } from "./lib/jwtAccountLabel";
+import { LocaleSwitcher } from "./components/LocaleSwitcher";
 import { Button } from "./components/ui/Button";
 
 export default function App({
@@ -18,6 +22,7 @@ export default function App({
 }: {
   session: ReturnType<typeof useSessionToken>;
 }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { token, setToken, authed } = session;
   const [username, setUsername] = useState("");
@@ -38,6 +43,7 @@ export default function App({
 
   useApiClientAuth(token);
   useAuthFailureInterceptor(token, logOut, setSessionToast);
+  useJwtExpiryLogout(token, logOut, setSessionToast);
 
   const clearSessionToast = useCallback(() => setSessionToast(null), []);
   useAutoDismiss(sessionToast, clearSessionToast, TOAST_DURATION_MS);
@@ -57,24 +63,22 @@ export default function App({
         <header className="te-reveal border-te-border mb-8 flex flex-col gap-6 border-b pb-8 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h1 className="font-display text-te-text text-3xl font-semibold tracking-tight sm:text-4xl">
-              TimeEdit demo
+              {t("app.title")}
             </h1>
             <p className="text-te-muted mt-2 max-w-2xl text-sm leading-relaxed">
-              Grupprumsbokning · Chalmers-inloggning.
+              {t("app.subtitle")}
             </p>
           </div>
           {authed ? (
-            <div className="flex flex-wrap items-center gap-3 sm:shrink-0 sm:justify-end">
+            <div className="flex flex-wrap items-center gap-2 sm:shrink-0 sm:justify-end">
               {accountLabel ? (
-                <span
-                  className="text-te-text max-w-48 truncate text-sm font-medium sm:max-w-none"
-                  title={accountLabel}
-                >
-                  {accountLabel}
-                </span>
+                <SessionAccountLabel
+                  token={token}
+                  accountLabel={accountLabel}
+                />
               ) : null}
               <Button variant="secondary" onClick={logOut}>
-                Logga ut
+                {t("app.signOut")}
               </Button>
             </div>
           ) : null}
@@ -114,21 +118,24 @@ export default function App({
 
         {!authed ? (
           <p className="text-te-muted mt-8 text-center text-sm">
-            Logga in för att se schema, rum och dina bokningar.
+            {t("app.signInHint")}
           </p>
         ) : (
           <AuthenticatedWorkspace />
         )}
 
-        <footer className="border-te-border text-te-muted mt-16 border-t pt-6 text-center text-xs">
-          <a
-            className="text-te-accent font-medium underline-offset-4 hover:underline"
-            href={API_BASE}
-            target="_blank"
-            rel="noreferrer"
-          >
-            API-wrapper
-          </a>
+        <footer className="border-te-border text-te-muted mt-16 border-t pt-6 text-xs">
+          <div className="flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-6">
+            <a
+              className="text-te-accent text-center font-medium underline-offset-4 hover:underline"
+              href={API_BASE}
+              target="_blank"
+              rel="noreferrer"
+            >
+              {t("app.apiLink")}
+            </a>
+            <LocaleSwitcher />
+          </div>
         </footer>
       </div>
     </div>

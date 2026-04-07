@@ -5,6 +5,7 @@ import {
   useState,
   type PointerEvent as ReactPointerEvent,
 } from "react";
+import { useTranslation } from "react-i18next";
 import { createPortal } from "react-dom";
 import type {
   CreateBookingRequest,
@@ -65,6 +66,7 @@ function BookingSheetForm({
   isPending: boolean;
   error: unknown | null;
 }) {
+  const { t } = useTranslation();
   const [roomId, setRoomId] = useState(initial.roomId);
   const roomName = initial.roomName ?? "";
   const [date, setDate] = useState(initial.date);
@@ -365,7 +367,7 @@ function BookingSheetForm({
               id="booking-sheet-title"
               className="font-display text-te-text text-lg font-semibold tracking-tight"
             >
-              Ny bokning
+              {t("booking.newBooking")}
             </h2>
             {roomName ? (
               <p
@@ -380,7 +382,7 @@ function BookingSheetForm({
             type="button"
             onClick={onClose}
             className="text-te-muted hover:bg-te-accent-muted hover:text-te-text focus-visible:outline-te-accent rounded-lg p-1.5 focus-visible:outline-2"
-            aria-label="Stäng"
+            aria-label={t("booking.close")}
           >
             ✕
           </button>
@@ -394,7 +396,7 @@ function BookingSheetForm({
             let sMs = parseInstantOnDate(date, startTime).getTime();
             let eMs = parseInstantOnDate(date, endTime).getTime();
             if (!Number.isFinite(sMs) || !Number.isFinite(eMs)) {
-              setClientError("Ogiltiga klockslag.");
+              setClientError(t("booking.invalidTimes"));
               return;
             }
             sMs = snapInstantMsToQuarterOnDate(sMs, date);
@@ -409,7 +411,7 @@ function BookingSheetForm({
             const startNorm = formatLocalTime(new Date(sMs));
             const endNorm = formatLocalTime(new Date(eMs));
             if (isLocalStartInPast(date, startNorm, new Date())) {
-              setClientError("Välj en starttid som inte redan har passerat.");
+              setClientError(t("booking.startInPast"));
               return;
             }
             onSubmit({
@@ -420,29 +422,31 @@ function BookingSheetForm({
           }}
         >
           <label className="grid min-w-0 gap-1 text-sm">
-            <span className="text-te-text font-medium">Titel</span>
+            <span className="text-te-text font-medium">{t("booking.title")}</span>
             <input
               className={inputClass}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Valfritt"
+              placeholder={t("booking.titlePlaceholder")}
             />
           </label>
 
           <section
             className="space-y-2"
-            aria-label="Förhandsvisning av bokning"
+            aria-label={t("booking.previewAria")}
           >
             <div
               className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-end sm:justify-between sm:gap-2"
               aria-live="polite"
             >
               <span className="text-te-muted shrink-0 text-xs font-semibold tracking-[0.12em] uppercase">
-                Tid
+                {t("booking.time")}
               </span>
               <span className="break-anywhere text-te-text min-w-0 font-mono text-xs tabular-nums sm:text-right">
                 {startTime}–{endTime}
-                <span className="text-te-muted ml-2">({durationMin} min)</span>
+                <span className="text-te-muted ml-2">
+                  {t("booking.minutesSuffix", { count: durationMin })}
+                </span>
               </span>
             </div>
             <div
@@ -484,11 +488,11 @@ function BookingSheetForm({
                   const mine = isMyCalendarBusy(b, roomId, myBookings);
                   const slotTitle = mine
                     ? b.label
-                      ? `Din bokning · ${b.label}`
-                      : "Din bokning"
+                      ? t("booking.slotTitleMineLabeled", { label: b.label })
+                      : t("booking.slotTitleMine")
                     : b.label
-                      ? `Upptagen · ${b.label}`
-                      : "Upptagen";
+                      ? t("booking.slotTitleBusyLabeled", { label: b.label })
+                      : t("booking.slotTitleBusy");
                   return (
                     <div
                       key={`busy-${b.start.getTime()}-${i}`}
@@ -526,7 +530,7 @@ function BookingSheetForm({
               >
                 <button
                   type="button"
-                  aria-label="Justera starttid (vänster kant)"
+                  aria-label={t("booking.adjustStart")}
                   className="absolute top-0 bottom-0 z-20 flex w-3 cursor-ew-resize touch-manipulation items-center justify-end bg-transparent pr-px"
                   style={{ right: "100%" }}
                   onPointerDown={(e) => onPointerDownBar("resize-start", e)}
@@ -538,8 +542,10 @@ function BookingSheetForm({
                   onPointerDown={(e) => onPointerDownBar("move", e)}
                   aria-label={
                     title.trim()
-                      ? `Bokning: ${title.trim()}`
-                      : "Bokning utan titel — dra för att flytta"
+                      ? t("booking.previewGrabTitle", {
+                          title: title.trim(),
+                        })
+                      : t("booking.previewGrabNoTitle")
                   }
                 >
                   {title.trim() ? (
@@ -550,7 +556,7 @@ function BookingSheetForm({
                 </div>
                 <button
                   type="button"
-                  aria-label="Justera sluttid (höger kant)"
+                  aria-label={t("booking.adjustEnd")}
                   className="absolute top-0 bottom-0 z-20 flex w-3 cursor-ew-resize touch-manipulation items-center justify-start bg-transparent pl-px"
                   style={{ left: "100%" }}
                   onPointerDown={(e) => onPointerDownBar("resize-end", e)}
@@ -562,7 +568,9 @@ function BookingSheetForm({
           </section>
 
           <label className="grid min-w-0 gap-1 text-sm">
-            <span className="text-te-text font-medium">Datum</span>
+            <span className="text-te-text font-medium">
+              {t("booking.date")}
+            </span>
             <input
               className={inputClass}
               type="date"
@@ -578,7 +586,7 @@ function BookingSheetForm({
 
           <div className="grid gap-2">
             <span className="text-te-text text-sm font-medium">
-              Längd (snabbval)
+              {t("booking.durationPresets")}
             </span>
             <div className="flex flex-wrap gap-2">
               {DURATION_CHIPS_MIN.map((m) => {
@@ -603,7 +611,9 @@ function BookingSheetForm({
 
           <div className="grid min-w-0 gap-2 sm:grid-cols-2">
             <label className="grid min-w-0 gap-1 text-sm">
-              <span className="text-te-text font-medium">Starttid</span>
+              <span className="text-te-text font-medium">
+                {t("booking.startTime")}
+              </span>
               <input
                 className={inputClass + " font-mono text-base sm:text-xs"}
                 value={startTime}
@@ -614,11 +624,13 @@ function BookingSheetForm({
                 onBlur={commitManualTimes}
                 placeholder="09:00"
                 required
-                aria-label="Starttid"
+                aria-label={t("booking.startTimeAria")}
               />
             </label>
             <label className="grid min-w-0 gap-1 text-sm">
-              <span className="text-te-text font-medium">Sluttid</span>
+              <span className="text-te-text font-medium">
+                {t("booking.endTime")}
+              </span>
               <input
                 className={inputClass + " font-mono text-base sm:text-xs"}
                 value={endTime}
@@ -628,7 +640,7 @@ function BookingSheetForm({
                 }}
                 onBlur={commitManualTimes}
                 required
-                aria-label="Sluttid"
+                aria-label={t("booking.endTimeAria")}
               />
             </label>
           </div>
@@ -639,11 +651,11 @@ function BookingSheetForm({
               className="text-te-accent text-xs font-medium hover:underline"
               onClick={() => setShowAdvanced((s) => !s)}
             >
-              {showAdvanced ? "Dölj" : "Rums-id"}
+              {showAdvanced ? t("booking.hide") : t("booking.showRoomId")}
             </button>
             {showAdvanced ? (
               <label className="mt-2 grid min-w-0 gap-1 text-sm">
-                <span className="text-te-muted">Rums-id (API)</span>
+                <span className="text-te-muted">{t("booking.roomIdApi")}</span>
                 <input
                   className={inputClass + " font-mono text-base sm:text-xs"}
                   value={roomId}
@@ -671,10 +683,10 @@ function BookingSheetForm({
 
           <div className="border-te-border mt-auto flex flex-wrap justify-end gap-2 border-t pt-4">
             <Button type="button" variant="secondary" onClick={onClose}>
-              Avbryt
+              {t("booking.cancel")}
             </Button>
             <Button type="submit" disabled={isPending}>
-              {isPending ? "Bokar…" : "Skapa bokning"}
+              {isPending ? t("booking.creating") : t("booking.submit")}
             </Button>
           </div>
         </form>

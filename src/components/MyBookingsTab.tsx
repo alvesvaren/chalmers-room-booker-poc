@@ -1,4 +1,5 @@
 import type { MyBooking, Room } from "../client/types.gen";
+import { useTranslation } from "react-i18next";
 import { errorMessage } from "../lib/errors";
 import {
   formatLocalDate,
@@ -25,13 +26,14 @@ export function MyBookingsTab({
   onCancelRequest: (id: string) => void;
   cancelError: unknown | null;
 }) {
+  const { t } = useTranslation();
   const list = myBookings ?? [];
   const roomNameById = new Map((rooms ?? []).map((r) => [r.id, r.name]));
 
   return (
     <div className="te-reveal te-reveal-delay-1 space-y-6">
       <h2 className="font-display text-te-text text-xl font-semibold">
-        Mina bokningar
+        {t("mine.heading")}
       </h2>
 
       <ul
@@ -55,14 +57,15 @@ export function MyBookingsTab({
           : null}
         {!loadPending && myBookings !== undefined && list.length === 0 ? (
           <li className="text-te-muted px-4 py-10 text-center text-sm">
-            Inga bokningar ännu.
+            {t("mine.empty")}
           </li>
         ) : null}
         {!loadPending && list.length > 0
           ? list.map((b) => {
               const { start, end } = parseApiInterval(b.interval);
               const roomTitle =
-                roomNameById.get(b.roomId) ?? `Rum id ${b.roomId}`;
+                roomNameById.get(b.roomId) ??
+                t("mine.roomIdFallback", { id: b.roomId });
               return (
             <li
               key={b.id}
@@ -86,7 +89,7 @@ export function MyBookingsTab({
                 disabled={cancelMutation.isPending}
                 onClick={() => onCancelRequest(b.id)}
               >
-                Avboka
+                {t("mine.cancel")}
               </Button>
             </li>
               );

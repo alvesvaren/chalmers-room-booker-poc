@@ -5,6 +5,7 @@ import {
   type QueryFunctionContext,
 } from "@tanstack/react-query";
 import { useCallback, useMemo, useState, useTransition } from "react";
+import { useTranslation } from "react-i18next";
 import {
   deleteApiMyBookingsByIdMutation,
   getApiBookingsOptions,
@@ -47,6 +48,7 @@ import { RoomsTab } from "./RoomsTab";
 import { ScheduleTab } from "./ScheduleTab";
 
 export function AuthenticatedWorkspace() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [, startFilterTransition] = useTransition();
 
@@ -57,7 +59,7 @@ export function AuthenticatedWorkspace() {
     min: 1,
     max: CAPACITY_SLIDER_FALLBACK_MAX,
   });
-  const [activeTab, setActiveTab] = useState<AppTabId>("schedule");
+  const [activeTab, setActiveTab] = useState<AppTabId>("rooms");
   const [bookingSheetOpen, setBookingSheetOpen] = useState(false);
   const [bookingInitial, setBookingInitial] =
     useState<BookingSheetInitial | null>(null);
@@ -111,9 +113,7 @@ export function AuthenticatedWorkspace() {
   const bookingsGrid = bookingsQuery.data;
 
   const bookingsUiStale =
-    Boolean(bookingsGrid) &&
-    bookingsQuery.isFetching &&
-    bookingsQuery.isStale;
+    Boolean(bookingsGrid) && bookingsQuery.isFetching && bookingsQuery.isStale;
   const roomsUiStale =
     Boolean(roomsQuery.data) && roomsQuery.isFetching && roomsQuery.isStale;
   const myBookingsUiStale =
@@ -228,10 +228,10 @@ export function AuthenticatedWorkspace() {
 
   const handleCancelBooking = useCallback(
     (id: string) => {
-      if (!window.confirm("Avboka denna reservation?")) return;
+      if (!window.confirm(t("booking.confirmCancel"))) return;
       cancelMutation.mutate({ path: { id } });
     },
-    [cancelMutation],
+    [cancelMutation, t],
   );
 
   const isRoomBookable = useCallback(
@@ -269,12 +269,14 @@ export function AuthenticatedWorkspace() {
         {
           onSuccess: (data) => {
             closeBookingSheet();
-            showBookingToast(`Bokning skapad · ${data.booking.id}`);
+            showBookingToast(
+              t("booking.createdToast", { id: data.booking.id }),
+            );
           },
         },
       );
     },
-    [closeBookingSheet, createBookingMutation, showBookingToast],
+    [closeBookingSheet, createBookingMutation, showBookingToast, t],
   );
 
   const workspaceError =
@@ -308,6 +310,27 @@ export function AuthenticatedWorkspace() {
             </div>
           ) : null}
 
+          <section {...tabPanelProps("rooms")}>
+            <RoomsTab
+              rooms={roomsQuery.data}
+              roomsIsFetching={roomsQuery.isFetching}
+              roomsUiStale={roomsUiStale}
+              bookings={bookingsGrid}
+              bookingsIsFetching={bookingsQuery.isFetching}
+              bookingsUiStale={bookingsUiStale}
+              bookingsWeekStart={weekStart}
+              bookingsWeekEnd={weekEnd}
+              onRoomsAvailabilityDateChange={setRoomsAvailabilityDate}
+              onBookRoom={handleBookRoomFromDirectory}
+              isRoomBookable={isRoomBookable}
+              capacityBounds={capacityBounds}
+              capacityMin={capacityDisplay.min}
+              capacityMax={capacityDisplay.max}
+              onCapacityRangeChange={setCapacityRange}
+              isTabActive={activeTab === "rooms"}
+            />
+          </section>
+
           <section {...tabPanelProps("schedule")}>
             <ScheduleTab
               weekOffset={
@@ -333,27 +356,6 @@ export function AuthenticatedWorkspace() {
               onPickFree={handlePickFree}
               onBookRoom={handleBookRoomFromSchedule}
               isTabActive={activeTab === "schedule"}
-            />
-          </section>
-
-          <section {...tabPanelProps("rooms")}>
-            <RoomsTab
-              rooms={roomsQuery.data}
-              roomsIsFetching={roomsQuery.isFetching}
-              roomsUiStale={roomsUiStale}
-              bookings={bookingsGrid}
-              bookingsIsFetching={bookingsQuery.isFetching}
-              bookingsUiStale={bookingsUiStale}
-              bookingsWeekStart={weekStart}
-              bookingsWeekEnd={weekEnd}
-              onRoomsAvailabilityDateChange={setRoomsAvailabilityDate}
-              onBookRoom={handleBookRoomFromDirectory}
-              isRoomBookable={isRoomBookable}
-              capacityBounds={capacityBounds}
-              capacityMin={capacityDisplay.min}
-              capacityMax={capacityDisplay.max}
-              onCapacityRangeChange={setCapacityRange}
-              isTabActive={activeTab === "rooms"}
             />
           </section>
 

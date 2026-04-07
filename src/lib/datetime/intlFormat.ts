@@ -1,21 +1,26 @@
-/** Pinned for consistent UI copy and calendar strings (Chalmers / Sweden). */
-export const APP_LOCALE = "sv-SE";
+import i18n from "../../i18n/i18n";
+
+/** BCP 47 tag for dates, times, and collation — follows the active UI language. */
+export function appLocaleBcp47(): string {
+  const lng = i18n.resolvedLanguage ?? i18n.language;
+  if (lng.startsWith("sv")) return "sv-SE";
+  return "en-GB";
+}
 
 /**
  * `yyyy-MM-dd` in the user's local calendar (for HTML date inputs and API fields).
- * `sv-SE` + numeric year/month/day yields ISO-like ordering in modern engines.
+ * Uses calendar fields only (not locale-dependent formatting).
  */
 export function formatLocalDateWire(d: Date): string {
-  return new Intl.DateTimeFormat(APP_LOCALE, {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(d);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }
 
 /** 24-hour local time for booking fields. */
 export function formatLocalTime24(d: Date): string {
-  return new Intl.DateTimeFormat(APP_LOCALE, {
+  return new Intl.DateTimeFormat(appLocaleBcp47(), {
     hour: "2-digit",
     minute: "2-digit",
     hourCycle: "h23",
@@ -23,7 +28,9 @@ export function formatLocalTime24(d: Date): string {
 }
 
 export function formatWeekdayShort(d: Date): string {
-  return new Intl.DateTimeFormat(APP_LOCALE, { weekday: "short" }).format(d);
+  return new Intl.DateTimeFormat(appLocaleBcp47(), {
+    weekday: "short",
+  }).format(d);
 }
 
 export function formatWeekRangeLabel(
@@ -32,7 +39,7 @@ export function formatWeekRangeLabel(
 ): string {
   const lastDay = new Date(weekEndExclusive);
   lastDay.setDate(lastDay.getDate() - 1);
-  const fmt = new Intl.DateTimeFormat(APP_LOCALE, {
+  const fmt = new Intl.DateTimeFormat(appLocaleBcp47(), {
     day: "numeric",
     month: "short",
   });

@@ -1,4 +1,5 @@
 import { useCallback, useId, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 function clamp(n: number, lo: number, hi: number) {
   return Math.min(hi, Math.max(lo, n));
@@ -24,8 +25,10 @@ export function CapacityRangeSlider({
   valueMax,
   onChange,
   disabled,
-  label = "Platser",
+  label: labelProp,
 }: Props) {
+  const { t } = useTranslation();
+  const label = labelProp ?? t("rooms.seatsLabel");
   const labelId = useId();
   const [active, setActive] = useState<"min" | "max" | null>(null);
 
@@ -97,7 +100,7 @@ export function CapacityRangeSlider({
           step={1}
           value={valueMin}
           disabled={disabled}
-          aria-label="Minsta antal platser"
+          aria-label={t("capacity.minSeats")}
           className={`${rangeClass} ${zMin} top-1/2 w-full -translate-y-1/2`}
           onChange={onMinInput}
           onPointerDown={() => setActive("min")}
@@ -111,7 +114,7 @@ export function CapacityRangeSlider({
           step={1}
           value={valueMax}
           disabled={disabled}
-          aria-label="Högsta antal platser"
+          aria-label={t("capacity.maxSeats")}
           className={`${rangeClass} ${zMax} top-1/2 w-full -translate-y-1/2`}
           onChange={onMaxInput}
           onPointerDown={() => setActive("max")}

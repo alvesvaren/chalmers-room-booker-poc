@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Skeleton } from "../ui/Skeleton";
 
 /** Placeholder grid matching `RoomWeekCard` layout while bookings are loading. */
@@ -73,6 +74,7 @@ const scheduleGridClass =
   "grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(min(100%,26rem),1fr))]";
 
 export function WorkspaceSuspenseFallback() {
+  const { t } = useTranslation();
   return (
     <div
       className="space-y-4"
@@ -80,7 +82,7 @@ export function WorkspaceSuspenseFallback() {
       aria-live="polite"
       aria-busy="true"
     >
-      <p className="sr-only">Laddar arbetsyta</p>
+      <p className="sr-only">{t("workspace.loading")}</p>
       <div className={scheduleGridClass}>
         {Array.from({ length: 6 }).map((_, i) => (
           <ScheduleWeekCardSkeleton key={i} dayPattern={i} />

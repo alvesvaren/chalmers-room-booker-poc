@@ -1,10 +1,12 @@
 import { useId, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type {
   AllRoomsBookings,
   MyBooking,
   RoomWithReservations,
 } from "../client/types.gen";
 import { roomMatchesCapacityFilter } from "../lib/capacityBounds";
+import { appLocaleBcp47 } from "../lib/datetime/intlFormat";
 import { ratingSortValue } from "../lib/roomRatings";
 import {
   formatWeekRangeLabel,
@@ -59,6 +61,8 @@ export function ScheduleTab({
   /** False while this tabpanel is `hidden` — keeps window virtualizer from measuring 0×0. */
   isTabActive: boolean;
 }) {
+  const { t } = useTranslation();
+  const collatorLocale = appLocaleBcp47();
   const rulesId = useId();
   const [rulesOpen, setRulesOpen] = useState(false);
   const { weekStart, weekEnd } = getWeekRange(weekOffset);
@@ -73,10 +77,10 @@ export function ScheduleTab({
     rooms.sort((a, b) => {
       const cmp = ratingSortValue(b.name) - ratingSortValue(a.name);
       if (cmp !== 0) return cmp;
-      return a.name.localeCompare(b.name, "sv");
+      return a.name.localeCompare(b.name, collatorLocale);
     });
     return rooms;
-  }, [bookings, capacityMin, capacityMax]);
+  }, [bookings, capacityMin, capacityMax, collatorLocale]);
 
   const filterGrid = "grid w-full grid-cols-1 gap-3 sm:grid-cols-2";
   const inputClass =
@@ -94,7 +98,7 @@ export function ScheduleTab({
         <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
           <div>
             <h2 className="font-display text-te-text text-xl font-semibold">
-              Veckoschema
+              {t("schedule.heading")}
             </h2>
             <p className="text-te-muted mt-1 text-sm">{label}</p>
           </div>
@@ -104,21 +108,21 @@ export function ScheduleTab({
               className="text-xs"
               onClick={() => onWeekOffsetChange(weekOffset - 1)}
             >
-              ← Föregående
+              {t("schedule.prev")}
             </Button>
             <Button
               variant="secondary"
               className="text-xs"
               onClick={() => onWeekOffsetChange(0)}
             >
-              Denna vecka
+              {t("schedule.thisWeek")}
             </Button>
             <Button
               variant="secondary"
               className="text-xs"
               onClick={() => onWeekOffsetChange(weekOffset + 1)}
             >
-              Nästa →
+              {t("schedule.next")}
             </Button>
           </div>
         </div>
@@ -126,21 +130,25 @@ export function ScheduleTab({
         <div className="space-y-4">
           <div className={filterGrid}>
             <label className="flex min-w-0 flex-col gap-1 text-sm">
-              <span className="text-te-muted font-medium">Campus</span>
+              <span className="text-te-muted font-medium">
+                {t("schedule.campus")}
+              </span>
               <input
                 className={inputClass}
                 value={campusFilter}
                 onChange={(e) => onCampusFilter(e.target.value)}
-                placeholder="Johanneberg"
+                placeholder={t("schedule.campusPlaceholder")}
               />
             </label>
             <label className="flex min-w-0 flex-col gap-1 text-sm">
-              <span className="text-te-muted font-medium">Namn</span>
+              <span className="text-te-muted font-medium">
+                {t("schedule.name")}
+              </span>
               <input
                 className={inputClass}
                 value={qFilter}
                 onChange={(e) => onQFilter(e.target.value)}
-                placeholder="Sök rum"
+                placeholder={t("schedule.searchPlaceholder")}
               />
             </label>
           </div>
@@ -175,7 +183,7 @@ export function ScheduleTab({
               aria-expanded={rulesOpen}
               onClick={() => setRulesOpen((o) => !o)}
             >
-              Bokningsregler
+              {t("schedule.bookingRules")}
               <span className="text-te-muted">{rulesOpen ? "▼" : "►"}</span>
             </button>
             {rulesOpen ? (
@@ -191,7 +199,7 @@ export function ScheduleTab({
         ) : hasBookings && roomsSorted.length === 0 ? (
           <div className={scheduleGridClass}>
             <div className="border-te-border bg-te-elevated/50 text-te-muted col-span-full rounded-xl border border-dashed px-4 py-12 text-center text-sm">
-              Inga rum för denna filtrering.
+              {t("schedule.emptyFilter")}
             </div>
           </div>
         ) : hasBookings ? (
