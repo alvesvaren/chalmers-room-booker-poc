@@ -18,7 +18,8 @@
   },
   "session": {
     "expired": "Sessionen har gått ut eller är ogiltig. Logga in igen.",
-    "timeEditRejected": "TimeEdit accepterade inte inloggningen. Logga in igen."
+    "timeEditRejected": "TimeEdit accepterade inte inloggningen. Logga in igen.",
+    "timeRemaining": "Sessionen löper ut om {{time}}"
   },
   "tabs": {
     "mainNav": "Huvudnavigering",

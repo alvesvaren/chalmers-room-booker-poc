@@ -18,7 +18,8 @@
   },
   "session": {
     "expired": "Your session has expired or is invalid. Please sign in again.",
-    "timeEditRejected": "TimeEdit did not accept the sign-in. Please sign in again."
+    "timeEditRejected": "TimeEdit did not accept the sign-in. Please sign in again.",
+    "timeRemaining": "Session expires in {{time}}"
   },
   "tabs": {
     "mainNav": "Main navigation",

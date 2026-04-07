@@ -6,8 +6,10 @@ import { postApiAuthLoginMutation } from "./client/@tanstack/react-query.gen";
 import { API_BASE, TOAST_DURATION_MS } from "./config/api";
 import { AuthenticatedWorkspace } from "./components/AuthenticatedWorkspace";
 import { SignInPanel } from "./components/SignInPanel";
+import { SessionAccountLabel } from "./components/SessionAccountLabel";
 import { useApiClientAuth } from "./hooks/useApiClientAuth";
 import { useAuthFailureInterceptor } from "./hooks/useAuthFailureInterceptor";
+import { useJwtExpiryLogout } from "./hooks/useJwtExpiryLogout";
 import { useAutoDismiss } from "./hooks/useAutoDismiss";
 import { useSessionToken } from "./hooks/useSessionToken";
 import { reactQueryPersistStorageKey } from "./lib/reactQueryPersistKey";
@@ -41,6 +43,7 @@ export default function App({
 
   useApiClientAuth(token);
   useAuthFailureInterceptor(token, logOut, setSessionToast);
+  useJwtExpiryLogout(token, logOut, setSessionToast);
 
   const clearSessionToast = useCallback(() => setSessionToast(null), []);
   useAutoDismiss(sessionToast, clearSessionToast, TOAST_DURATION_MS);
@@ -69,12 +72,10 @@ export default function App({
           {authed ? (
             <div className="flex flex-wrap items-center gap-2 sm:shrink-0 sm:justify-end">
               {accountLabel ? (
-                <span
-                  className="text-te-text max-w-48 truncate text-sm font-medium sm:max-w-none"
-                  title={accountLabel}
-                >
-                  {accountLabel}
-                </span>
+                <SessionAccountLabel
+                  token={token}
+                  accountLabel={accountLabel}
+                />
               ) : null}
               <Button variant="secondary" onClick={logOut}>
                 {t("app.signOut")}
