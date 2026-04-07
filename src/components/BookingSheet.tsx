@@ -23,7 +23,7 @@ import {
 } from "../lib/bookingSheetMath";
 import { errorMessage } from "../lib/errors";
 import { useClampBookingToFreeGaps } from "../hooks/useClampBookingToFreeGaps";
-import { useEscapeKey } from "../hooks/useEscapeKey";
+import { useEscapeKey } from "../hooks/useUiEffects";
 import {
   formatLocalDate,
   formatLocalTime,

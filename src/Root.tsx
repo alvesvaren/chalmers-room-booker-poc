@@ -5,7 +5,7 @@ import { useSessionToken } from "./hooks/useSessionToken.ts";
 export function Root() {
   const session = useSessionToken();
   return (
-    <PersistedQueryBoundary token={session.token}>
+    <PersistedQueryBoundary>
       <App session={session} />
     </PersistedQueryBoundary>
   );

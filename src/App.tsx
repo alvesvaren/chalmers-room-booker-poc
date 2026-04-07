@@ -8,11 +8,13 @@ import { AuthenticatedWorkspace } from "./components/AuthenticatedWorkspace";
 import { SignInPanel } from "./components/SignInPanel";
 import { SessionAccountLabel } from "./components/SessionAccountLabel";
 import { useApiClientAuth } from "./hooks/useApiClientAuth";
-import { useAuthFailureInterceptor } from "./hooks/useAuthFailureInterceptor";
-import { useJwtExpiryLogout } from "./hooks/useJwtExpiryLogout";
-import { useAutoDismiss } from "./hooks/useAutoDismiss";
+import {
+  useAuthFailureInterceptor,
+  useJwtExpiryLogout,
+} from "./hooks/useSessionAuth";
+import { useAutoDismiss } from "./hooks/useUiEffects";
 import { useSessionToken } from "./hooks/useSessionToken";
-import { reactQueryPersistStorageKey } from "./lib/reactQueryPersistKey";
+import { REACT_QUERY_PERSIST_STORAGE_KEY } from "./lib/reactQueryPersist";
 import { accountLabelFromJwt } from "./lib/jwtAccountLabel";
 import { LocaleSwitcher } from "./components/LocaleSwitcher";
 import { Button } from "./components/ui/Button";
@@ -30,16 +32,14 @@ export default function App({
   const [sessionToast, setSessionToast] = useState<string | null>(null);
 
   const logOut = useCallback(() => {
-    if (token) {
-      void createAsyncStoragePersister({
-        storage: window.localStorage,
-        key: reactQueryPersistStorageKey(token),
-      }).removeClient();
-    }
+    void createAsyncStoragePersister({
+      storage: window.localStorage,
+      key: REACT_QUERY_PERSIST_STORAGE_KEY,
+    }).removeClient();
     setToken("");
     void queryClient.invalidateQueries();
     void queryClient.clear();
-  }, [queryClient, setToken, token]);
+  }, [queryClient, setToken]);
 
   useApiClientAuth(token);
   useAuthFailureInterceptor(token, logOut, setSessionToast);

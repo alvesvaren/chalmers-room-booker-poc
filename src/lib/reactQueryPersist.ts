@@ -1,6 +1,9 @@
 import type { DehydratedState } from "@tanstack/react-query";
 import type { PersistedClient } from "@tanstack/react-query-persist-client";
 
+/** Single app-local React Query cache bucket; cleared on explicit logout. */
+export const REACT_QUERY_PERSIST_STORAGE_KEY = "chalmers-room-booker-rq-v1";
+
 const EMPTY_DEHYDRATED: DehydratedState = {
   mutations: [],
   queries: [],
@@ -34,4 +37,31 @@ export function safeParsePersistedClient(raw: string): PersistedClient | null {
   if (!isRecord(cs)) return null;
   if (!Array.isArray(cs.queries) || !Array.isArray(cs.mutations)) return null;
   return parsed as unknown as PersistedClient;
+}
+
+/**
+ * After reading React Query persist JSON, mark every dehydrated query as having unknown
+ * `dataUpdatedAt` so `isStale` is true until the first network fetch of this page load.
+ */
+export function markPersistedClientUnverified(client: PersistedClient): PersistedClient {
+  const queries = client.clientState.queries;
+  if (!queries?.length) {
+    return client;
+  }
+  return {
+    ...client,
+    clientState: {
+      ...client.clientState,
+      queries: queries.map((q) => {
+        if (!q.state || typeof q.state !== "object") return q;
+        return {
+          ...q,
+          state: {
+            ...q.state,
+            dataUpdatedAt: 0,
+          },
+        };
+      }),
+    },
+  };
 }

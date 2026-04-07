@@ -5,21 +5,15 @@ import type { ReactNode } from "react";
 import { useMemo } from "react";
 import { QUERY_STALE_TIME_MS } from "../config/query";
 import {
+  REACT_QUERY_PERSIST_STORAGE_KEY,
   emptyPersistedClient,
+  markPersistedClientUnverified,
   safeParsePersistedClient,
-} from "../lib/emptyPersistedClient";
-import { markPersistedClientUnverified } from "../lib/markPersistedClientUnverified";
-import { reactQueryPersistStorageKey } from "../lib/reactQueryPersistKey";
+} from "../lib/reactQueryPersist";
 
 const MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
-function PersistQueryClientLayer({
-  storageScope,
-  children,
-}: {
-  storageScope: string;
-  children: ReactNode;
-}) {
+export function PersistedQueryBoundary({ children }: { children: ReactNode }) {
   const queryClient = useMemo(
     () =>
       new QueryClient({
@@ -42,7 +36,7 @@ function PersistQueryClientLayer({
     () =>
       createAsyncStoragePersister({
         storage: window.localStorage,
-        key: storageScope,
+        key: REACT_QUERY_PERSIST_STORAGE_KEY,
         throttleTime: 1000,
         deserialize: (cachedString) => {
           const parsed = safeParsePersistedClient(cachedString);
@@ -55,7 +49,7 @@ function PersistQueryClientLayer({
           return markPersistedClientUnverified(parsed);
         },
       }),
-    [storageScope],
+    [],
   );
 
   return (
@@ -68,20 +62,5 @@ function PersistQueryClientLayer({
     >
       {children}
     </PersistQueryClientProvider>
-  );
-}
-
-export function PersistedQueryBoundary({
-  token,
-  children,
-}: {
-  token: string;
-  children: ReactNode;
-}) {
-  const storageScope = reactQueryPersistStorageKey(token);
-  return (
-    <PersistQueryClientLayer key={storageScope} storageScope={storageScope}>
-      {children}
-    </PersistQueryClientLayer>
   );
 }

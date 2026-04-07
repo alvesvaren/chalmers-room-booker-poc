@@ -6,7 +6,7 @@ import type {
   RoomWithReservations,
 } from "../client/types.gen";
 import { TOAST_DURATION_MS } from "../config/api";
-import { useAutoDismiss } from "../hooks/useAutoDismiss";
+import { useAutoDismiss } from "../hooks/useUiEffects";
 import { useWorkspaceBookingsMutations } from "../hooks/useWorkspaceBookingsMutations";
 import { useWorkspaceServerData } from "../hooks/useWorkspaceServerData";
 import { CAPACITY_SLIDER_FALLBACK_MAX } from "../lib/capacityBounds";
