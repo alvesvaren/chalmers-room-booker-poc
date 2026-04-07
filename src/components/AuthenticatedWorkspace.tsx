@@ -57,7 +57,7 @@ export function AuthenticatedWorkspace() {
     min: 1,
     max: CAPACITY_SLIDER_FALLBACK_MAX,
   });
-  const [activeTab, setActiveTab] = useState<AppTabId>("schedule");
+  const [activeTab, setActiveTab] = useState<AppTabId>("rooms");
   const [bookingSheetOpen, setBookingSheetOpen] = useState(false);
   const [bookingInitial, setBookingInitial] =
     useState<BookingSheetInitial | null>(null);
@@ -111,9 +111,7 @@ export function AuthenticatedWorkspace() {
   const bookingsGrid = bookingsQuery.data;
 
   const bookingsUiStale =
-    Boolean(bookingsGrid) &&
-    bookingsQuery.isFetching &&
-    bookingsQuery.isStale;
+    Boolean(bookingsGrid) && bookingsQuery.isFetching && bookingsQuery.isStale;
   const roomsUiStale =
     Boolean(roomsQuery.data) && roomsQuery.isFetching && roomsQuery.isStale;
   const myBookingsUiStale =
@@ -308,6 +306,27 @@ export function AuthenticatedWorkspace() {
             </div>
           ) : null}
 
+          <section {...tabPanelProps("rooms")}>
+            <RoomsTab
+              rooms={roomsQuery.data}
+              roomsIsFetching={roomsQuery.isFetching}
+              roomsUiStale={roomsUiStale}
+              bookings={bookingsGrid}
+              bookingsIsFetching={bookingsQuery.isFetching}
+              bookingsUiStale={bookingsUiStale}
+              bookingsWeekStart={weekStart}
+              bookingsWeekEnd={weekEnd}
+              onRoomsAvailabilityDateChange={setRoomsAvailabilityDate}
+              onBookRoom={handleBookRoomFromDirectory}
+              isRoomBookable={isRoomBookable}
+              capacityBounds={capacityBounds}
+              capacityMin={capacityDisplay.min}
+              capacityMax={capacityDisplay.max}
+              onCapacityRangeChange={setCapacityRange}
+              isTabActive={activeTab === "rooms"}
+            />
+          </section>
+
           <section {...tabPanelProps("schedule")}>
             <ScheduleTab
               weekOffset={
@@ -333,27 +352,6 @@ export function AuthenticatedWorkspace() {
               onPickFree={handlePickFree}
               onBookRoom={handleBookRoomFromSchedule}
               isTabActive={activeTab === "schedule"}
-            />
-          </section>
-
-          <section {...tabPanelProps("rooms")}>
-            <RoomsTab
-              rooms={roomsQuery.data}
-              roomsIsFetching={roomsQuery.isFetching}
-              roomsUiStale={roomsUiStale}
-              bookings={bookingsGrid}
-              bookingsIsFetching={bookingsQuery.isFetching}
-              bookingsUiStale={bookingsUiStale}
-              bookingsWeekStart={weekStart}
-              bookingsWeekEnd={weekEnd}
-              onRoomsAvailabilityDateChange={setRoomsAvailabilityDate}
-              onBookRoom={handleBookRoomFromDirectory}
-              isRoomBookable={isRoomBookable}
-              capacityBounds={capacityBounds}
-              capacityMin={capacityDisplay.min}
-              capacityMax={capacityDisplay.max}
-              onCapacityRangeChange={setCapacityRange}
-              isTabActive={activeTab === "rooms"}
             />
           </section>
 

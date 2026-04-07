@@ -1,8 +1,8 @@
 export type AppTabId = "schedule" | "rooms" | "mine";
 
 const tabs: { id: AppTabId; label: string }[] = [
-  { id: "schedule", label: "Schema" },
   { id: "rooms", label: "Rum" },
+  { id: "schedule", label: "Schema" },
   { id: "mine", label: "Mina bokningar" },
 ];
 

@@ -13,4 +13,4 @@ import type { ClientOptions as ClientOptions2 } from './types.gen';
  */
 export type CreateClientConfig<T extends ClientOptions = ClientOptions2> = (override?: Config<ClientOptions & T>) => Config<Required<ClientOptions> & T>;
 
-export const client = createClient(createConfig<ClientOptions2>({ baseUrl: 'https://timeedit-api-wrapper-git-v2-alvesvarens-projects.vercel.app' }));
+export const client = createClient(createConfig<ClientOptions2>({ baseUrl: 'https://timeedit.svaren.dev' }));
