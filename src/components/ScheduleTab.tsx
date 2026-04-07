@@ -1,66 +1,43 @@
 import { useId, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type {
-  AllRoomsBookings,
-  MyBooking,
-  RoomWithReservations,
-} from "../client/types.gen";
 import { roomMatchesCapacityFilter } from "../lib/capacityBounds";
 import { appLocaleBcp47 } from "../lib/datetime/intlFormat";
 import { ratingSortValue } from "../lib/roomRatings";
-import {
-  formatWeekRangeLabel,
-  getWeekRange,
-  type TimeInterval,
-} from "../lib/weekTimeline";
+import { formatWeekRangeLabel, getWeekRange } from "../lib/weekTimeline";
 import { RoomWeekCard } from "./RoomWeekCard";
 import { WorkspaceSuspenseFallback } from "./skeletons/ScheduleGridSkeleton";
 import { VirtualizedWindowGrid } from "./VirtualizedWindowGrid";
 import { Button } from "./ui/Button";
 import { CapacityRangeSlider } from "./ui/CapacityRangeSlider";
+import type { ScheduleTabProps } from "./workspaceTabProps";
 
 export function ScheduleTab({
-  weekOffset,
-  onWeekOffsetChange,
-  campusFilter,
-  onCampusFilter,
-  qFilter,
-  onQFilter,
-  capacityBounds,
-  capacityMin,
-  capacityMax,
-  onCapacityRangeChange,
+  week,
+  filters,
   bookings,
-  bookingsIsFetching,
-  bookingsUiStale,
-  bookingsFailed,
-  myBookings,
-  myBookingsUiStale,
-  onPickFree,
-  onBookRoom,
+  actions,
   isTabActive,
-}: {
-  weekOffset: number;
-  onWeekOffsetChange: (n: number) => void;
-  campusFilter: string;
-  onCampusFilter: (v: string) => void;
-  qFilter: string;
-  onQFilter: (v: string) => void;
-  capacityBounds: { min: number; max: number };
-  capacityMin: number;
-  capacityMax: number;
-  onCapacityRangeChange: (next: { min: number; max: number }) => void;
-  bookings: AllRoomsBookings | undefined;
-  bookingsIsFetching: boolean;
-  bookingsUiStale: boolean;
-  bookingsFailed?: boolean;
-  myBookings: MyBooking[] | undefined;
-  myBookingsUiStale: boolean;
-  onPickFree: (room: RoomWithReservations, gap: TimeInterval) => void;
-  onBookRoom: (room: RoomWithReservations) => void;
-  /** False while this tabpanel is `hidden` — keeps window virtualizer from measuring 0×0. */
-  isTabActive: boolean;
-}) {
+}: ScheduleTabProps) {
+  const { weekOffset, onWeekOffsetChange } = week;
+  const {
+    campusFilter,
+    onCampusFilter,
+    qFilter,
+    onQFilter,
+    capacityBounds,
+    capacityMin,
+    capacityMax,
+    onCapacityRangeChange,
+  } = filters;
+  const {
+    bookings: bookingsData,
+    bookingsIsFetching,
+    bookingsUiStale,
+    bookingsFailed,
+    myBookings,
+    myBookingsUiStale,
+  } = bookings;
+  const { onPickFree, onBookRoom } = actions;
   const { t } = useTranslation();
   const collatorLocale = appLocaleBcp47();
   const rulesId = useId();
@@ -68,10 +45,10 @@ export function ScheduleTab({
   const { weekStart, weekEnd } = getWeekRange(weekOffset);
   const label = formatWeekRangeLabel(weekStart, weekEnd);
 
-  const hasBookings = bookings != null;
+  const hasBookings = bookingsData != null;
   const roomsSorted = useMemo(() => {
-    if (!bookings) return [];
-    const rooms = [...bookings.rooms].filter((r) =>
+    if (!bookingsData) return [];
+    const rooms = [...bookingsData.rooms].filter((r) =>
       roomMatchesCapacityFilter(r, capacityMin, capacityMax),
     );
     rooms.sort((a, b) => {
@@ -80,7 +57,7 @@ export function ScheduleTab({
       return a.name.localeCompare(b.name, collatorLocale);
     });
     return rooms;
-  }, [bookings, capacityMin, capacityMax, collatorLocale]);
+  }, [bookingsData, capacityMin, capacityMax, collatorLocale]);
 
   const filterGrid = "grid w-full grid-cols-1 gap-3 sm:grid-cols-2";
   const inputClass =
@@ -162,10 +139,10 @@ export function ScheduleTab({
           />
         </div>
 
-        {hasBookings && bookings.errors?.length ? (
+        {hasBookings && bookingsData.errors?.length ? (
           <div className="rounded-xl border border-amber-500/35 bg-amber-500/10 px-4 py-3 text-sm text-amber-900 dark:text-amber-100">
             <ul className="list-inside list-disc">
-              {bookings.errors.map((e) => (
+              {bookingsData.errors.map((e) => (
                 <li key={e.roomId}>
                   {e.roomId}: {e.detail}
                 </li>
@@ -174,7 +151,7 @@ export function ScheduleTab({
           </div>
         ) : null}
 
-        {hasBookings && bookings.bookingRules ? (
+        {hasBookings && bookingsData.bookingRules ? (
           <div className="border-te-border bg-te-surface rounded-xl border">
             <button
               type="button"
@@ -188,7 +165,7 @@ export function ScheduleTab({
             </button>
             {rulesOpen ? (
               <div className="border-te-border text-te-muted max-h-48 overflow-y-auto border-t px-4 py-3 text-sm leading-relaxed">
-                {bookings.bookingRules}
+                {bookingsData.bookingRules}
               </div>
             ) : null}
           </div>

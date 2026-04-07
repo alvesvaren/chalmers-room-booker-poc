@@ -1,21 +1,5 @@
-import {
-  useMutation,
-  useQuery,
-  useQueryClient,
-  type QueryFunctionContext,
-} from "@tanstack/react-query";
 import { useCallback, useMemo, useState, useTransition } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  deleteApiMyBookingsByIdMutation,
-  getApiBookingsOptions,
-  getApiBookingsQueryKey,
-  getApiMyBookingsOptions,
-  getApiMyBookingsQueryKey,
-  getApiRoomsOptions,
-  postApiMyBookingsMutation,
-} from "../client/@tanstack/react-query.gen";
-import { getApiBookings } from "../client/sdk.gen";
 import type {
   CreateBookingRequest,
   Room,
@@ -23,12 +7,9 @@ import type {
 } from "../client/types.gen";
 import { TOAST_DURATION_MS } from "../config/api";
 import { useAutoDismiss } from "../hooks/useAutoDismiss";
-import {
-  CAPACITY_SLIDER_FALLBACK_MAX,
-  capacitySliderBounds,
-  displayCapacityRange,
-} from "../lib/capacityBounds";
-import { isBookingsGridQuery } from "../lib/bookingsQuery";
+import { useWorkspaceBookingsMutations } from "../hooks/useWorkspaceBookingsMutations";
+import { useWorkspaceServerData } from "../hooks/useWorkspaceServerData";
+import { CAPACITY_SLIDER_FALLBACK_MAX } from "../lib/capacityBounds";
 import { errorMessage } from "../lib/errors";
 import { roomWithBookingsFor } from "../lib/roomSchedule";
 import type { TimeInterval } from "../lib/weekTimeline";
@@ -46,11 +27,17 @@ import { MyBookingsTab } from "./MyBookingsTab";
 import { QueryErrorBoundary } from "./QueryErrorBoundary";
 import { RoomsTab } from "./RoomsTab";
 import { ScheduleTab } from "./ScheduleTab";
+import type {
+  MyBookingsTabProps,
+  RoomsTabProps,
+  ScheduleTabProps,
+} from "./workspaceTabProps";
 
 export function AuthenticatedWorkspace() {
   const { t } = useTranslation();
-  const queryClient = useQueryClient();
   const [, startFilterTransition] = useTransition();
+  const { createBookingMutation, cancelMutation } =
+    useWorkspaceBookingsMutations();
 
   const [weekOffset, setWeekOffset] = useState(0);
   const [campusFilter, setCampusFilter] = useState("");
@@ -84,45 +71,18 @@ export function AuthenticatedWorkspace() {
     return base;
   }, [effectiveBookingsWeekOffset, campusFilter, qFilter]);
 
-  const roomsQueryOptions = useMemo(() => getApiRoomsOptions(), []);
-  const roomsQuery = useQuery(roomsQueryOptions);
-
-  const bookingsQueryOptions = useMemo(() => {
-    const base = getApiBookingsOptions({ query: bookingsRequestQuery });
-    type BookingsQK = ReturnType<typeof getApiBookingsQueryKey>;
-    return {
-      ...base,
-      /**
-       * Omit TanStack's `signal` so leaving this query (e.g. week change) does not mark the
-       * fetch as abort-consuming; in-flight requests finish and populate the cache in the background.
-       */
-      queryFn: async ({ queryKey }: QueryFunctionContext<BookingsQK>) => {
-        const { data } = await getApiBookings({
-          ...queryKey[0],
-          throwOnError: true,
-        });
-        return data;
-      },
-    };
-  }, [bookingsRequestQuery]);
-  const bookingsQuery = useQuery(bookingsQueryOptions);
-
-  const myBookingsQueryOptions = useMemo(() => getApiMyBookingsOptions(), []);
-  const myBookingsQuery = useQuery(myBookingsQueryOptions);
-
-  const bookingsGrid = bookingsQuery.data;
-
-  const bookingsUiStale =
-    Boolean(bookingsGrid) && bookingsQuery.isFetching && bookingsQuery.isStale;
-  const roomsUiStale =
-    Boolean(roomsQuery.data) && roomsQuery.isFetching && roomsQuery.isStale;
-  const myBookingsUiStale =
-    Boolean(myBookingsQuery.data) &&
-    myBookingsQuery.isFetching &&
-    myBookingsQuery.isStale;
-
-  const capacityBounds = capacitySliderBounds(roomsQuery.data);
-  const capacityDisplay = displayCapacityRange(capacityBounds, capacityRange);
+  const {
+    roomsQuery,
+    bookingsQuery,
+    myBookingsQuery,
+    bookingsGrid,
+    bookingsUiStale,
+    roomsUiStale,
+    myBookingsUiStale,
+    capacityBounds,
+    capacityDisplay,
+    workspaceError,
+  } = useWorkspaceServerData(bookingsRequestQuery, capacityRange);
 
   const { weekStart, weekEnd } = getWeekRange(effectiveBookingsWeekOffset);
 
@@ -142,26 +102,6 @@ export function AuthenticatedWorkspace() {
     (v: string) => runBookingsFilterUpdate(() => setQFilter(v)),
     [runBookingsFilterUpdate],
   );
-
-  const createBookingMutation = useMutation({
-    ...postApiMyBookingsMutation(),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: getApiMyBookingsQueryKey(),
-      });
-      await queryClient.invalidateQueries({ predicate: isBookingsGridQuery });
-    },
-  });
-
-  const cancelMutation = useMutation({
-    ...deleteApiMyBookingsByIdMutation(),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: getApiMyBookingsQueryKey(),
-      });
-      await queryClient.invalidateQueries({ predicate: isBookingsGridQuery });
-    },
-  });
 
   const openBookingSheet = useCallback(
     (initial: BookingSheetInitial) => {
@@ -279,14 +219,6 @@ export function AuthenticatedWorkspace() {
     [closeBookingSheet, createBookingMutation, showBookingToast, t],
   );
 
-  const workspaceError =
-    roomsQuery.isError || bookingsQuery.isError || myBookingsQuery.isError
-      ? (roomsQuery.error ??
-        bookingsQuery.error ??
-        myBookingsQuery.error ??
-        null)
-      : null;
-
   const tabPanelProps = (id: AppTabId) => ({
     id: `panel-${id}`,
     role: "tabpanel" as const,
@@ -294,6 +226,132 @@ export function AuthenticatedWorkspace() {
     hidden: activeTab !== id,
     className: "space-y-0",
   });
+
+  const roomsTabProps: RoomsTabProps = useMemo(
+    () => ({
+      data: {
+        rooms: roomsQuery.data,
+        bookings: bookingsGrid,
+        bookingsWeekStart: weekStart,
+        bookingsWeekEnd: weekEnd,
+      },
+      status: {
+        roomsIsFetching: roomsQuery.isFetching,
+        roomsUiStale,
+        bookingsIsFetching: bookingsQuery.isFetching,
+        bookingsUiStale,
+      },
+      filters: {
+        capacityBounds,
+        capacityMin: capacityDisplay.min,
+        capacityMax: capacityDisplay.max,
+        onCapacityRangeChange: setCapacityRange,
+      },
+      actions: {
+        onRoomsAvailabilityDateChange: setRoomsAvailabilityDate,
+        onBookRoom: handleBookRoomFromDirectory,
+        isRoomBookable,
+      },
+      isTabActive: activeTab === "rooms",
+    }),
+    [
+      roomsQuery.data,
+      roomsQuery.isFetching,
+      bookingsGrid,
+      weekStart,
+      weekEnd,
+      roomsUiStale,
+      bookingsQuery.isFetching,
+      bookingsUiStale,
+      capacityBounds,
+      capacityDisplay.min,
+      capacityDisplay.max,
+      handleBookRoomFromDirectory,
+      isRoomBookable,
+      activeTab,
+    ],
+  );
+
+  const scheduleWeekOffset =
+    roomsAvailabilityDate != null ? effectiveBookingsWeekOffset : weekOffset;
+
+  const scheduleTabProps: ScheduleTabProps = useMemo(
+    () => ({
+      week: {
+        weekOffset: scheduleWeekOffset,
+        onWeekOffsetChange: onWeekNavigate,
+      },
+      filters: {
+        campusFilter,
+        onCampusFilter: setCampusFilterTransitioned,
+        qFilter,
+        onQFilter: setQFilterTransitioned,
+        capacityBounds,
+        capacityMin: capacityDisplay.min,
+        capacityMax: capacityDisplay.max,
+        onCapacityRangeChange: setCapacityRange,
+      },
+      bookings: {
+        bookings: bookingsGrid,
+        bookingsIsFetching: bookingsQuery.isFetching,
+        bookingsUiStale,
+        bookingsFailed: bookingsQuery.isError,
+        myBookings: myBookingsQuery.data,
+        myBookingsUiStale,
+      },
+      actions: {
+        onPickFree: handlePickFree,
+        onBookRoom: handleBookRoomFromSchedule,
+      },
+      isTabActive: activeTab === "schedule",
+    }),
+    [
+      scheduleWeekOffset,
+      onWeekNavigate,
+      campusFilter,
+      setCampusFilterTransitioned,
+      qFilter,
+      setQFilterTransitioned,
+      capacityBounds,
+      capacityDisplay.min,
+      capacityDisplay.max,
+      bookingsGrid,
+      bookingsQuery.isFetching,
+      bookingsQuery.isError,
+      bookingsUiStale,
+      myBookingsQuery.data,
+      myBookingsUiStale,
+      handlePickFree,
+      handleBookRoomFromSchedule,
+      activeTab,
+    ],
+  );
+
+  const myBookingsTabProps: MyBookingsTabProps = useMemo(
+    () => ({
+      data: {
+        rooms: roomsQuery.data,
+        myBookings: myBookingsQuery.data,
+      },
+      status: {
+        loadPending: myBookingsQuery.isPending,
+        uiStale: myBookingsUiStale,
+        cancelError: cancelMutation.isError ? cancelMutation.error : null,
+      },
+      actions: {
+        cancelMutation,
+        onCancelRequest: handleCancelBooking,
+      },
+    }),
+    [
+      roomsQuery.data,
+      myBookingsQuery.data,
+      myBookingsQuery.isPending,
+      myBookingsUiStale,
+      cancelMutation,
+      handleCancelBooking,
+    ],
+  );
 
   return (
     <div className="mt-10 space-y-6">
@@ -311,64 +369,15 @@ export function AuthenticatedWorkspace() {
           ) : null}
 
           <section {...tabPanelProps("rooms")}>
-            <RoomsTab
-              rooms={roomsQuery.data}
-              roomsIsFetching={roomsQuery.isFetching}
-              roomsUiStale={roomsUiStale}
-              bookings={bookingsGrid}
-              bookingsIsFetching={bookingsQuery.isFetching}
-              bookingsUiStale={bookingsUiStale}
-              bookingsWeekStart={weekStart}
-              bookingsWeekEnd={weekEnd}
-              onRoomsAvailabilityDateChange={setRoomsAvailabilityDate}
-              onBookRoom={handleBookRoomFromDirectory}
-              isRoomBookable={isRoomBookable}
-              capacityBounds={capacityBounds}
-              capacityMin={capacityDisplay.min}
-              capacityMax={capacityDisplay.max}
-              onCapacityRangeChange={setCapacityRange}
-              isTabActive={activeTab === "rooms"}
-            />
+            <RoomsTab {...roomsTabProps} />
           </section>
 
           <section {...tabPanelProps("schedule")}>
-            <ScheduleTab
-              weekOffset={
-                roomsAvailabilityDate != null
-                  ? effectiveBookingsWeekOffset
-                  : weekOffset
-              }
-              onWeekOffsetChange={onWeekNavigate}
-              campusFilter={campusFilter}
-              onCampusFilter={setCampusFilterTransitioned}
-              qFilter={qFilter}
-              onQFilter={setQFilterTransitioned}
-              capacityBounds={capacityBounds}
-              capacityMin={capacityDisplay.min}
-              capacityMax={capacityDisplay.max}
-              onCapacityRangeChange={setCapacityRange}
-              bookings={bookingsGrid}
-              bookingsIsFetching={bookingsQuery.isFetching}
-              bookingsUiStale={bookingsUiStale}
-              bookingsFailed={bookingsQuery.isError}
-              myBookings={myBookingsQuery.data}
-              myBookingsUiStale={myBookingsUiStale}
-              onPickFree={handlePickFree}
-              onBookRoom={handleBookRoomFromSchedule}
-              isTabActive={activeTab === "schedule"}
-            />
+            <ScheduleTab {...scheduleTabProps} />
           </section>
 
           <section {...tabPanelProps("mine")}>
-            <MyBookingsTab
-              rooms={roomsQuery.data}
-              myBookings={myBookingsQuery.data}
-              loadPending={myBookingsQuery.isPending}
-              uiStale={myBookingsUiStale}
-              cancelMutation={cancelMutation}
-              onCancelRequest={handleCancelBooking}
-              cancelError={cancelMutation.isError ? cancelMutation.error : null}
-            />
+            <MyBookingsTab {...myBookingsTabProps} />
           </section>
         </div>
       </QueryErrorBoundary>

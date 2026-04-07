@@ -1,10 +1,13 @@
 import { QueryClient } from "@tanstack/react-query";
 import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
-import type { PersistedClient } from "@tanstack/react-query-persist-client";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import type { ReactNode } from "react";
 import { useMemo } from "react";
 import { QUERY_STALE_TIME_MS } from "../config/query";
+import {
+  emptyPersistedClient,
+  safeParsePersistedClient,
+} from "../lib/emptyPersistedClient";
 import { markPersistedClientUnverified } from "../lib/markPersistedClientUnverified";
 import { reactQueryPersistStorageKey } from "../lib/reactQueryPersistKey";
 
@@ -42,7 +45,13 @@ function PersistQueryClientLayer({
         key: storageScope,
         throttleTime: 1000,
         deserialize: (cachedString) => {
-          const parsed = JSON.parse(cachedString) as PersistedClient;
+          const parsed = safeParsePersistedClient(cachedString);
+          if (parsed == null) {
+            console.warn(
+              "[react-query-persist] Ignoring corrupt or invalid cache entry",
+            );
+            return markPersistedClientUnverified(emptyPersistedClient());
+          }
           return markPersistedClientUnverified(parsed);
         },
       }),

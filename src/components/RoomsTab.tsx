@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { AllRoomsBookings, Room } from "../client/types.gen";
+import type { Room } from "../client/types.gen";
 import { roomMatchesCapacityFilter } from "../lib/capacityBounds";
 import { appLocaleBcp47 } from "../lib/datetime/intlFormat";
 import {
@@ -18,6 +18,7 @@ import {
   roomAvailableForInterval,
 } from "../lib/weekTimeline";
 import { VirtualizedWindowGrid } from "./VirtualizedWindowGrid";
+import type { RoomsTabProps } from "./workspaceTabProps";
 import { Button } from "./ui/Button";
 import { CapacityRangeSlider } from "./ui/CapacityRangeSlider";
 import { Skeleton } from "./ui/Skeleton";
@@ -25,44 +26,32 @@ import { Skeleton } from "./ui/Skeleton";
 type SortKey = "rating" | "name" | "campus" | "capacity";
 
 export function RoomsTab({
-  rooms,
-  roomsIsFetching,
-  roomsUiStale,
-  bookings,
-  bookingsIsFetching,
-  bookingsUiStale,
-  bookingsWeekStart,
-  bookingsWeekEnd,
-  onRoomsAvailabilityDateChange,
-  onBookRoom,
-  isRoomBookable,
-  capacityBounds,
-  capacityMin,
-  capacityMax,
-  onCapacityRangeChange,
+  data,
+  status,
+  filters,
+  actions,
   isTabActive,
-}: {
-  rooms: Room[] | undefined;
-  roomsIsFetching: boolean;
-  roomsUiStale: boolean;
-  bookings: AllRoomsBookings | undefined;
-  bookingsIsFetching: boolean;
-  bookingsUiStale: boolean;
-  bookingsWeekStart: Date;
-  bookingsWeekEnd: Date;
-  onRoomsAvailabilityDateChange: (date: string | null) => void;
-  onBookRoom: (
-    room: Room,
-    slot?: { date: string; startTime: string; endTime: string },
-  ) => void;
-  isRoomBookable: (room: Room) => boolean;
-  capacityBounds: { min: number; max: number };
-  capacityMin: number;
-  capacityMax: number;
-  onCapacityRangeChange: (next: { min: number; max: number }) => void;
-  /** False while this tabpanel is `hidden` — keeps window virtualizer from measuring 0×0. */
-  isTabActive: boolean;
-}) {
+}: RoomsTabProps) {
+  const {
+    rooms,
+    bookings,
+    bookingsWeekStart,
+    bookingsWeekEnd,
+  } = data;
+  const {
+    roomsIsFetching,
+    roomsUiStale,
+    bookingsIsFetching,
+    bookingsUiStale,
+  } = status;
+  const {
+    capacityBounds,
+    capacityMin,
+    capacityMax,
+    onCapacityRangeChange,
+  } = filters;
+  const { onRoomsAvailabilityDateChange, onBookRoom, isRoomBookable } =
+    actions;
   const { t } = useTranslation();
   const collatorLocale = appLocaleBcp47();
   const [search, setSearch] = useState("");

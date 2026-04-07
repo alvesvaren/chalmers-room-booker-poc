@@ -1,4 +1,3 @@
-import type { MyBooking, Room } from "../client/types.gen";
 import { useTranslation } from "react-i18next";
 import { errorMessage } from "../lib/errors";
 import {
@@ -6,26 +5,14 @@ import {
   formatLocalTime,
   parseApiInterval,
 } from "../lib/weekTimeline";
+import type { MyBookingsTabProps } from "./workspaceTabProps";
 import { Button } from "./ui/Button";
 import { Skeleton } from "./ui/Skeleton";
 
-export function MyBookingsTab({
-  rooms,
-  myBookings,
-  loadPending,
-  uiStale,
-  cancelMutation,
-  onCancelRequest,
-  cancelError,
-}: {
-  rooms: Room[] | undefined;
-  myBookings: MyBooking[] | undefined;
-  loadPending?: boolean;
-  uiStale?: boolean;
-  cancelMutation: { isPending: boolean };
-  onCancelRequest: (id: string) => void;
-  cancelError: unknown | null;
-}) {
+export function MyBookingsTab({ data, status, actions }: MyBookingsTabProps) {
+  const { rooms, myBookings } = data;
+  const { loadPending, uiStale, cancelError } = status;
+  const { cancelMutation, onCancelRequest } = actions;
   const { t } = useTranslation();
   const list = myBookings ?? [];
   const roomNameById = new Map((rooms ?? []).map((r) => [r.id, r.name]));
