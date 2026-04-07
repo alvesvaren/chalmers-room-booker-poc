@@ -2,13 +2,14 @@ import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { Room } from "../client/types.gen";
 import { roomMatchesCapacityFilter } from "../lib/capacityBounds";
+import { compareRoomsForSort, type RoomSort } from "../lib/roomSort";
 import { appLocaleBcp47 } from "../lib/datetime/intlFormat";
 import {
   defaultAvailabilityFilterStartTime,
   DURATION_CHIPS_MIN,
 } from "../lib/bookingSheetMath";
 import { roomWithBookingsFor } from "../lib/roomSchedule";
-import { getRoomRating, ratingSortValue } from "../lib/roomRatings";
+import { getRoomRating } from "../lib/roomRatings";
 import {
   addMinutes,
   formatLocalDate,
@@ -17,13 +18,12 @@ import {
   parseInstantOnDate,
   roomAvailableForInterval,
 } from "../lib/weekTimeline";
+import { BookingRulesCallout } from "./BookingRulesCallout";
+import { RoomFiltersCard } from "./RoomFiltersCard";
 import { VirtualizedWindowGrid } from "./VirtualizedWindowGrid";
 import type { RoomsTabProps } from "./workspaceTabProps";
 import { Button } from "./ui/Button";
-import { CapacityRangeSlider } from "./ui/CapacityRangeSlider";
 import { Skeleton } from "./ui/Skeleton";
-
-type SortKey = "rating" | "name" | "campus" | "capacity";
 
 export function RoomsTab({
   data,
@@ -55,8 +55,10 @@ export function RoomsTab({
   const { t } = useTranslation();
   const collatorLocale = appLocaleBcp47();
   const [search, setSearch] = useState("");
-  const [campusPick, setCampusPick] = useState("");
-  const [sort, setSort] = useState<SortKey>("rating");
+  const [sort, setSort] = useState<RoomSort>({
+    mode: "rating",
+    invert: false,
+  });
   const [slotFilterActive, setSlotFilterActive] = useState(false);
   const [slotDate, setSlotDate] = useState(() => formatLocalDate(new Date()));
   const [slotStartTime, setSlotStartTime] = useState(() =>
@@ -95,14 +97,6 @@ export function RoomsTab({
   }, [bookings?.errors]);
 
   const roomList = useMemo(() => rooms ?? [], [rooms]);
-
-  const campuses = useMemo(() => {
-    const s = new Set<string>();
-    for (const r of roomList) {
-      if (r.campus) s.add(r.campus);
-    }
-    return [...s].sort((a, b) => a.localeCompare(b, collatorLocale));
-  }, [roomList, collatorLocale]);
 
   const slotInterval = useMemo(() => {
     if (!slotFilterActive) return null;
@@ -162,46 +156,19 @@ export function RoomsTab({
     if (q) {
       list = list.filter((r) => r.name.toLowerCase().includes(q));
     }
-    if (campusPick) {
-      list = list.filter((r) =>
-        r.campus.toLowerCase().includes(campusPick.toLowerCase()),
-      );
-    }
     list = list.filter((r) =>
       roomMatchesCapacityFilter(r, capacityMin, capacityMax),
     );
     if (slotFilterActive) {
       list = list.filter((r) => roomSlotOk(r));
     }
-    list.sort((a, b) => {
-      if (slotFilterActive) {
-        const cmp = ratingSortValue(b.name) - ratingSortValue(a.name);
-        if (cmp !== 0) return cmp;
-        return a.name.localeCompare(b.name, collatorLocale);
-      }
-      if (sort === "rating") {
-        const cmp = ratingSortValue(b.name) - ratingSortValue(a.name);
-        if (cmp !== 0) return cmp;
-        return a.name.localeCompare(b.name, collatorLocale);
-      }
-      if (sort === "name") {
-        return a.name.localeCompare(b.name, collatorLocale);
-      }
-      if (sort === "campus") {
-        const c = a.campus.localeCompare(b.campus, collatorLocale);
-        if (c !== 0) return c;
-        return a.name.localeCompare(b.name, collatorLocale);
-      }
-      const ca = a.capacity ?? -1;
-      const cb = b.capacity ?? -1;
-      if (ca !== cb) return ca - cb;
-      return a.name.localeCompare(b.name, collatorLocale);
-    });
+    list.sort((a, b) =>
+      compareRoomsForSort(a, b, sort, collatorLocale),
+    );
     return list;
   }, [
     roomList,
     search,
-    campusPick,
     capacityMin,
     capacityMax,
     sort,
@@ -210,10 +177,8 @@ export function RoomsTab({
     collatorLocale,
   ]);
 
-  const filterGrid =
-    "grid w-full grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3";
   const fieldClass =
-    "min-w-0 max-w-full w-full rounded-lg border border-te-border bg-te-elevated px-3 py-2.5 text-base outline-none focus:border-te-accent focus:ring-2 focus:ring-te-accent/20 sm:py-2 sm:text-sm";
+    "box-border h-11 w-full min-w-0 max-w-full rounded-lg border border-te-border bg-te-elevated px-3 text-base text-te-text outline-none transition-[box-shadow,background-color] focus:border-te-accent focus:ring-2 focus:ring-te-accent/20 sm:h-10 sm:text-sm";
   const roomGridClass =
     "grid gap-3 sm:gap-4 [grid-template-columns:repeat(auto-fill,minmax(min(100%,17rem),1fr))]";
 
@@ -363,56 +328,25 @@ export function RoomsTab({
       </div>
 
       <div className="space-y-4">
-        <div className={filterGrid}>
-          <label className="flex min-w-0 flex-col gap-1 text-sm">
-            <span className="text-te-muted font-medium">{t("rooms.name")}</span>
-            <input
-              className={fieldClass}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder={t("rooms.searchPlaceholder")}
-            />
-          </label>
-          <label className="flex min-w-0 flex-col gap-1 text-sm">
-            <span className="text-te-muted font-medium">
-              {t("rooms.campus")}
-            </span>
-            <select
-              className={fieldClass}
-              value={campusPick}
-              onChange={(e) => setCampusPick(e.target.value)}
-            >
-              <option value="">{t("rooms.allCampuses")}</option>
-              {campuses.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex min-w-0 flex-col gap-1 text-sm sm:col-span-2 lg:col-span-1">
-            <span className="text-te-muted font-medium">{t("rooms.sort")}</span>
-            <select
-              className={fieldClass}
-              value={sort}
-              onChange={(e) => setSort(e.target.value as SortKey)}
-              disabled={slotFilterActive}
-            >
-              <option value="rating">{t("rooms.sortRating")}</option>
-              <option value="name">{t("rooms.sortName")}</option>
-              <option value="campus">{t("rooms.sortCampus")}</option>
-              <option value="capacity">{t("rooms.sortCapacity")}</option>
-            </select>
-          </label>
-        </div>
-        <CapacityRangeSlider
-          minBound={capacityBounds.min}
-          maxBound={capacityBounds.max}
-          valueMin={capacityMin}
-          valueMax={capacityMax}
-          onChange={onCapacityRangeChange}
-          disabled={roomsIsFetching || rooms == null}
+        <RoomFiltersCard
+          nameFieldId="rooms-search"
+          nameLabel={t("rooms.name")}
+          searchPlaceholder={t("rooms.searchPlaceholder")}
+          searchValue={search}
+          onSearchChange={setSearch}
+          capacityBounds={capacityBounds}
+          capacityMin={capacityMin}
+          capacityMax={capacityMax}
+          onCapacityRangeChange={onCapacityRangeChange}
+          capacityDisabled={roomsIsFetching || rooms == null}
+          sort={sort}
+          onSortChange={setSort}
+          sortDisabled={slotFilterActive}
         />
+
+        {bookings?.bookingRules && (
+          <BookingRulesCallout rules={bookings.bookingRules} />
+        )}
       </div>
 
       {roomsLoadPending ? (

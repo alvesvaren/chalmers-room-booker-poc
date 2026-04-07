@@ -18,7 +18,6 @@ import {
 
 export type WorkspaceBookingsRequestQuery = {
   weekOffset: string;
-  campus?: string;
   q?: string;
 };
 

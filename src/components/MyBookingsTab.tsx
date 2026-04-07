@@ -24,7 +24,7 @@ export function MyBookingsTab({ data, status, actions }: MyBookingsTabProps) {
       </h2>
 
       <ul
-        className={`divide-te-mine-border border-te-mine-border bg-te-mine-bg divide-y rounded-xl border shadow-sm ${
+        className={`grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4 ${
           uiStale ? "opacity-60 saturate-[0.85] transition-[opacity,filter] duration-150" : ""
         }`}
       >
@@ -32,7 +32,7 @@ export function MyBookingsTab({ data, status, actions }: MyBookingsTabProps) {
           Array.from({ length: 5 }).map((_, i) => (
             <li
               key={i}
-              className="bg-te-mine-bg flex flex-wrap items-center justify-between gap-3 px-4 py-4"
+              className="border-te-mine-border bg-te-mine-bg flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-4 shadow-sm"
             >
               <div className="min-w-0 flex-1 space-y-2">
                 <Skeleton className="h-4 w-48 max-w-full rounded" />
@@ -42,7 +42,7 @@ export function MyBookingsTab({ data, status, actions }: MyBookingsTabProps) {
             </li>
           ))}
         {!loadPending && myBookings !== undefined && list.length === 0 && (
-          <li className="text-te-muted px-4 py-10 text-center text-sm">
+          <li className="text-te-muted border-te-mine-border bg-te-mine-bg col-span-full rounded-xl border px-4 py-10 text-center text-sm shadow-sm">
             {t("mine.empty")}
           </li>
         )}
@@ -56,7 +56,7 @@ export function MyBookingsTab({ data, status, actions }: MyBookingsTabProps) {
             return (
               <li
                 key={b.id}
-                className="bg-te-mine-bg hover:bg-te-mine-row flex flex-wrap items-center justify-between gap-3 px-4 py-4 transition-colors"
+                className="border-te-mine-border bg-te-mine-bg hover:bg-te-mine-row flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-4 shadow-sm transition-colors"
               >
                 <div>
                   <p

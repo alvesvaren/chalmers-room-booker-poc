@@ -421,15 +421,35 @@ function BookingSheetForm({
             });
           }}
         >
-          <label className="grid min-w-0 gap-1 text-sm">
-            <span className="text-te-text font-medium">{t("booking.title")}</span>
-            <input
-              className={inputClass}
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder={t("booking.titlePlaceholder")}
-            />
-          </label>
+          <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 md:items-start">
+            <label className="grid min-w-0 gap-1 text-sm">
+              <span className="text-te-text font-medium">
+                {t("booking.title")}
+              </span>
+              <input
+                className={inputClass}
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder={t("booking.titlePlaceholder")}
+              />
+            </label>
+            <label className="grid min-w-0 gap-1 text-sm">
+              <span className="text-te-text font-medium">
+                {t("booking.date")}
+              </span>
+              <input
+                className={inputClass}
+                type="date"
+                value={date}
+                min={minBookDate}
+                onChange={(e) => {
+                  clearClientError();
+                  setDate(e.target.value);
+                }}
+                required
+              />
+            </label>
+          </div>
 
           <section
             className="space-y-2"
@@ -566,23 +586,6 @@ function BookingSheetForm({
               </div>
             </div>
           </section>
-
-          <label className="grid min-w-0 gap-1 text-sm">
-            <span className="text-te-text font-medium">
-              {t("booking.date")}
-            </span>
-            <input
-              className={inputClass}
-              type="date"
-              value={date}
-              min={minBookDate}
-              onChange={(e) => {
-                clearClientError();
-                setDate(e.target.value);
-              }}
-              required
-            />
-          </label>
 
           <div className="grid gap-2">
             <span className="text-te-text text-sm font-medium">

@@ -51,8 +51,6 @@ export type ScheduleTabWeek = {
 };
 
 export type ScheduleTabFilters = {
-  campusFilter: string;
-  onCampusFilter: (v: string) => void;
   qFilter: string;
   onQFilter: (v: string) => void;
   capacityBounds: { min: number; max: number };

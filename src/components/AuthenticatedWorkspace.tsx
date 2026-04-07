@@ -40,7 +40,6 @@ export function AuthenticatedWorkspace() {
     useWorkspaceBookingsMutations();
 
   const [weekOffset, setWeekOffset] = useState(0);
-  const [campusFilter, setCampusFilter] = useState("");
   const [qFilter, setQFilter] = useState("");
   const [capacityRange, setCapacityRange] = useState({
     min: 1,
@@ -61,15 +60,13 @@ export function AuthenticatedWorkspace() {
       : weekOffset;
 
   const bookingsRequestQuery = useMemo(() => {
-    const c = campusFilter.trim();
     const q = qFilter.trim();
-    const base: { weekOffset: string; campus?: string; q?: string } = {
+    const base: { weekOffset: string; q?: string } = {
       weekOffset: String(effectiveBookingsWeekOffset),
     };
-    if (c) base.campus = c;
     if (q) base.q = q;
     return base;
-  }, [effectiveBookingsWeekOffset, campusFilter, qFilter]);
+  }, [effectiveBookingsWeekOffset, qFilter]);
 
   const {
     roomsQuery,
@@ -91,11 +88,6 @@ export function AuthenticatedWorkspace() {
       startFilterTransition(update);
     },
     [startFilterTransition],
-  );
-
-  const setCampusFilterTransitioned = useCallback(
-    (v: string) => runBookingsFilterUpdate(() => setCampusFilter(v)),
-    [runBookingsFilterUpdate],
   );
 
   const setQFilterTransitioned = useCallback(
@@ -282,8 +274,6 @@ export function AuthenticatedWorkspace() {
         onWeekOffsetChange: onWeekNavigate,
       },
       filters: {
-        campusFilter,
-        onCampusFilter: setCampusFilterTransitioned,
         qFilter,
         onQFilter: setQFilterTransitioned,
         capacityBounds,
@@ -308,8 +298,6 @@ export function AuthenticatedWorkspace() {
     [
       scheduleWeekOffset,
       onWeekNavigate,
-      campusFilter,
-      setCampusFilterTransitioned,
       qFilter,
       setQFilterTransitioned,
       capacityBounds,

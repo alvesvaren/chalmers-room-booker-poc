@@ -1,14 +1,15 @@
-import { useId, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { roomMatchesCapacityFilter } from "../lib/capacityBounds";
 import { appLocaleBcp47 } from "../lib/datetime/intlFormat";
-import { ratingSortValue } from "../lib/roomRatings";
 import { formatWeekRangeLabel, getWeekRange } from "../lib/weekTimeline";
+import { compareRoomsForSort, type RoomSort } from "../lib/roomSort";
+import { BookingRulesCallout } from "./BookingRulesCallout";
+import { RoomFiltersCard } from "./RoomFiltersCard";
 import { RoomWeekCard } from "./RoomWeekCard";
 import { WorkspaceSuspenseFallback } from "./skeletons/ScheduleGridSkeleton";
 import { VirtualizedWindowGrid } from "./VirtualizedWindowGrid";
 import { Button } from "./ui/Button";
-import { CapacityRangeSlider } from "./ui/CapacityRangeSlider";
 import type { ScheduleTabProps } from "./workspaceTabProps";
 
 export function ScheduleTab({
@@ -20,8 +21,6 @@ export function ScheduleTab({
 }: ScheduleTabProps) {
   const { weekOffset, onWeekOffsetChange } = week;
   const {
-    campusFilter,
-    onCampusFilter,
     qFilter,
     onQFilter,
     capacityBounds,
@@ -40,8 +39,10 @@ export function ScheduleTab({
   const { onPickFree, onBookRoom } = actions;
   const { t } = useTranslation();
   const collatorLocale = appLocaleBcp47();
-  const rulesId = useId();
-  const [rulesOpen, setRulesOpen] = useState(false);
+  const [sort, setSort] = useState<RoomSort>({
+    mode: "rating",
+    invert: false,
+  });
   const { weekStart, weekEnd } = getWeekRange(weekOffset);
   const label = formatWeekRangeLabel(weekStart, weekEnd);
 
@@ -51,17 +52,12 @@ export function ScheduleTab({
     const rooms = [...bookingsData.rooms].filter((r) =>
       roomMatchesCapacityFilter(r, capacityMin, capacityMax),
     );
-    rooms.sort((a, b) => {
-      const cmp = ratingSortValue(b.name) - ratingSortValue(a.name);
-      if (cmp !== 0) return cmp;
-      return a.name.localeCompare(b.name, collatorLocale);
-    });
+    rooms.sort((a, b) =>
+      compareRoomsForSort(a, b, sort, collatorLocale),
+    );
     return rooms;
-  }, [bookingsData, capacityMin, capacityMax, collatorLocale]);
+  }, [bookingsData, capacityMin, capacityMax, collatorLocale, sort]);
 
-  const filterGrid = "grid w-full grid-cols-1 gap-3 sm:grid-cols-2";
-  const inputClass =
-    "min-w-0 w-full rounded-lg border border-te-border bg-te-elevated px-3 py-2.5 text-base text-te-text outline-none focus:border-te-accent focus:ring-2 focus:ring-te-accent/20 sm:py-2 sm:text-sm";
   const scheduleGridClass =
     "grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(min(100%,26rem),1fr))]";
   const panelBusyClass =
@@ -105,38 +101,25 @@ export function ScheduleTab({
         </div>
 
         <div className="space-y-4">
-          <div className={filterGrid}>
-            <label className="flex min-w-0 flex-col gap-1 text-sm">
-              <span className="text-te-muted font-medium">
-                {t("schedule.campus")}
-              </span>
-              <input
-                className={inputClass}
-                value={campusFilter}
-                onChange={(e) => onCampusFilter(e.target.value)}
-                placeholder={t("schedule.campusPlaceholder")}
-              />
-            </label>
-            <label className="flex min-w-0 flex-col gap-1 text-sm">
-              <span className="text-te-muted font-medium">
-                {t("schedule.name")}
-              </span>
-              <input
-                className={inputClass}
-                value={qFilter}
-                onChange={(e) => onQFilter(e.target.value)}
-                placeholder={t("schedule.searchPlaceholder")}
-              />
-            </label>
-          </div>
-          <CapacityRangeSlider
-            minBound={capacityBounds.min}
-            maxBound={capacityBounds.max}
-            valueMin={capacityMin}
-            valueMax={capacityMax}
-            onChange={onCapacityRangeChange}
-            disabled={bookingsIsFetching || !hasBookings}
+          <RoomFiltersCard
+            nameFieldId="schedule-room-search"
+            nameLabel={t("schedule.name")}
+            searchPlaceholder={t("schedule.searchPlaceholder")}
+            searchValue={qFilter}
+            onSearchChange={onQFilter}
+            capacityBounds={capacityBounds}
+            capacityMin={capacityMin}
+            capacityMax={capacityMax}
+            onCapacityRangeChange={onCapacityRangeChange}
+            capacityDisabled={bookingsIsFetching || !hasBookings}
+            sort={sort}
+            onSortChange={setSort}
+            sortDisabled={bookingsIsFetching || !hasBookings}
           />
+
+          {hasBookings && bookingsData.bookingRules && (
+            <BookingRulesCallout rules={bookingsData.bookingRules} />
+          )}
         </div>
 
         {hasBookings &&
@@ -152,26 +135,6 @@ export function ScheduleTab({
               </ul>
             </div>
           )}
-
-        {hasBookings && bookingsData.bookingRules && (
-          <div className="border-te-border bg-te-surface rounded-xl border">
-            <button
-              type="button"
-              id={rulesId}
-              className="text-te-text flex w-full items-center justify-between px-4 py-3 text-left text-sm font-medium"
-              aria-expanded={rulesOpen}
-              onClick={() => setRulesOpen((o) => !o)}
-            >
-              {t("schedule.bookingRules")}
-              <span className="text-te-muted">{rulesOpen ? "▼" : "►"}</span>
-            </button>
-            {rulesOpen && (
-              <div className="border-te-border text-te-muted max-h-48 overflow-y-auto border-t px-4 py-3 text-sm leading-relaxed">
-                {bookingsData.bookingRules}
-              </div>
-            )}
-          </div>
-        )}
 
         {!hasBookings && !bookingsFailed && <WorkspaceSuspenseFallback />}
         {hasBookings && roomsSorted.length === 0 && (
