@@ -359,14 +359,14 @@ export function AuthenticatedWorkspace() {
 
       <QueryErrorBoundary>
         <div className="border-te-border bg-te-surface rounded-2xl border p-5 shadow-sm sm:p-8">
-          {workspaceError ? (
+          {workspaceError && (
             <div
               className="border-te-danger/30 bg-te-danger-bg text-te-danger mb-6 rounded-xl border px-4 py-3 text-sm"
               role="alert"
             >
               {errorMessage(workspaceError)}
             </div>
-          ) : null}
+          )}
 
           <section {...tabPanelProps("rooms")}>
             <RoomsTab {...roomsTabProps} />
@@ -395,7 +395,7 @@ export function AuthenticatedWorkspace() {
         }
       />
 
-      {toast ? (
+      {toast && (
         <div
           className="border-te-border bg-te-elevated text-te-text fixed bottom-6 left-1/2 z-60 max-w-md -translate-x-1/2 rounded-xl border px-4 py-3 text-sm shadow-lg"
           role="status"
@@ -403,7 +403,7 @@ export function AuthenticatedWorkspace() {
         >
           {toast}
         </div>
-      ) : null}
+      )}
     </div>
   );
 }

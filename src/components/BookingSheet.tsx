@@ -369,14 +369,14 @@ function BookingSheetForm({
             >
               {t("booking.newBooking")}
             </h2>
-            {roomName ? (
+            {roomName && (
               <p
                 className="text-te-muted mt-0.5 truncate text-sm"
                 title={roomName}
               >
                 {roomName}
               </p>
-            ) : null}
+            )}
           </div>
           <button
             type="button"
@@ -505,7 +505,7 @@ function BookingSheetForm({
                         width: `${Math.max(bw, 0.5)}%`,
                       }}
                     >
-                      {b.label ? (
+                      {b.label && (
                         <span
                           className={`font-display truncate text-center text-[0.55rem] leading-tight font-semibold sm:text-[0.6rem] ${
                             mine
@@ -515,7 +515,7 @@ function BookingSheetForm({
                         >
                           {b.label}
                         </span>
-                      ) : null}
+                      )}
                     </div>
                   );
                 })}
@@ -548,11 +548,11 @@ function BookingSheetForm({
                       : t("booking.previewGrabNoTitle")
                   }
                 >
-                  {title.trim() ? (
+                  {title.trim() && (
                     <span className="font-display text-te-accent pointer-events-none truncate text-center text-[0.6rem] leading-tight font-semibold tracking-tight drop-shadow-sm sm:text-[0.68rem] sm:leading-tight">
                       {title.trim()}
                     </span>
-                  ) : null}
+                  )}
                 </div>
                 <button
                   type="button"
@@ -653,7 +653,7 @@ function BookingSheetForm({
             >
               {showAdvanced ? t("booking.hide") : t("booking.showRoomId")}
             </button>
-            {showAdvanced ? (
+            {showAdvanced && (
               <label className="mt-2 grid min-w-0 gap-1 text-sm">
                 <span className="text-te-muted">{t("booking.roomIdApi")}</span>
                 <input
@@ -663,15 +663,15 @@ function BookingSheetForm({
                   required
                 />
               </label>
-            ) : null}
+            )}
           </div>
 
-          {clientError ? (
+          {clientError && (
             <p className="text-te-danger text-sm" role="alert">
               {clientError}
             </p>
-          ) : null}
-          {error ? (
+          )}
+          {!!error && (
             <p
               className="text-te-danger text-sm"
               role="alert"
@@ -679,7 +679,7 @@ function BookingSheetForm({
             >
               {errorMessage(error)}
             </p>
-          ) : null}
+          )}
 
           <div className="border-te-border mt-auto flex flex-wrap justify-end gap-2 border-t pt-4">
             <Button type="button" variant="secondary" onClick={onClose}>

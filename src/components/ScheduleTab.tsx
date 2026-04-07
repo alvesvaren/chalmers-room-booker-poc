@@ -139,19 +139,21 @@ export function ScheduleTab({
           />
         </div>
 
-        {hasBookings && bookingsData.errors?.length ? (
-          <div className="rounded-xl border border-amber-500/35 bg-amber-500/10 px-4 py-3 text-sm text-amber-900 dark:text-amber-100">
-            <ul className="list-inside list-disc">
-              {bookingsData.errors.map((e) => (
-                <li key={e.roomId}>
-                  {e.roomId}: {e.detail}
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
+        {hasBookings &&
+          bookingsData.errors &&
+          bookingsData.errors.length > 0 && (
+            <div className="rounded-xl border border-amber-500/35 bg-amber-500/10 px-4 py-3 text-sm text-amber-900 dark:text-amber-100">
+              <ul className="list-inside list-disc">
+                {bookingsData.errors.map((e) => (
+                  <li key={e.roomId}>
+                    {e.roomId}: {e.detail}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
-        {hasBookings && bookingsData.bookingRules ? (
+        {hasBookings && bookingsData.bookingRules && (
           <div className="border-te-border bg-te-surface rounded-xl border">
             <button
               type="button"
@@ -163,23 +165,23 @@ export function ScheduleTab({
               {t("schedule.bookingRules")}
               <span className="text-te-muted">{rulesOpen ? "▼" : "►"}</span>
             </button>
-            {rulesOpen ? (
+            {rulesOpen && (
               <div className="border-te-border text-te-muted max-h-48 overflow-y-auto border-t px-4 py-3 text-sm leading-relaxed">
                 {bookingsData.bookingRules}
               </div>
-            ) : null}
+            )}
           </div>
-        ) : null}
+        )}
 
-        {!hasBookings && !bookingsFailed ? (
-          <WorkspaceSuspenseFallback />
-        ) : hasBookings && roomsSorted.length === 0 ? (
+        {!hasBookings && !bookingsFailed && <WorkspaceSuspenseFallback />}
+        {hasBookings && roomsSorted.length === 0 && (
           <div className={scheduleGridClass}>
             <div className="border-te-border bg-te-elevated/50 text-te-muted col-span-full rounded-xl border border-dashed px-4 py-12 text-center text-sm">
               {t("schedule.emptyFilter")}
             </div>
           </div>
-        ) : hasBookings ? (
+        )}
+        {hasBookings && roomsSorted.length > 0 && (
           <VirtualizedWindowGrid
             enabled={isTabActive}
             items={roomsSorted}
@@ -197,7 +199,7 @@ export function ScheduleTab({
               />
             )}
           />
-        ) : null}
+        )}
       </div>
     </div>
   );

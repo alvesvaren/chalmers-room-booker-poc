@@ -45,9 +45,9 @@ export function AppTabs({
               onClick={() => onChange(tab.id)}
             >
               {tab.label}
-              {selected ? (
+              {selected && (
                 <span className="bg-te-accent absolute inset-x-2 bottom-0 h-0.5 rounded-full" />
-              ) : null}
+              )}
             </button>
           );
         })}

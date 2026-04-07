@@ -63,11 +63,11 @@ export function SignInPanel({
         </Button>
       </form>
 
-      {submitError ? (
+      {!!submitError && (
         <p className="text-te-danger mt-4 text-sm" role="alert">
           {errorMessage(submitError)}
         </p>
-      ) : null}
+      )}
     </section>
   );
 }

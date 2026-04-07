@@ -69,22 +69,22 @@ export default function App({
               {t("app.subtitle")}
             </p>
           </div>
-          {authed ? (
+          {authed && (
             <div className="flex flex-wrap items-center gap-2 sm:shrink-0 sm:justify-end">
-              {accountLabel ? (
+              {accountLabel && (
                 <SessionAccountLabel
                   token={token}
                   accountLabel={accountLabel}
                 />
-              ) : null}
+              )}
               <Button variant="secondary" onClick={logOut}>
                 {t("app.signOut")}
               </Button>
             </div>
-          ) : null}
+          )}
         </header>
 
-        {!authed ? (
+        {!authed && (
           <SignInPanel
             username={username}
             password={password}
@@ -104,9 +104,9 @@ export default function App({
             isPending={loginMutation.isPending}
             submitError={loginMutation.isError ? loginMutation.error : null}
           />
-        ) : null}
+        )}
 
-        {sessionToast ? (
+        {sessionToast && (
           <div
             className="border-te-border bg-te-elevated text-te-text fixed bottom-6 left-1/2 z-60 max-w-md -translate-x-1/2 rounded-xl border px-4 py-3 text-sm shadow-lg"
             role="status"
@@ -114,7 +114,7 @@ export default function App({
           >
             {sessionToast}
           </div>
-        ) : null}
+        )}
 
         {!authed ? (
           <p className="text-te-muted mt-8 text-center text-sm">

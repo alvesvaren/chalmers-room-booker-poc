@@ -71,7 +71,7 @@ export function RoomWeekCard({
                 ? t("roomWeek.nSeats", { count: room.capacity })
                 : "—"}
             </span>
-            {rr != null ? (
+            {rr != null && (
               <>
                 <span
                   aria-hidden
@@ -87,7 +87,7 @@ export function RoomWeekCard({
                   })}
                 </span>
               </>
-            ) : null}
+            )}
           </span>
         </button>
         <Button
@@ -105,7 +105,7 @@ export function RoomWeekCard({
         </Button>
       </div>
 
-      {open ? (
+      {open && (
         <div className="space-y-3 px-4 py-4 sm:px-5">
           <div className="text-te-muted ml-12 hidden justify-between text-[10px] font-medium tracking-wider uppercase sm:flex">
             <span>07</span>
@@ -205,7 +205,7 @@ export function RoomWeekCard({
                         width: `${Math.max(widthPct, 0.6)}%`,
                       }}
                     >
-                      {b.label ? (
+                      {b.label && (
                         <span
                           className={`font-display truncate text-center text-[0.55rem] leading-tight font-semibold sm:text-[0.62rem] ${
                             mine
@@ -215,7 +215,7 @@ export function RoomWeekCard({
                         >
                           {b.label}
                         </span>
-                      ) : null}
+                      )}
                     </div>
                   );
                 })}
@@ -238,7 +238,7 @@ export function RoomWeekCard({
             )}
           </ul>
         </div>
-      ) : null}
+      )}
     </article>
   );
 }

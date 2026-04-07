@@ -256,7 +256,7 @@ export function RoomsTab({
           </span>
         </label>
 
-        {slotFilterActive ? (
+        {slotFilterActive && (
           <div className="border-te-border/60 mt-4 grid min-w-0 gap-3 border-t pt-4 sm:grid-cols-2 lg:grid-cols-4">
             <label className="flex min-w-0 flex-col gap-1 text-sm">
               <span className="text-te-muted font-medium">
@@ -342,9 +342,9 @@ export function RoomsTab({
               </div>
             </div>
           </div>
-        ) : null}
+        )}
 
-        {slotBookingsInitialLoad ? (
+        {slotBookingsInitialLoad && (
           <div
             className="border-te-border/60 mt-4 space-y-3 border-t pt-4"
             role="status"
@@ -359,7 +359,7 @@ export function RoomsTab({
               <Skeleton className="hidden h-2.5 w-16 rounded-full sm:block" />
             </div>
           </div>
-        ) : null}
+        )}
       </div>
 
       <div className="space-y-4">
@@ -473,32 +473,32 @@ export function RoomsTab({
                     </h3>
                   </header>
 
-                  {fetchFailed ? (
+                  {fetchFailed && (
                     <p className="text-te-danger text-xs font-medium">
                       {t("rooms.fetchScheduleFailed")}
                     </p>
-                  ) : null}
+                  )}
 
                   {slotFilterActive &&
-                  slotInterval &&
-                  !slotInterval.crossesDay &&
-                  !fetchFailed ? (
-                    <p className="text-te-accent text-xs font-medium">
-                      {t("rooms.freeInterval", {
-                        start: slotStartTime,
-                        end: slotInterval.endTime,
-                      })}
-                    </p>
-                  ) : null}
+                    slotInterval &&
+                    !slotInterval.crossesDay &&
+                    !fetchFailed && (
+                      <p className="text-te-accent text-xs font-medium">
+                        {t("rooms.freeInterval", {
+                          start: slotStartTime,
+                          end: slotInterval.endTime,
+                        })}
+                      </p>
+                    )}
 
-                  {rr != null ? (
+                  {rr != null && (
                     <span
                       className="font-display text-te-accent text-3xl leading-none font-semibold tabular-nums sm:text-[2.35rem]"
                       title={rr.comment}
                     >
                       {betyg}
                     </span>
-                  ) : null}
+                  )}
 
                   <p
                     className="text-te-muted text-sm leading-snug"
