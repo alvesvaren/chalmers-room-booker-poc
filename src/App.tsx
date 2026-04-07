@@ -66,24 +66,21 @@ export default function App({
               {t("app.subtitle")}
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2 sm:shrink-0 sm:justify-end">
-            <LocaleSwitcher />
-            {authed ? (
-              <>
-                {accountLabel ? (
-                  <span
-                    className="text-te-text max-w-48 truncate text-sm font-medium sm:max-w-none"
-                    title={accountLabel}
-                  >
-                    {accountLabel}
-                  </span>
-                ) : null}
-                <Button variant="secondary" onClick={logOut}>
-                  {t("app.signOut")}
-                </Button>
-              </>
-            ) : null}
-          </div>
+          {authed ? (
+            <div className="flex flex-wrap items-center gap-2 sm:shrink-0 sm:justify-end">
+              {accountLabel ? (
+                <span
+                  className="text-te-text max-w-48 truncate text-sm font-medium sm:max-w-none"
+                  title={accountLabel}
+                >
+                  {accountLabel}
+                </span>
+              ) : null}
+              <Button variant="secondary" onClick={logOut}>
+                {t("app.signOut")}
+              </Button>
+            </div>
+          ) : null}
         </header>
 
         {!authed ? (
@@ -126,15 +123,18 @@ export default function App({
           <AuthenticatedWorkspace />
         )}
 
-        <footer className="border-te-border text-te-muted mt-16 border-t pt-6 text-center text-xs">
-          <a
-            className="text-te-accent font-medium underline-offset-4 hover:underline"
-            href={API_BASE}
-            target="_blank"
-            rel="noreferrer"
-          >
-            {t("app.apiLink")}
-          </a>
+        <footer className="border-te-border text-te-muted mt-16 border-t pt-6 text-xs">
+          <div className="flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-6">
+            <a
+              className="text-te-accent text-center font-medium underline-offset-4 hover:underline"
+              href={API_BASE}
+              target="_blank"
+              rel="noreferrer"
+            >
+              {t("app.apiLink")}
+            </a>
+            <LocaleSwitcher />
+          </div>
         </footer>
       </div>
     </div>
