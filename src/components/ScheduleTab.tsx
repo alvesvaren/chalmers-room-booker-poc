@@ -1,9 +1,9 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { roomMatchesCapacityFilter } from "../lib/capacityBounds";
 import { appLocaleBcp47 } from "../lib/datetime/intlFormat";
 import { formatWeekRangeLabel, getWeekRange } from "../lib/weekTimeline";
-import { compareRoomsForSort, type RoomSort } from "../lib/roomSort";
+import { compareRoomsForSort } from "../lib/roomSort";
 import { BookingRulesCallout } from "./BookingRulesCallout";
 import { RoomFiltersCard } from "./RoomFiltersCard";
 import { RoomWeekCard } from "./RoomWeekCard";
@@ -27,6 +27,8 @@ export function ScheduleTab({
     capacityMin,
     capacityMax,
     onCapacityRangeChange,
+    roomSort,
+    onRoomSortChange,
   } = filters;
   const {
     bookings: bookingsData,
@@ -39,10 +41,6 @@ export function ScheduleTab({
   const { onPickFree, onBookRoom } = actions;
   const { t } = useTranslation();
   const collatorLocale = appLocaleBcp47();
-  const [sort, setSort] = useState<RoomSort>({
-    mode: "rating",
-    invert: false,
-  });
   const { weekStart, weekEnd } = getWeekRange(weekOffset);
   const label = formatWeekRangeLabel(weekStart, weekEnd);
 
@@ -58,10 +56,17 @@ export function ScheduleTab({
         ? rooms
         : rooms.filter((r) => r.name.toLowerCase().includes(q));
     nameFiltered.sort((a, b) =>
-      compareRoomsForSort(a, b, sort, collatorLocale),
+      compareRoomsForSort(a, b, roomSort, collatorLocale),
     );
     return nameFiltered;
-  }, [bookingsData, qFilter, capacityMin, capacityMax, collatorLocale, sort]);
+  }, [
+    bookingsData,
+    qFilter,
+    capacityMin,
+    capacityMax,
+    collatorLocale,
+    roomSort,
+  ]);
 
   const scheduleGridClass =
     "grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(min(100%,26rem),1fr))]";
@@ -117,8 +122,8 @@ export function ScheduleTab({
             capacityMax={capacityMax}
             onCapacityRangeChange={onCapacityRangeChange}
             capacityDisabled={bookingsIsFetching || !hasBookings}
-            sort={sort}
-            onSortChange={setSort}
+            sort={roomSort}
+            onSortChange={onRoomSortChange}
             sortDisabled={bookingsIsFetching || !hasBookings}
           />
 

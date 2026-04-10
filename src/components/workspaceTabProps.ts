@@ -5,6 +5,7 @@ import type {
   Room,
   RoomWithReservations,
 } from "../client/types.gen";
+import type { RoomSort } from "../lib/roomSort";
 import type { TimeInterval } from "../lib/weekTimeline";
 
 export type RoomsTabData = {
@@ -28,6 +29,8 @@ export type RoomsTabFilters = {
   capacityMin: number;
   capacityMax: number;
   onCapacityRangeChange: (next: { min: number; max: number }) => void;
+  roomSort: RoomSort;
+  onRoomSortChange: (next: RoomSort) => void;
 };
 
 export type RoomsTabActions = {
@@ -59,6 +62,8 @@ export type ScheduleTabFilters = {
   capacityMin: number;
   capacityMax: number;
   onCapacityRangeChange: (next: { min: number; max: number }) => void;
+  roomSort: RoomSort;
+  onRoomSortChange: (next: RoomSort) => void;
 };
 
 export type ScheduleTabBookings = {

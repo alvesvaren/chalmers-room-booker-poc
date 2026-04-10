@@ -11,6 +11,7 @@ import { useWorkspaceBookingsMutations } from "../hooks/useWorkspaceBookingsMuta
 import { useWorkspaceServerData } from "../hooks/useWorkspaceServerData";
 import { CAPACITY_SLIDER_FALLBACK_MAX } from "../lib/capacityBounds";
 import { findAbRoomCompanion } from "../lib/abRoomPair";
+import type { RoomSort } from "../lib/roomSort";
 import { errorMessage } from "../lib/errors";
 import { roomWithBookingsFor } from "../lib/roomSchedule";
 import type { TimeInterval } from "../lib/weekTimeline";
@@ -42,6 +43,10 @@ export function AuthenticatedWorkspace() {
 
   const [weekOffset, setWeekOffset] = useState(0);
   const [qFilter, setQFilter] = useState("");
+  const [roomSort, setRoomSort] = useState<RoomSort>({
+    mode: "rating",
+    invert: false,
+  });
   const [capacityRange, setCapacityRange] = useState({
     min: 1,
     max: CAPACITY_SLIDER_FALLBACK_MAX,
@@ -93,6 +98,11 @@ export function AuthenticatedWorkspace() {
 
   const setQFilterTransitioned = useCallback(
     (v: string) => runBookingsFilterUpdate(() => setQFilter(v)),
+    [runBookingsFilterUpdate],
+  );
+
+  const setRoomSortTransitioned = useCallback(
+    (next: RoomSort) => runBookingsFilterUpdate(() => setRoomSort(next)),
     [runBookingsFilterUpdate],
   );
 
@@ -282,6 +292,8 @@ export function AuthenticatedWorkspace() {
         capacityMin: capacityDisplay.min,
         capacityMax: capacityDisplay.max,
         onCapacityRangeChange: setCapacityRange,
+        roomSort,
+        onRoomSortChange: setRoomSortTransitioned,
       },
       actions: {
         onRoomsAvailabilityDateChange: setRoomsAvailabilityDate,
@@ -301,6 +313,8 @@ export function AuthenticatedWorkspace() {
       bookingsUiStale,
       qFilter,
       setQFilterTransitioned,
+      roomSort,
+      setRoomSortTransitioned,
       capacityBounds,
       capacityDisplay.min,
       capacityDisplay.max,
@@ -326,6 +340,8 @@ export function AuthenticatedWorkspace() {
         capacityMin: capacityDisplay.min,
         capacityMax: capacityDisplay.max,
         onCapacityRangeChange: setCapacityRange,
+        roomSort,
+        onRoomSortChange: setRoomSortTransitioned,
       },
       bookings: {
         bookings: bookingsGrid,
@@ -346,6 +362,8 @@ export function AuthenticatedWorkspace() {
       onWeekNavigate,
       qFilter,
       setQFilterTransitioned,
+      roomSort,
+      setRoomSortTransitioned,
       capacityBounds,
       capacityDisplay.min,
       capacityDisplay.max,

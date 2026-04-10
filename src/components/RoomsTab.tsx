@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { Room } from "../client/types.gen";
 import { roomMatchesCapacityFilter } from "../lib/capacityBounds";
-import { compareRoomsForSort, type RoomSort } from "../lib/roomSort";
+import { compareRoomsForSort } from "../lib/roomSort";
 import { appLocaleBcp47 } from "../lib/datetime/intlFormat";
 import {
   clampIntervalToDayWindow,
@@ -55,15 +55,13 @@ export function RoomsTab({
     capacityMin,
     capacityMax,
     onCapacityRangeChange,
+    roomSort,
+    onRoomSortChange,
   } = filters;
   const { onRoomsAvailabilityDateChange, onBookRoom, isRoomBookable } =
     actions;
   const { t } = useTranslation();
   const collatorLocale = appLocaleBcp47();
-  const [sort, setSort] = useState<RoomSort>({
-    mode: "rating",
-    invert: false,
-  });
   const [slotFilterActive, setSlotFilterActive] = useState(false);
   const [slotDate, setSlotDate] = useState(() => formatLocalDate(new Date()));
   const [slotStartTime, setSlotStartTime] = useState(() =>
@@ -226,7 +224,7 @@ export function RoomsTab({
       list = list.filter((r) => roomSlotOk(r));
     }
     list.sort((a, b) =>
-      compareRoomsForSort(a, b, sort, collatorLocale),
+      compareRoomsForSort(a, b, roomSort, collatorLocale),
     );
     return list;
   }, [
@@ -234,7 +232,7 @@ export function RoomsTab({
     qFilter,
     capacityMin,
     capacityMax,
-    sort,
+    roomSort,
     slotFilterActive,
     roomSlotOk,
     collatorLocale,
@@ -397,8 +395,8 @@ export function RoomsTab({
             capacityMax={capacityMax}
             onCapacityRangeChange={onCapacityRangeChange}
             capacityDisabled={roomsIsFetching || rooms == null}
-            sort={sort}
-            onSortChange={setSort}
+            sort={roomSort}
+            onSortChange={onRoomSortChange}
             sortDisabled={false}
           />
         </div>
