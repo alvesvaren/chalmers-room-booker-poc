@@ -49,6 +49,8 @@ export function RoomsTab({
     bookingsUiStale,
   } = status;
   const {
+    qFilter,
+    onQFilter,
     capacityBounds,
     capacityMin,
     capacityMax,
@@ -58,7 +60,6 @@ export function RoomsTab({
     actions;
   const { t } = useTranslation();
   const collatorLocale = appLocaleBcp47();
-  const [search, setSearch] = useState("");
   const [sort, setSort] = useState<RoomSort>({
     mode: "rating",
     invert: false,
@@ -214,7 +215,7 @@ export function RoomsTab({
 
   const filtered = useMemo(() => {
     let list = [...roomList];
-    const q = search.trim().toLowerCase();
+    const q = qFilter.trim().toLowerCase();
     if (q) {
       list = list.filter((r) => r.name.toLowerCase().includes(q));
     }
@@ -230,7 +231,7 @@ export function RoomsTab({
     return list;
   }, [
     roomList,
-    search,
+    qFilter,
     capacityMin,
     capacityMax,
     sort,
@@ -389,8 +390,8 @@ export function RoomsTab({
             nameFieldId="rooms-search"
             nameLabel={t("rooms.name")}
             searchPlaceholder={t("rooms.searchPlaceholder")}
-            searchValue={search}
-            onSearchChange={setSearch}
+            searchValue={qFilter}
+            onSearchChange={onQFilter}
             capacityBounds={capacityBounds}
             capacityMin={capacityMin}
             capacityMax={capacityMax}

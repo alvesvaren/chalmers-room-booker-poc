@@ -49,14 +49,19 @@ export function ScheduleTab({
   const hasBookings = bookingsData != null;
   const roomsSorted = useMemo(() => {
     if (!bookingsData) return [];
+    const q = qFilter.trim().toLowerCase();
     const rooms = [...bookingsData.rooms].filter((r) =>
       roomMatchesCapacityFilter(r, capacityMin, capacityMax),
     );
-    rooms.sort((a, b) =>
+    const nameFiltered =
+      q.length === 0
+        ? rooms
+        : rooms.filter((r) => r.name.toLowerCase().includes(q));
+    nameFiltered.sort((a, b) =>
       compareRoomsForSort(a, b, sort, collatorLocale),
     );
-    return rooms;
-  }, [bookingsData, capacityMin, capacityMax, collatorLocale, sort]);
+    return nameFiltered;
+  }, [bookingsData, qFilter, capacityMin, capacityMax, collatorLocale, sort]);
 
   const scheduleGridClass =
     "grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(min(100%,26rem),1fr))]";

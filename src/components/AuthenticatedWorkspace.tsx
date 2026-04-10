@@ -276,6 +276,8 @@ export function AuthenticatedWorkspace() {
         bookingsUiStale,
       },
       filters: {
+        qFilter,
+        onQFilter: setQFilterTransitioned,
         capacityBounds,
         capacityMin: capacityDisplay.min,
         capacityMax: capacityDisplay.max,
@@ -297,6 +299,8 @@ export function AuthenticatedWorkspace() {
       roomsUiStale,
       bookingsQuery.isFetching,
       bookingsUiStale,
+      qFilter,
+      setQFilterTransitioned,
       capacityBounds,
       capacityDisplay.min,
       capacityDisplay.max,

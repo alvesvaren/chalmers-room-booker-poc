@@ -22,6 +22,8 @@ export type RoomsTabStatus = {
 };
 
 export type RoomsTabFilters = {
+  qFilter: string;
+  onQFilter: (v: string) => void;
   capacityBounds: { min: number; max: number };
   capacityMin: number;
   capacityMax: number;
