@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { Room } from "../client/types.gen";
 import { roomMatchesCapacityFilter } from "../lib/capacityBounds";
@@ -8,6 +8,7 @@ import {
   clampIntervalToDayWindow,
   dayDisplayBounds,
   defaultAvailabilityFilterStartTime,
+  DURATION_CHIPS_MIN,
 } from "../lib/bookingSheetMath";
 import { roomWithBookingsFor } from "../lib/roomSchedule";
 import { getRoomRating } from "../lib/roomRatings";
@@ -16,12 +17,10 @@ import {
   formatLocalDate,
   formatLocalTime,
   formatWeekRangeLabel,
-  parseApiInterval,
   parseInstantOnDate,
   roomAvailableForInterval,
 } from "../lib/weekTimeline";
 import { DayIntervalTimeline } from "./DayIntervalTimeline";
-import type { DayIntervalBusySegment } from "./DayIntervalTimeline";
 import { BookingRulesCallout } from "./BookingRulesCallout";
 import { RoomFiltersCard } from "./RoomFiltersCard";
 import { VirtualizedWindowGrid } from "./VirtualizedWindowGrid";
@@ -42,7 +41,6 @@ export function RoomsTab({
     bookings,
     bookingsWeekStart,
     bookingsWeekEnd,
-    myBookings,
   } = data;
   const {
     roomsIsFetching,
@@ -79,6 +77,20 @@ export function RoomsTab({
     const [, b] = clampIntervalToDayWindow(sMs, eMs, d, w0, w1);
     return formatLocalTime(new Date(b));
   });
+  /** Debounced copy for list filtering (reduces work while dragging timeline). */
+  const [slotAppliedStart, setSlotAppliedStart] = useState(slotStartTime);
+  const [slotAppliedEnd, setSlotAppliedEnd] = useState(slotEndTime);
+
+  const SLOT_FILTER_DEBOUNCE_MS = 200;
+
+  useEffect(() => {
+    if (!slotFilterActive) return undefined;
+    const id = window.setTimeout(() => {
+      setSlotAppliedStart(slotStartTime);
+      setSlotAppliedEnd(slotEndTime);
+    }, SLOT_FILTER_DEBOUNCE_MS);
+    return () => window.clearTimeout(id);
+  }, [slotFilterActive, slotStartTime, slotEndTime, slotDate]);
 
   const minBookDate = formatLocalDate(new Date());
 
@@ -88,8 +100,12 @@ export function RoomsTab({
     const sMs = parseInstantOnDate(dateStr, st).getTime();
     const eMs = addMinutes(new Date(sMs), 120).getTime();
     const [a, b] = clampIntervalToDayWindow(sMs, eMs, dateStr, w0, w1);
-    setSlotStartTime(formatLocalTime(new Date(a)));
-    setSlotEndTime(formatLocalTime(new Date(b)));
+    const startStr = formatLocalTime(new Date(a));
+    const endStr = formatLocalTime(new Date(b));
+    setSlotStartTime(startStr);
+    setSlotEndTime(endStr);
+    setSlotAppliedStart(startStr);
+    setSlotAppliedEnd(endStr);
   }, []);
 
   const setSlotFilterActiveSynced = useCallback(
@@ -97,10 +113,19 @@ export function RoomsTab({
       setSlotFilterActive(checked);
       if (checked) {
         applyDefaultSlotIntervalForDate(slotDate);
+      } else {
+        setSlotAppliedStart(slotStartTime);
+        setSlotAppliedEnd(slotEndTime);
       }
       onRoomsAvailabilityDateChange(checked ? slotDate : null);
     },
-    [applyDefaultSlotIntervalForDate, onRoomsAvailabilityDateChange, slotDate],
+    [
+      applyDefaultSlotIntervalForDate,
+      onRoomsAvailabilityDateChange,
+      slotDate,
+      slotStartTime,
+      slotEndTime,
+    ],
   );
 
   const setSlotDateSynced = useCallback(
@@ -126,8 +151,8 @@ export function RoomsTab({
 
   const slotInterval = useMemo(() => {
     if (!slotFilterActive) return null;
-    const start = parseInstantOnDate(slotDate, slotStartTime);
-    const end = parseInstantOnDate(slotDate, slotEndTime);
+    const start = parseInstantOnDate(slotDate, slotAppliedStart);
+    const end = parseInstantOnDate(slotDate, slotAppliedEnd);
     const crossesDay =
       formatLocalDate(end) !== slotDate || end.getTime() <= start.getTime();
     return {
@@ -136,31 +161,16 @@ export function RoomsTab({
       endTime: formatLocalTime(end),
       crossesDay,
     };
-  }, [slotFilterActive, slotDate, slotStartTime, slotEndTime]);
+  }, [slotFilterActive, slotDate, slotAppliedStart, slotAppliedEnd]);
 
-  const aggregateBusyForSlotDay = useMemo((): DayIntervalBusySegment[] => {
-    if (!slotFilterActive || !bookings?.rooms?.length) return [];
-    const { start: w0, end: w1 } = dayDisplayBounds(slotDate);
-    const w0t = w0.getTime();
-    const w1t = w1.getTime();
-    const merged: DayIntervalBusySegment[] = [];
-    for (const rw of bookings.rooms) {
-      for (const slot of rw.bookings) {
-        const { start: a, end: b } = parseApiInterval(slot.interval);
-        const t0 = Math.max(a.getTime(), w0t);
-        const t1 = Math.min(b.getTime(), w1t);
-        if (t1 <= t0) continue;
-        merged.push({
-          start: new Date(t0),
-          end: new Date(t1),
-          label: slot.label,
-          reservationId: slot.id,
-        });
-      }
-    }
-    merged.sort((x, y) => x.start.getTime() - y.start.getTime());
-    return merged;
-  }, [slotFilterActive, bookings, slotDate]);
+  const crossesDayUi = useMemo(() => {
+    if (!slotFilterActive) return false;
+    const start = parseInstantOnDate(slotDate, slotStartTime);
+    const end = parseInstantOnDate(slotDate, slotEndTime);
+    return (
+      formatLocalDate(end) !== slotDate || end.getTime() <= start.getTime()
+    );
+  }, [slotFilterActive, slotDate, slotStartTime, slotEndTime]);
 
   const roomSlotOk = useCallback(
     (room: Room): boolean => {
@@ -271,52 +281,6 @@ export function RoomsTab({
           </span>
         </label>
 
-        {slotFilterActive && (
-          <div className="border-te-border/60 mt-4 min-w-0 space-y-4 border-t pt-4">
-            <div className="grid min-w-0 gap-3 sm:grid-cols-2">
-              <label className="flex min-w-0 flex-col gap-1 text-sm">
-                <span className="text-te-muted font-medium">
-                  {t("rooms.day")}
-                </span>
-                <input
-                  type="date"
-                  className={fieldClass}
-                  min={minBookDate}
-                  value={slotDate}
-                  onChange={(e) => setSlotDateSynced(e.target.value)}
-                />
-              </label>
-            </div>
-
-            <DayIntervalTimeline
-              dateStr={slotDate}
-              startTime={slotStartTime}
-              endTime={slotEndTime}
-              onIntervalChange={({ startTime: st, endTime: et }) => {
-                setSlotStartTime(st);
-                setSlotEndTime(et);
-              }}
-              busySegments={aggregateBusyForSlotDay}
-              roomIdForMineCheck=""
-              myBookings={myBookings}
-              sectionAriaLabel={t("rooms.slotFilterPreviewAria")}
-              summaryLeftLabel={t("rooms.slotFilterTime")}
-              barContent={
-                <span className="font-display text-te-accent pointer-events-none truncate text-center text-[0.6rem] leading-tight font-semibold tracking-tight drop-shadow-sm sm:text-[0.68rem] sm:leading-tight">
-                  {t("rooms.slotFilterBarLabel")}
-                </span>
-              }
-              barGrabAriaLabel={t("rooms.slotFilterGrabAria")}
-            />
-
-            {slotInterval?.crossesDay && (
-              <p className="text-te-danger text-xs font-medium">
-                {t("rooms.crossesMidnight")}
-              </p>
-            )}
-          </div>
-        )}
-
         {slotBookingsInitialLoad && (
           <div
             className="border-te-border/60 mt-4 space-y-3 border-t pt-4"
@@ -350,6 +314,101 @@ export function RoomsTab({
           sort={sort}
           onSortChange={setSort}
           sortDisabled={slotFilterActive}
+          footer={
+            slotFilterActive ? (
+              <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,11rem)_1fr] lg:items-end">
+                <label className="flex min-w-0 flex-col gap-1 text-sm">
+                  <span className="text-te-muted font-medium">
+                    {t("rooms.day")}
+                  </span>
+                  <input
+                    type="date"
+                    className={fieldClass}
+                    min={minBookDate}
+                    value={slotDate}
+                    onChange={(e) => setSlotDateSynced(e.target.value)}
+                  />
+                </label>
+                <div className="min-w-0 space-y-3">
+                  <DayIntervalTimeline
+                    dateStr={slotDate}
+                    startTime={slotStartTime}
+                    endTime={slotEndTime}
+                    onIntervalChange={({ startTime: st, endTime: et }) => {
+                      setSlotStartTime(st);
+                      setSlotEndTime(et);
+                    }}
+                    busySegments={[]}
+                    roomIdForMineCheck=""
+                    sectionAriaLabel={t("rooms.slotFilterPreviewAria")}
+                    summaryLeftLabel=""
+                    showBusyOverlay={false}
+                    showTrackLabels={false}
+                    barGrabAriaLabel={t("rooms.slotFilterGrabAria")}
+                  />
+                  <div>
+                    <span className="text-te-muted mb-2 block text-xs font-medium">
+                      {t("rooms.durationPresets")}
+                    </span>
+                    <div className="flex flex-wrap gap-2">
+                      {DURATION_CHIPS_MIN.map((m) => {
+                        const dur =
+                          (parseInstantOnDate(
+                            slotDate,
+                            slotEndTime,
+                          ).getTime() -
+                            parseInstantOnDate(
+                              slotDate,
+                              slotStartTime,
+                            ).getTime()) /
+                          60_000;
+                        const active = Math.round(dur) === m;
+                        return (
+                          <button
+                            key={m}
+                            type="button"
+                            className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                              active
+                                ? "border-te-accent bg-te-accent-muted text-te-accent"
+                                : "border-te-border text-te-muted hover:border-te-accent/50"
+                            }`}
+                            onClick={() => {
+                              const { start: w0, end: w1 } =
+                                dayDisplayBounds(slotDate);
+                              const sMs = parseInstantOnDate(
+                                slotDate,
+                                slotStartTime,
+                              ).getTime();
+                              const eMs = addMinutes(
+                                new Date(sMs),
+                                m,
+                              ).getTime();
+                              const [a, b] = clampIntervalToDayWindow(
+                                sMs,
+                                eMs,
+                                slotDate,
+                                w0,
+                                w1,
+                              );
+                              setSlotStartTime(formatLocalTime(new Date(a)));
+                              setSlotEndTime(formatLocalTime(new Date(b)));
+                            }}
+                          >
+                            {m} min
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  {crossesDayUi && (
+                    <p className="text-te-danger text-xs font-medium">
+                      {t("rooms.crossesMidnight")}
+                    </p>
+                  )}
+                </div>
+              </div>
+            ) : null
+          }
         />
 
         {bookings?.bookingRules && (
@@ -380,7 +439,7 @@ export function RoomsTab({
       ) : filtered.length === 0 ? (
         <div className={`${roomGridClass} ${roomGridStaleClass}`}>
           <div className="border-te-border bg-te-elevated/50 text-te-muted col-span-full rounded-xl border border-dashed px-4 py-12 text-center text-sm">
-            {slotFilterActive && slotInterval?.crossesDay
+            {slotFilterActive && crossesDayUi
               ? t("rooms.emptyCrossesDay")
               : slotFilterActive
                 ? t("rooms.emptySlotFilter")
@@ -427,8 +486,13 @@ export function RoomsTab({
                     !fetchFailed && (
                       <p className="text-te-accent text-xs font-medium">
                         {t("rooms.freeInterval", {
-                          start: slotStartTime,
-                          end: slotInterval.endTime,
+                          start: slotAppliedStart,
+                          end: formatLocalTime(
+                            parseInstantOnDate(
+                              slotDate,
+                              slotAppliedEnd,
+                            ),
+                          ),
                         })}
                       </p>
                     )}
@@ -481,11 +545,7 @@ export function RoomsTab({
                         : undefined
                   }
                   onClick={() => {
-                    if (
-                      slotFilterActive &&
-                      slotInterval &&
-                      !slotInterval.crossesDay
-                    ) {
+                    if (slotFilterActive && !crossesDayUi) {
                       onBookRoom(room, {
                         date: slotDate,
                         startTime: slotStartTime,

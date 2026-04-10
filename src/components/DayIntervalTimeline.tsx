@@ -1,9 +1,4 @@
-import {
-  useMemo,
-  useRef,
-  type PointerEvent as ReactPointerEvent,
-  type ReactNode,
-} from "react";
+import { useMemo, useRef, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import type { MyBooking } from "../client/types.gen";
 import {
@@ -41,7 +36,7 @@ type DayIntervalTimelineProps = {
   busySegments: DayIntervalBusySegment[];
   /** Room id for “mine” styling when matching myBookings */
   roomIdForMineCheck: string;
-  myBookings: MyBooking[] | undefined;
+  myBookings?: MyBooking[] | undefined;
   /**
    * When set, interval snaps/clamps to these free gaps (booking modal).
    * When omitted, only the visible day window is used (rooms filter).
@@ -53,12 +48,18 @@ type DayIntervalTimelineProps = {
   barContent?: ReactNode;
   /** Section aria-label (omit wrapper when undefined) */
   sectionAriaLabel?: string;
-  /** Summary row: left label (e.g. “Time”) */
-  summaryLeftLabel: string;
+  /** Summary row: left label (e.g. “Time”). Omit for times-only row. */
+  summaryLeftLabel?: string;
   /** When false, clicking empty track does nothing */
   clickToReposition?: boolean;
   /** aria-label for the draggable bar (move). Defaults to title-based booking strings. */
   barGrabAriaLabel?: string;
+  /** Busy blocks + click blocking on busy (booking sheet). */
+  showBusyOverlay?: boolean;
+  /** Hour markers (07 / 13 / 22) above the track */
+  showTrackLabels?: boolean;
+  /** Entire summary row (times + duration) hidden */
+  hideSummaryRow?: boolean;
 };
 
 export function DayIntervalTimeline({
@@ -76,6 +77,9 @@ export function DayIntervalTimeline({
   summaryLeftLabel,
   clickToReposition = true,
   barGrabAriaLabel,
+  showBusyOverlay = true,
+  showTrackLabels = true,
+  hideSummaryRow = false,
 }: DayIntervalTimelineProps) {
   const { t } = useTranslation();
   const trackRef = useRef<HTMLDivElement>(null);
@@ -100,10 +104,9 @@ export function DayIntervalTimeline({
             displayStart,
             displayEnd,
           );
-    onIntervalChange({
-      startTime: formatLocalTime(new Date(a)),
-      endTime: formatLocalTime(new Date(b)),
-    });
+    const st = formatLocalTime(new Date(a));
+    const et = formatLocalTime(new Date(b));
+    onIntervalChange({ startTime: st, endTime: et });
   };
 
   const bookingInterval = useMemo(
@@ -280,27 +283,36 @@ export function DayIntervalTimeline({
     window.addEventListener("pointercancel", onUp);
   }
 
-  const busyAtClick = busySegments;
+  const busyAtClick = showBusyOverlay ? busySegments : [];
+  const trackBarInset = showTrackLabels
+    ? "top-4 bottom-1"
+    : "top-1 bottom-1";
 
   return (
     <section
       className="space-y-2"
       aria-label={sectionAriaLabel ?? undefined}
     >
-      <div
-        className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-end sm:justify-between sm:gap-2"
-        aria-live="polite"
-      >
-        <span className="text-te-muted shrink-0 text-xs font-semibold tracking-[0.12em] uppercase">
-          {summaryLeftLabel}
-        </span>
-        <span className="break-anywhere text-te-text min-w-0 font-mono text-xs tabular-nums sm:text-right">
-          {startTime}–{endTime}
-          <span className="text-te-muted ml-2">
-            {t("booking.minutesSuffix", { count: durationMin })}
+      {!hideSummaryRow && (
+        <div
+          className={`flex min-w-0 flex-col gap-1 sm:flex-row sm:items-end sm:gap-2 ${
+            summaryLeftLabel ? "sm:justify-between" : "sm:justify-end"
+          }`}
+          aria-live="polite"
+        >
+          {summaryLeftLabel ? (
+            <span className="text-te-muted shrink-0 text-xs font-semibold tracking-[0.12em] uppercase">
+              {summaryLeftLabel}
+            </span>
+          ) : null}
+          <span className="break-anywhere text-te-text min-w-0 font-mono text-xs tabular-nums sm:text-right">
+            {startTime}–{endTime}
+            <span className="text-te-muted ml-2">
+              {t("booking.minutesSuffix", { count: durationMin })}
+            </span>
           </span>
-        </span>
-      </div>
+        </div>
+      )}
       <div
         ref={trackRef}
         className="relative h-11 min-h-11 w-full cursor-default overflow-visible"
@@ -327,56 +339,59 @@ export function DayIntervalTimeline({
         }}
       >
         <div className="bg-te-border/25 pointer-events-none absolute inset-0 overflow-hidden rounded-lg">
-          <div className="text-te-muted/80 absolute inset-x-0 top-0 flex justify-between px-1 pt-1 text-[9px] font-medium tracking-wider uppercase">
-            <span>07</span>
-            <span>13</span>
-            <span>22</span>
-          </div>
-          {busySegments.map((b, i) => {
-            const { leftPct: bl, widthPct: bw } = intervalToPercent(
-              { start: b.start, end: b.end },
-              displayStart,
-              displayEnd,
-            );
-            const mine = isMyCalendarBusy(b, roomIdForMineCheck, myBookings);
-            const slotTitle = mine
-              ? b.label
-                ? t("booking.slotTitleMineLabeled", { label: b.label })
-                : t("booking.slotTitleMine")
-              : b.label
-                ? t("booking.slotTitleBusyLabeled", { label: b.label })
-                : t("booking.slotTitleBusy");
-            return (
-              <div
-                key={`busy-${b.start.getTime()}-${i}`}
-                title={slotTitle}
-                className={`absolute top-4 bottom-1 flex items-center justify-center overflow-hidden rounded-sm px-0.5 shadow-inner ${
-                  mine ? "bg-te-mine-busy/85" : "bg-te-busy-strong/85"
-                }`}
-                style={{
-                  left: `${bl}%`,
-                  width: `${Math.max(bw, 0.5)}%`,
-                  zIndex: 1,
-                }}
-              >
-                {b.label && (
-                  <span
-                    className={`font-display truncate text-center text-[0.55rem] leading-tight font-semibold sm:text-[0.6rem] ${
-                      mine
-                        ? "text-te-mine-busy-text"
-                        : "text-white drop-shadow-sm"
-                    }`}
-                  >
-                    {b.label}
-                  </span>
-                )}
-              </div>
-            );
-          })}
+          {showTrackLabels && (
+            <div className="text-te-muted/80 absolute inset-x-0 top-0 flex justify-between px-1 pt-1 text-[9px] font-medium tracking-wider uppercase">
+              <span>07</span>
+              <span>13</span>
+              <span>22</span>
+            </div>
+          )}
+          {showBusyOverlay &&
+            busySegments.map((b, i) => {
+              const { leftPct: bl, widthPct: bw } = intervalToPercent(
+                { start: b.start, end: b.end },
+                displayStart,
+                displayEnd,
+              );
+              const mine = isMyCalendarBusy(b, roomIdForMineCheck, myBookings);
+              const slotTitle = mine
+                ? b.label
+                  ? t("booking.slotTitleMineLabeled", { label: b.label })
+                  : t("booking.slotTitleMine")
+                : b.label
+                  ? t("booking.slotTitleBusyLabeled", { label: b.label })
+                  : t("booking.slotTitleBusy");
+              return (
+                <div
+                  key={`busy-${b.start.getTime()}-${i}`}
+                  title={slotTitle}
+                  className={`absolute ${trackBarInset} flex items-center justify-center overflow-hidden rounded-sm px-0.5 shadow-inner ${
+                    mine ? "bg-te-mine-busy/85" : "bg-te-busy-strong/85"
+                  }`}
+                  style={{
+                    left: `${bl}%`,
+                    width: `${Math.max(bw, 0.5)}%`,
+                    zIndex: 1,
+                  }}
+                >
+                  {b.label && (
+                    <span
+                      className={`font-display truncate text-center text-[0.55rem] leading-tight font-semibold sm:text-[0.6rem] ${
+                        mine
+                          ? "text-te-mine-busy-text"
+                          : "text-white drop-shadow-sm"
+                      }`}
+                    >
+                      {b.label}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
         </div>
         <div
           data-day-interval-preview-root
-          className="absolute top-4 bottom-1 z-10"
+          className={`absolute z-10 ${trackBarInset}`}
           style={{
             left: `${leftPct}%`,
             width: `${previewWidthPct}%`,
