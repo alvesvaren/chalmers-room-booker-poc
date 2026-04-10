@@ -10,6 +10,7 @@ import { useAutoDismiss } from "../hooks/useUiEffects";
 import { useWorkspaceBookingsMutations } from "../hooks/useWorkspaceBookingsMutations";
 import { useWorkspaceServerData } from "../hooks/useWorkspaceServerData";
 import { CAPACITY_SLIDER_FALLBACK_MAX } from "../lib/capacityBounds";
+import { findAbRoomCompanion } from "../lib/abRoomPair";
 import { errorMessage } from "../lib/errors";
 import { roomWithBookingsFor } from "../lib/roomSchedule";
 import type { TimeInterval } from "../lib/weekTimeline";
@@ -142,20 +143,44 @@ export function AuthenticatedWorkspace() {
         ) {
           return;
         }
-        openBookingSheet({
+        const companion = findAbRoomCompanion(room, roomsQuery.data);
+        let initial: BookingSheetInitial = {
           roomId: room.id,
           roomName: room.name,
           date: slot.date,
           startTime: slot.startTime,
           endTime: slot.endTime,
-        });
+        };
+        if (companion) {
+          const rwCompanion = roomWithBookingsFor(
+            companion,
+            bookingsGrid.rooms,
+          );
+          if (
+            roomAvailableForInterval(
+              rwCompanion,
+              weekStart,
+              weekEnd,
+              slot.date,
+              start,
+              end,
+            )
+          ) {
+            initial = {
+              ...initial,
+              companionRoomId: companion.id,
+              companionRoomName: companion.name,
+            };
+          }
+        }
+        openBookingSheet(initial);
         return;
       }
       const gap = firstFreeGapInWeek(rw, weekStart, weekEnd);
       if (!gap) return;
       openBookingSheet(toBookingDraft(room.id, room.name, gap));
     },
-    [bookingsGrid, openBookingSheet, weekStart, weekEnd],
+    [bookingsGrid, openBookingSheet, weekStart, weekEnd, roomsQuery.data],
   );
 
   const handleCancelBooking = useCallback(
@@ -195,18 +220,34 @@ export function AuthenticatedWorkspace() {
   }, [createBookingMutation]);
 
   const submitBooking = useCallback(
-    (body: CreateBookingRequest) => {
-      createBookingMutation.mutate(
-        { body },
-        {
-          onSuccess: (data) => {
-            closeBookingSheet();
-            showBookingToast(
-              t("booking.createdToast", { id: data.booking.id }),
-            );
-          },
-        },
-      );
+    async (
+      primary: CreateBookingRequest,
+      companion?: CreateBookingRequest,
+    ) => {
+      try {
+        const first = await createBookingMutation.mutateAsync({
+          body: primary,
+        });
+        if (companion) {
+          const second = await createBookingMutation.mutateAsync({
+            body: companion,
+          });
+          closeBookingSheet();
+          showBookingToast(
+            t("booking.createdToastDual", {
+              idA: first.booking.id,
+              idB: second.booking.id,
+            }),
+          );
+          return;
+        }
+        closeBookingSheet();
+        showBookingToast(
+          t("booking.createdToast", { id: first.booking.id }),
+        );
+      } catch {
+        /* TanStack Query surfaces mutation errors on the sheet */
+      }
     },
     [closeBookingSheet, createBookingMutation, showBookingToast, t],
   );
@@ -374,6 +415,7 @@ export function AuthenticatedWorkspace() {
         open={bookingSheetOpen}
         onClose={closeBookingSheet}
         initial={bookingInitial}
+        allRooms={roomsQuery.data}
         scheduleRooms={bookingsGrid?.rooms}
         myBookings={myBookingsQuery.data}
         onSubmit={submitBooking}
