@@ -108,7 +108,7 @@
     "submit": "Create booking",
     "createdToast": "Booking created · {{id}}",
     "createdToastDual": "Both halves booked · {{idA}} · {{idB}}",
-    "bookOtherHalf": "Also book {{name}} (other half of the pair)",
+    "bookOtherHalf": "Also book {{name}}",
     "companionScheduleMissing": "Schedule for the other half is not loaded — uncheck to book only this room, or reload.",
     "confirmCancel": "Cancel this reservation?"
   },
