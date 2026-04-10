@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  addLocalCalendarDays,
   formatCreateBookingInterval,
   localWallClockMs,
   parseApiInterval,
@@ -49,6 +50,18 @@ describe("parseInstantOnDate", () => {
   it("matches localWallClockMs", () => {
     const d = parseInstantOnDate("2026-07-01", "00:00");
     expect(d.getTime()).toBe(localWallClockMs("2026-07-01", "00:00"));
+  });
+});
+
+describe("addLocalCalendarDays", () => {
+  it("shifts wire date by whole days in local calendar", () => {
+    expect(addLocalCalendarDays("2026-03-02", 1)).toBe("2026-03-03");
+    expect(addLocalCalendarDays("2026-03-02", -1)).toBe("2026-03-01");
+    expect(addLocalCalendarDays("2026-03-02", 0)).toBe("2026-03-02");
+  });
+
+  it("returns original on invalid wire date", () => {
+    expect(addLocalCalendarDays("not-a-date", 1)).toBe("not-a-date");
   });
 });
 

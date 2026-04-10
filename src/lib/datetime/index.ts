@@ -7,6 +7,7 @@ export {
   formatWeekRangeLabel,
 } from "./intlFormat";
 export {
+  addLocalCalendarDays,
   formatCreateBookingInterval,
   localWallClockMs,
   parseApiInterval,

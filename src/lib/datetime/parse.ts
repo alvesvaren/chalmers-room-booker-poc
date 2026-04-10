@@ -1,5 +1,6 @@
-import { startOfDay } from "date-fns";
+import { addDays, startOfDay } from "date-fns";
 import { formatLocalDateWire } from "./intlFormat";
+import { CALENDAR_INSTANT_ANCHOR_TIME } from "./wallClockConstants";
 
 const END_TIME_ONLY_RE = /^\d{1,2}:\d{2}$/;
 
@@ -92,4 +93,18 @@ export function startOfLocalDayMs(dateStr: string): number {
   if (!ymd) return NaN;
   const [Y, M, D] = ymd;
   return startOfDay(new Date(Y, M - 1, D)).getTime();
+}
+
+/**
+ * Shifts a local `YYYY-MM-DD` by whole calendar days (DST-safe anchor at noon).
+ * Returns the original string if `wireDate` is not a valid wire date.
+ */
+export function addLocalCalendarDays(
+  wireDate: string,
+  dayDelta: number,
+): string {
+  if (dayDelta === 0) return wireDate;
+  const anchor = parseInstantOnDate(wireDate, CALENDAR_INSTANT_ANCHOR_TIME);
+  if (Number.isNaN(anchor.getTime())) return wireDate;
+  return formatLocalDateWire(addDays(startOfDay(anchor), dayDelta));
 }

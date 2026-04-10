@@ -34,6 +34,7 @@ import {
   snapInstantMsToQuarterOnDate,
   type TimeInterval,
 } from "../lib/weekTimeline";
+import { DayDateStepper } from "./DayDateStepper";
 import { DayIntervalTimeline } from "./DayIntervalTimeline";
 import type { DayIntervalBusySegment } from "./DayIntervalTimeline";
 import { Button } from "./ui/Button";
@@ -365,7 +366,7 @@ function BookingSheetForm({
           }}
         >
           <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 md:items-start">
-            <label className="grid min-w-0 gap-1 text-sm">
+            <label className="grid min-w-0 gap-1 text-sm md:col-span-2">
               <span className="text-te-text font-medium">
                 {t("booking.title")}
               </span>
@@ -376,22 +377,20 @@ function BookingSheetForm({
                 placeholder={t("booking.titlePlaceholder")}
               />
             </label>
-            <label className="grid min-w-0 gap-1 text-sm">
-              <span className="text-te-text font-medium">
-                {t("booking.date")}
-              </span>
-              <input
-                className={inputClass}
-                type="date"
+            <div className="grid min-w-0 gap-1 text-sm md:col-span-2">
+              <span className="text-te-text font-medium">{t("booking.date")}</span>
+              <DayDateStepper
                 value={date}
-                min={minBookDate}
-                onChange={(e) => {
+                minDate={minBookDate}
+                onChange={(next) => {
                   clearClientError();
-                  setDate(e.target.value);
+                  setDate(next);
                 }}
-                required
+                minusLabel={t("booking.dayPrev")}
+                plusLabel={t("booking.dayNext")}
+                inputClassName={`${inputClass} font-mono text-base sm:text-sm`}
               />
-            </label>
+            </div>
           </div>
 
           {companionRoom && (
