@@ -60,6 +60,8 @@ type DayIntervalTimelineProps = {
   showTrackLabels?: boolean;
   /** Entire summary row (times + duration) hidden */
   hideSummaryRow?: boolean;
+  /** Non-interactive (e.g. filter off); hides pointer/drag affordances */
+  disabled?: boolean;
 };
 
 export function DayIntervalTimeline({
@@ -80,6 +82,7 @@ export function DayIntervalTimeline({
   showBusyOverlay = true,
   showTrackLabels = true,
   hideSummaryRow = false,
+  disabled = false,
 }: DayIntervalTimelineProps) {
   const { t } = useTranslation();
   const trackRef = useRef<HTMLDivElement>(null);
@@ -94,6 +97,7 @@ export function DayIntervalTimeline({
   const { start: displayStart, end: displayEnd } = dayDisplayBounds(dateStr);
 
   const applyInterval = (startMs: number, endMs: number) => {
+    if (disabled) return;
     const [a, b] =
       freeGaps != null
         ? clampToFreeGaps(startMs, endMs, freeGaps, dateStr)
@@ -189,6 +193,7 @@ export function DayIntervalTimeline({
   }
 
   function onPointerDownBar(kind: DragKind, e: ReactPointerEvent) {
+    if (disabled) return;
     if (e.button !== 0) return;
     e.preventDefault();
     e.stopPropagation();
@@ -290,8 +295,9 @@ export function DayIntervalTimeline({
 
   return (
     <section
-      className="space-y-2"
+      className={`space-y-2 ${disabled ? "pointer-events-none opacity-50" : ""}`}
       aria-label={sectionAriaLabel ?? undefined}
+      aria-disabled={disabled || undefined}
     >
       {!hideSummaryRow && (
         <div
@@ -317,6 +323,7 @@ export function DayIntervalTimeline({
         ref={trackRef}
         className="relative h-11 min-h-11 w-full cursor-default overflow-visible"
         onPointerDownCapture={(e) => {
+          if (disabled) return;
           if (!clickToReposition) return;
           if (e.button !== 0) return;
           const tgt = e.target as HTMLElement | null;
@@ -399,8 +406,9 @@ export function DayIntervalTimeline({
         >
           <button
             type="button"
+            disabled={disabled}
             aria-label={t("booking.adjustStart")}
-            className="absolute top-0 bottom-0 z-20 flex w-3 cursor-ew-resize touch-manipulation items-center justify-end bg-transparent pr-px"
+            className="absolute top-0 bottom-0 z-20 flex w-3 cursor-ew-resize touch-manipulation items-center justify-end bg-transparent pr-px disabled:cursor-not-allowed"
             style={{ right: "100%" }}
             onPointerDown={(e) => onPointerDownBar("resize-start", e)}
           >
@@ -425,8 +433,9 @@ export function DayIntervalTimeline({
           </div>
           <button
             type="button"
+            disabled={disabled}
             aria-label={t("booking.adjustEnd")}
-            className="absolute top-0 bottom-0 z-20 flex w-3 cursor-ew-resize touch-manipulation items-center justify-start bg-transparent pl-px"
+            className="absolute top-0 bottom-0 z-20 flex w-3 cursor-ew-resize touch-manipulation items-center justify-start bg-transparent pl-px disabled:cursor-not-allowed"
             style={{ left: "100%" }}
             onPointerDown={(e) => onPointerDownBar("resize-end", e)}
           >

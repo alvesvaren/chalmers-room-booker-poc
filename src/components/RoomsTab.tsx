@@ -276,85 +276,87 @@ export function RoomsTab({
         </span>
       </label>
 
-      {slotFilterActive && (
-        <div className="border-te-border/60 mt-4 min-w-0 space-y-4 border-t pt-4">
-          <label className="flex min-w-0 flex-col gap-1 text-sm">
-            <span className="text-te-muted font-medium">{t("rooms.day")}</span>
-            <input
-              type="date"
-              className={fieldClass}
-              min={minBookDate}
-              value={slotDate}
-              onChange={(e) => setSlotDateSynced(e.target.value)}
-            />
-          </label>
-          <DayIntervalTimeline
-            dateStr={slotDate}
-            startTime={slotStartTime}
-            endTime={slotEndTime}
-            onIntervalChange={({ startTime: st, endTime: et }) => {
-              setSlotStartTime(st);
-              setSlotEndTime(et);
-            }}
-            busySegments={[]}
-            roomIdForMineCheck=""
-            sectionAriaLabel={t("rooms.slotFilterPreviewAria")}
-            summaryLeftLabel=""
-            showBusyOverlay={false}
-            showTrackLabels={false}
-            barGrabAriaLabel={t("rooms.slotFilterGrabAria")}
+      <fieldset
+        disabled={!slotFilterActive}
+        className="border-te-border/60 mt-4 min-w-0 space-y-4 border-0 border-t p-0 pt-4"
+      >
+        <label className="flex min-w-0 flex-col gap-1 text-sm">
+          <span className="text-te-muted font-medium">{t("rooms.day")}</span>
+          <input
+            type="date"
+            className={fieldClass}
+            min={minBookDate}
+            value={slotDate}
+            onChange={(e) => setSlotDateSynced(e.target.value)}
           />
-          <div>
-            <span className="text-te-muted mb-2 block text-xs font-medium">
-              {t("rooms.durationPresets")}
-            </span>
-            <div className="flex flex-wrap gap-2">
-              {DURATION_CHIPS_MIN.map((m) => {
-                const dur =
-                  (parseInstantOnDate(slotDate, slotEndTime).getTime() -
-                    parseInstantOnDate(slotDate, slotStartTime).getTime()) /
-                  60_000;
-                const active = Math.round(dur) === m;
-                return (
-                  <button
-                    key={m}
-                    type="button"
-                    className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
-                      active
-                        ? "border-te-accent bg-te-accent-muted text-te-accent"
-                        : "border-te-border text-te-muted hover:border-te-accent/50"
-                    }`}
-                    onClick={() => {
-                      const { start: w0, end: w1 } = dayDisplayBounds(slotDate);
-                      const sMs = parseInstantOnDate(
-                        slotDate,
-                        slotStartTime,
-                      ).getTime();
-                      const eMs = addMinutes(new Date(sMs), m).getTime();
-                      const [a, b] = clampIntervalToDayWindow(
-                        sMs,
-                        eMs,
-                        slotDate,
-                        w0,
-                        w1,
-                      );
-                      setSlotStartTime(formatLocalTime(new Date(a)));
-                      setSlotEndTime(formatLocalTime(new Date(b)));
-                    }}
-                  >
-                    {m} min
-                  </button>
-                );
-              })}
-            </div>
+        </label>
+        <DayIntervalTimeline
+          dateStr={slotDate}
+          startTime={slotStartTime}
+          endTime={slotEndTime}
+          onIntervalChange={({ startTime: st, endTime: et }) => {
+            setSlotStartTime(st);
+            setSlotEndTime(et);
+          }}
+          busySegments={[]}
+          roomIdForMineCheck=""
+          sectionAriaLabel={t("rooms.slotFilterPreviewAria")}
+          summaryLeftLabel=""
+          showBusyOverlay={false}
+          showTrackLabels={false}
+          barGrabAriaLabel={t("rooms.slotFilterGrabAria")}
+          disabled={!slotFilterActive}
+        />
+        <div>
+          <span className="text-te-muted mb-2 block text-xs font-medium">
+            {t("rooms.durationPresets")}
+          </span>
+          <div className="flex flex-wrap gap-2">
+            {DURATION_CHIPS_MIN.map((m) => {
+              const dur =
+                (parseInstantOnDate(slotDate, slotEndTime).getTime() -
+                  parseInstantOnDate(slotDate, slotStartTime).getTime()) /
+                60_000;
+              const active = Math.round(dur) === m;
+              return (
+                <button
+                  key={m}
+                  type="button"
+                  className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                    active
+                      ? "border-te-accent bg-te-accent-muted text-te-accent"
+                      : "border-te-border text-te-muted hover:border-te-accent/50"
+                  }`}
+                  onClick={() => {
+                    const { start: w0, end: w1 } = dayDisplayBounds(slotDate);
+                    const sMs = parseInstantOnDate(
+                      slotDate,
+                      slotStartTime,
+                    ).getTime();
+                    const eMs = addMinutes(new Date(sMs), m).getTime();
+                    const [a, b] = clampIntervalToDayWindow(
+                      sMs,
+                      eMs,
+                      slotDate,
+                      w0,
+                      w1,
+                    );
+                    setSlotStartTime(formatLocalTime(new Date(a)));
+                    setSlotEndTime(formatLocalTime(new Date(b)));
+                  }}
+                >
+                  {m} min
+                </button>
+              );
+            })}
           </div>
-          {crossesDayUi && (
-            <p className="text-te-danger text-xs font-medium">
-              {t("rooms.crossesMidnight")}
-            </p>
-          )}
         </div>
-      )}
+        {crossesDayUi && (
+          <p className="text-te-danger text-xs font-medium">
+            {t("rooms.crossesMidnight")}
+          </p>
+        )}
+      </fieldset>
 
       {slotBookingsInitialLoad && (
         <div

@@ -59,7 +59,7 @@ export default function App({
 
   return (
     <div className="text-te-text min-h-svh antialiased">
-      <div className="w-full max-w-none px-4 py-8 sm:px-6 lg:px-8 xl:px-10 2xl:px-12">
+      <div className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8 xl:px-10 2xl:px-12">
         <header className="te-reveal border-te-border mb-8 flex flex-col gap-6 border-b pb-8 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h1 className="font-display text-te-text text-3xl font-semibold tracking-tight sm:text-4xl">
