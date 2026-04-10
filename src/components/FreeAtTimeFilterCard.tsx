@@ -9,6 +9,7 @@ import {
   formatLocalTime,
   parseInstantOnDate,
 } from "../lib/weekTimeline";
+import { DayDateStepper } from "./DayDateStepper";
 import { DayIntervalTimeline } from "./DayIntervalTimeline";
 import { Checkbox } from "./ui/Checkbox";
 import { Skeleton } from "./ui/Skeleton";
@@ -64,16 +65,18 @@ export function FreeAtTimeFilterCard({
         disabled={!active}
         className="group border-te-border/60 mt-4 min-w-0 space-y-4 border-0 border-t p-0 pt-4"
       >
-        <label className="flex min-w-0 flex-col gap-1 text-sm">
+        <div className="flex min-w-0 flex-col gap-1 text-sm">
           <span className="text-te-muted font-medium">{t("rooms.day")}</span>
-          <input
-            type="date"
-            className={`${FIELD_CLASS} group-disabled:cursor-not-allowed group-disabled:opacity-60`}
-            min={minBookDate}
+          <DayDateStepper
             value={slotDate}
-            onChange={(e) => onSlotDateChange(e.target.value)}
+            minDate={minBookDate}
+            onChange={onSlotDateChange}
+            disabled={!active}
+            minusLabel={t("rooms.dayPrev")}
+            plusLabel={t("rooms.dayNext")}
+            inputClassName={`${FIELD_CLASS} group-disabled:cursor-not-allowed group-disabled:opacity-60`}
           />
-        </label>
+        </div>
         <DayIntervalTimeline
           dateStr={slotDate}
           startTime={slotStartTime}
