@@ -1,10 +1,4 @@
-import {
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-  type PointerEvent as ReactPointerEvent,
-} from "react";
+import { useLayoutEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { createPortal } from "react-dom";
 import type {
@@ -40,10 +34,10 @@ import {
   snapInstantMsToQuarterOnDate,
   type TimeInterval,
 } from "../lib/weekTimeline";
+import { DayIntervalTimeline } from "./DayIntervalTimeline";
+import type { DayIntervalBusySegment } from "./DayIntervalTimeline";
 import { Button } from "./ui/Button";
 import { Checkbox } from "./ui/Checkbox";
-
-type DragKind = "move" | "resize-start" | "resize-end";
 
 export type BookingSheetInitial = {
   roomId: string;
@@ -156,15 +150,6 @@ function BookingSheetForm({
   const bookBothHalves =
     companionRoom != null && bookCompanion && companionInSchedule;
 
-  const trackRef = useRef<HTMLDivElement>(null);
-  const dragRef = useRef<{
-    kind: DragKind;
-    originX: number;
-    startMs: number;
-    endMs: number;
-    pointerId: number;
-  } | null>(null);
-
   const { start: displayStart, end: displayEnd } = dayDisplayBounds(date);
 
   const busyPrimary = useMemo(
@@ -245,25 +230,25 @@ function BookingSheetForm({
     applyIntervalClamped(s, e);
   }
 
-  const bookingInterval = {
-    start: parseInstantOnDate(date, startTime),
-    end: parseInstantOnDate(date, endTime),
-  };
+  const durationMin = useMemo(() => {
+    const s = parseInstantOnDate(date, startTime).getTime();
+    const e = parseInstantOnDate(date, endTime).getTime();
+    if (!Number.isFinite(s) || !Number.isFinite(e)) return 0;
+    return Math.max(0, Math.round((e - s) / 60_000));
+  }, [date, startTime, endTime]);
 
-  const durationMin = Math.max(
-    0,
-    Math.round(
-      (bookingInterval.end.getTime() - bookingInterval.start.getTime()) /
-        60_000,
-    ),
-  );
-
-  const { leftPct, widthPct } = intervalToPercent(
-    bookingInterval,
-    displayStart,
-    displayEnd,
-  );
-  const previewWidthPct = widthPct > 0 ? Math.max(widthPct, 1.2) : 0;
+  const { leftPct, previewWidthPct } = useMemo(() => {
+    const interval = {
+      start: parseInstantOnDate(date, startTime),
+      end: parseInstantOnDate(date, endTime),
+    };
+    const { leftPct: l, widthPct: w } = intervalToPercent(
+      interval,
+      displayStart,
+      displayEnd,
+    );
+    return { leftPct: l, previewWidthPct: w > 0 ? Math.max(w, 1.2) : 0 };
+  }, [date, startTime, endTime, displayStart, displayEnd]);
 
   function applyDurationFromStart(minutes: number) {
     const m = clampNum(minutes, MIN_BOOK_DURATION_MIN, MAX_BOOK_DURATION_MIN);
@@ -271,216 +256,19 @@ function BookingSheetForm({
     applyIntervalClamped(startMs, startMs + m * 60_000);
   }
 
-  function trackMetrics() {
-    const el = trackRef.current;
-    if (!el) return null;
-    const rect = el.getBoundingClientRect();
-    const spanMs = displayEnd.getTime() - displayStart.getTime();
-    if (spanMs <= 0) return null;
-    return { el, rect, spanMs };
-  }
-
-  function clientXToMs(clientX: number) {
-    const m = trackMetrics();
-    if (!m) return displayStart.getTime();
-    const ratio = clampNum((clientX - m.rect.left) / m.rect.width, 0, 1);
-    return displayStart.getTime() + ratio * m.spanMs;
-  }
-
-  function placeBookingAtTrackClick(clientX: number) {
-    clearClientError();
-    const m = trackMetrics();
-    if (!m) return;
-    const w0 = displayStart.getTime();
-    const w1 = displayEnd.getTime();
-    const clickMs = snapInstantMsToQuarterOnDate(clientXToMs(clientX), date);
-    const durMs =
-      bookingInterval.end.getTime() - bookingInterval.start.getTime();
-    if (durMs < MIN_BOOK_DURATION_MIN * 60_000) return;
-    let startMs = snapInstantMsToQuarterOnDate(clickMs - durMs / 2, date);
-    let endMs = startMs + durMs;
-    if (endMs > w1) {
-      const over = endMs - w1;
-      startMs -= over;
-      endMs = w1;
-    }
-    if (startMs < w0) {
-      const under = w0 - startMs;
-      startMs = w0;
-      endMs += under;
-    }
-    if (endMs > w1) endMs = w1;
-    if ((endMs - startMs) / 60_000 < MIN_BOOK_DURATION_MIN) return;
-    const [a, b] = clampToFreeGaps(startMs, endMs, freeGaps, date);
-    setStartTime(formatLocalTime(new Date(a)));
-    setEndTime(formatLocalTime(new Date(b)));
-  }
-
-  function endDragPointer() {
-    const d = dragRef.current;
-    if (!d) return;
-    const el = trackRef.current;
-    if (el) {
-      try {
-        el.releasePointerCapture(d.pointerId);
-      } catch {
-        /* ignore */
-      }
-    }
-    dragRef.current = null;
-  }
-
-  function onPointerDownBar(kind: DragKind, e: ReactPointerEvent) {
-    if (e.button !== 0) return;
-    e.preventDefault();
-    e.stopPropagation();
-    const startMs = bookingInterval.start.getTime();
-    const endMs = bookingInterval.end.getTime();
-    dragRef.current = {
-      kind,
-      originX: e.clientX,
-      startMs,
-      endMs,
-      pointerId: e.pointerId,
-    };
-    const el = trackRef.current;
-    if (el) {
-      try {
-        el.setPointerCapture(e.pointerId);
-      } catch {
-        /* ignore */
-      }
-    }
-
-    const onMove = (ev: PointerEvent) => {
-      clearClientError();
-      const d = dragRef.current;
-      if (!d) return;
-      const m = trackMetrics();
-      if (!m) return;
-
-      const w0 = displayStart.getTime();
-      const w1 = displayEnd.getTime();
-      const durMs = d.endMs - d.startMs;
-      let startMsN = d.startMs;
-      let endMsN = d.endMs;
-
-      if (d.kind === "move") {
-        const dxRatio = (ev.clientX - d.originX) / m.rect.width;
-        const deltaMs = dxRatio * m.spanMs;
-        startMsN = snapInstantMsToQuarterOnDate(d.startMs + deltaMs, date);
-        endMsN = startMsN + durMs;
-        if (endMsN > w1) {
-          const over = endMsN - w1;
-          startMsN -= over;
-          endMsN = w1;
-        }
-        if (startMsN < w0) {
-          const under = w0 - startMsN;
-          startMsN = w0;
-          endMsN += under;
-        }
-        if (endMsN > w1) endMsN = w1;
-        const durMinNow = (endMsN - startMsN) / 60_000;
-        if (durMinNow < MIN_BOOK_DURATION_MIN) {
-          startMsN = d.startMs;
-          endMsN = d.endMs;
-        }
-      } else if (d.kind === "resize-start") {
-        const endFixed = d.endMs;
-        let newStart = snapInstantMsToQuarterOnDate(
-          clientXToMs(ev.clientX),
-          date,
-        );
-        const lo = Math.max(w0, endFixed - MAX_BOOK_DURATION_MIN * 60_000);
-        const hi = endFixed - MIN_BOOK_DURATION_MIN * 60_000;
-        newStart = clampNum(newStart, lo, hi);
-        startMsN = newStart;
-        endMsN = endFixed;
-      } else {
-        const startFixed = d.startMs;
-        let newEnd = snapInstantMsToQuarterOnDate(
-          clientXToMs(ev.clientX),
-          date,
-        );
-        const lo = startFixed + MIN_BOOK_DURATION_MIN * 60_000;
-        const hi = Math.min(w1, startFixed + MAX_BOOK_DURATION_MIN * 60_000);
-        newEnd = clampNum(newEnd, lo, hi);
-        startMsN = startFixed;
-        endMsN = newEnd;
-      }
-
-      const [a, b] = clampToFreeGaps(startMsN, endMsN, freeGaps, date);
-      setStartTime(formatLocalTime(new Date(a)));
-      setEndTime(formatLocalTime(new Date(b)));
-    };
-
-    const onUp = (ev: PointerEvent) => {
-      if (ev.pointerId !== e.pointerId) return;
-      endDragPointer();
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-      window.removeEventListener("pointercancel", onUp);
-    };
-
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
-    window.addEventListener("pointercancel", onUp);
-  }
+  const busyPrimarySegments: DayIntervalBusySegment[] = useMemo(
+    () =>
+      busyPrimary.map((b) => ({
+        start: b.start,
+        end: b.end,
+        label: b.label,
+        reservationId: b.reservationId,
+      })),
+    [busyPrimary],
+  );
 
   const inputClass =
     "min-w-0 max-w-full w-full rounded-lg border border-te-border bg-te-elevated px-3 py-2 text-base text-te-text outline-none transition-shadow placeholder:text-te-muted/70 focus:border-te-accent focus:ring-2 focus:ring-te-accent/20 sm:text-sm";
-
-  const busyAtClick = useMemo(() => {
-    if (!bookBothHalves) return busyPrimary;
-    return [...busyPrimary, ...busySecondary];
-  }, [bookBothHalves, busyPrimary, busySecondary]);
-
-  function renderBusyLayer(
-    busy: BusyClipped[],
-    forRoomId: string,
-    zBase: number,
-  ) {
-    return busy.map((b, i) => {
-      const { leftPct: bl, widthPct: bw } = intervalToPercent(
-        { start: b.start, end: b.end },
-        displayStart,
-        displayEnd,
-      );
-      const mine = isMyCalendarBusy(b, forRoomId, myBookings);
-      const slotTitle = mine
-        ? b.label
-          ? t("booking.slotTitleMineLabeled", { label: b.label })
-          : t("booking.slotTitleMine")
-        : b.label
-          ? t("booking.slotTitleBusyLabeled", { label: b.label })
-          : t("booking.slotTitleBusy");
-      return (
-        <div
-          key={`${forRoomId}-busy-${b.start.getTime()}-${i}`}
-          title={slotTitle}
-          className={`absolute top-4 bottom-1 flex items-center justify-center overflow-hidden rounded-sm px-0.5 shadow-inner ${
-            mine ? "bg-te-mine-busy/85" : "bg-te-busy-strong/85"
-          }`}
-          style={{
-            left: `${bl}%`,
-            width: `${Math.max(bw, 0.5)}%`,
-            zIndex: zBase,
-          }}
-        >
-          {b.label && (
-            <span
-              className={`font-display truncate text-center text-[0.55rem] leading-tight font-semibold sm:text-[0.6rem] ${
-                mine ? "text-te-mine-busy-text" : "text-white drop-shadow-sm"
-              }`}
-            >
-              {b.label}
-            </span>
-          )}
-        </div>
-      );
-    });
-  }
 
   return (
     <div
@@ -628,101 +416,24 @@ function BookingSheetForm({
             </label>
           )}
 
-          <section
-            className="space-y-2"
-            aria-label={t("booking.previewAria")}
-          >
-            <div
-              className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-end sm:justify-between sm:gap-2"
-              aria-live="polite"
-            >
-              <span className="text-te-muted shrink-0 text-xs font-semibold tracking-[0.12em] uppercase">
-                {t("booking.time")}
-              </span>
-              <span className="break-anywhere text-te-text min-w-0 font-mono text-xs tabular-nums sm:text-right">
-                {startTime}–{endTime}
-                <span className="text-te-muted ml-2">
-                  {t("booking.minutesSuffix", { count: durationMin })}
-                </span>
-              </span>
-            </div>
-            <div
-              ref={trackRef}
-              className="relative h-11 min-h-11 w-full cursor-default overflow-visible"
-              onPointerDownCapture={(e) => {
-                if (e.button !== 0) return;
-                const t = e.target as HTMLElement | null;
-                if (!t) return;
-                if (t.closest("[data-booking-preview-root]")) return;
-                const clicked = snapInstantMsToQuarterOnDate(
-                  clientXToMs(e.clientX),
-                  date,
-                );
-                if (
-                  busyAtClick.some(
-                    (b) =>
-                      clicked >= b.start.getTime() && clicked < b.end.getTime(),
-                  )
-                ) {
-                  return;
-                }
-                e.preventDefault();
-                placeBookingAtTrackClick(e.clientX);
+          <div className="space-y-2">
+            <DayIntervalTimeline
+              dateStr={date}
+              startTime={startTime}
+              endTime={endTime}
+              onIntervalChange={({ startTime: st, endTime: et }) => {
+                clearClientError();
+                setStartTime(st);
+                setEndTime(et);
               }}
-            >
-              <div className="bg-te-border/25 pointer-events-none absolute inset-0 overflow-hidden rounded-lg">
-                <div className="text-te-muted/80 absolute inset-x-0 top-0 flex justify-between px-1 pt-1 text-[9px] font-medium tracking-wider uppercase">
-                  <span>07</span>
-                  <span>13</span>
-                  <span>22</span>
-                </div>
-                {renderBusyLayer(busyPrimary, roomId, 1)}
-              </div>
-              <div
-                data-booking-preview-root
-                className="absolute top-4 bottom-1 z-10"
-                style={{
-                  left: `${leftPct}%`,
-                  width: `${previewWidthPct}%`,
-                }}
-              >
-                <button
-                  type="button"
-                  aria-label={t("booking.adjustStart")}
-                  className="absolute top-0 bottom-0 z-20 flex w-3 cursor-ew-resize touch-manipulation items-center justify-end bg-transparent pr-px"
-                  style={{ right: "100%" }}
-                  onPointerDown={(e) => onPointerDownBar("resize-start", e)}
-                >
-                  <span className="bg-te-accent pointer-events-none h-[62%] w-px rounded-full shadow-[0_0_0_1px_rgba(0,0,0,0.07)]" />
-                </button>
-                <div
-                  className="te-booking-preview-bar border-te-accent/35 bg-te-free-hover flex h-full min-h-0 w-full min-w-0 cursor-grab touch-manipulation items-center justify-center rounded-md border px-1 select-none active:cursor-grabbing"
-                  onPointerDown={(e) => onPointerDownBar("move", e)}
-                  aria-label={
-                    title.trim()
-                      ? t("booking.previewGrabTitle", {
-                          title: title.trim(),
-                        })
-                      : t("booking.previewGrabNoTitle")
-                  }
-                >
-                  {title.trim() && (
-                    <span className="font-display text-te-accent pointer-events-none truncate text-center text-[0.6rem] leading-tight font-semibold tracking-tight drop-shadow-sm sm:text-[0.68rem] sm:leading-tight">
-                      {title.trim()}
-                    </span>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  aria-label={t("booking.adjustEnd")}
-                  className="absolute top-0 bottom-0 z-20 flex w-3 cursor-ew-resize touch-manipulation items-center justify-start bg-transparent pl-px"
-                  style={{ left: "100%" }}
-                  onPointerDown={(e) => onPointerDownBar("resize-end", e)}
-                >
-                  <span className="bg-te-accent pointer-events-none h-[62%] w-px rounded-full shadow-[0_0_0_1px_rgba(0,0,0,0.07)]" />
-                </button>
-              </div>
-            </div>
+              busySegments={busyPrimarySegments}
+              roomIdForMineCheck={roomId}
+              myBookings={myBookings}
+              freeGaps={freeGaps}
+              barLabel={title}
+              sectionAriaLabel={t("booking.previewAria")}
+              summaryLeftLabel={t("booking.time")}
+            />
 
             {bookBothHalves && companionRoom && (
               <div className="space-y-1 pt-1">
@@ -736,11 +447,57 @@ function BookingSheetForm({
                       <span>13</span>
                       <span>22</span>
                     </div>
-                    {renderBusyLayer(
-                      busySecondary,
-                      companionRoom.id,
-                      1,
-                    )}
+                    {busySecondary.map((b, i) => {
+                      const { leftPct: bl, widthPct: bw } = intervalToPercent(
+                        { start: b.start, end: b.end },
+                        displayStart,
+                        displayEnd,
+                      );
+                      const mine = isMyCalendarBusy(
+                        b,
+                        companionRoom.id,
+                        myBookings,
+                      );
+                      const slotTitle = mine
+                        ? b.label
+                          ? t("booking.slotTitleMineLabeled", {
+                              label: b.label,
+                            })
+                          : t("booking.slotTitleMine")
+                        : b.label
+                          ? t("booking.slotTitleBusyLabeled", {
+                              label: b.label,
+                            })
+                          : t("booking.slotTitleBusy");
+                      return (
+                        <div
+                          key={`${companionRoom.id}-busy-${b.start.getTime()}-${i}`}
+                          title={slotTitle}
+                          className={`absolute top-4 bottom-1 flex items-center justify-center overflow-hidden rounded-sm px-0.5 shadow-inner ${
+                            mine
+                              ? "bg-te-mine-busy/85"
+                              : "bg-te-busy-strong/85"
+                          }`}
+                          style={{
+                            left: `${bl}%`,
+                            width: `${Math.max(bw, 0.5)}%`,
+                            zIndex: 1,
+                          }}
+                        >
+                          {b.label && (
+                            <span
+                              className={`font-display truncate text-center text-[0.55rem] leading-tight font-semibold sm:text-[0.6rem] ${
+                                mine
+                                  ? "text-te-mine-busy-text"
+                                  : "text-white drop-shadow-sm"
+                              }`}
+                            >
+                              {b.label}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                   <div
                     className="border-te-accent/40 pointer-events-none absolute top-4 bottom-1 z-10 rounded-md border border-dashed"
@@ -753,7 +510,7 @@ function BookingSheetForm({
                 </div>
               </div>
             )}
-          </section>
+          </div>
 
           <div className="grid gap-2">
             <span className="text-te-text text-sm font-medium">

@@ -17,7 +17,8 @@ import {
 
 export const MIN_BOOK_DURATION_MIN = 15;
 export const MAX_BOOK_DURATION_MIN = 240;
-export const DURATION_CHIPS_MIN = [15, 30, 60, 90, 120, 240] as const;
+/** Quick presets (min). 15+ still allowed via timeline / manual times. */
+export const DURATION_CHIPS_MIN = [30, 60, 90, 120, 240] as const;
 
 /**
  * Next quarter-hour start on `dateStr` relative to `now` (local).
@@ -60,6 +61,57 @@ export function dayDisplayBounds(dateStr: string): { start: Date; end: Date } {
 
 export function clampNum(n: number, lo: number, hi: number): number {
   return Math.min(hi, Math.max(lo, n));
+}
+
+/**
+ * Snap/clamp a wall-clock interval to [windowStart, windowEnd] without busy-gap logic.
+ * Used by the “free at time” filter timeline (open day track).
+ */
+export function clampIntervalToDayWindow(
+  s: number,
+  e: number,
+  dateStr: string,
+  windowStart: Date,
+  windowEnd: Date,
+): [number, number] {
+  const snap = (ms: number) => snapInstantMsToQuarterOnDate(ms, dateStr);
+  const w0 = windowStart.getTime();
+  const w1 = windowEnd.getTime();
+  if (!Number.isFinite(w0) || !Number.isFinite(w1) || w1 <= w0) {
+    const s0 = snap(s);
+    return [s0, snap(s0 + MIN_BOOK_DURATION_MIN * 60_000)];
+  }
+
+  let dur = snap(e) - snap(s);
+  if (!Number.isFinite(dur) || dur <= 0)
+    dur = MIN_BOOK_DURATION_MIN * 60_000;
+  dur = Math.max(
+    MIN_BOOK_DURATION_MIN * 60_000,
+    Math.round(dur / QUARTER_HOUR_MS) * QUARTER_HOUR_MS,
+  );
+  dur = Math.min(dur, MAX_BOOK_DURATION_MIN * 60_000);
+
+  const spanMs = w1 - w0;
+  const maxDurFit = Math.max(
+    MIN_BOOK_DURATION_MIN * 60_000,
+    Math.floor(spanMs / QUARTER_HOUR_MS) * QUARTER_HOUR_MS,
+  );
+  dur = Math.min(dur, maxDurFit);
+
+  const lo = w0;
+  let hi = w1 - dur;
+  if (hi < lo) {
+    dur = maxDurFit;
+    hi = w1 - dur;
+  }
+  if (hi < lo) {
+    const s0 = snap(w0);
+    const e0 = Math.min(w1, s0 + MIN_BOOK_DURATION_MIN * 60_000);
+    return [s0, snap(e0)];
+  }
+
+  const startMs = clampNum(snap(s), lo, hi);
+  return [snap(startMs), snap(startMs + dur)];
 }
 
 export function intervalFitsInFreeGaps(
