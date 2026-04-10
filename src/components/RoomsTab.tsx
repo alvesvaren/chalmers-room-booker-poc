@@ -381,183 +381,182 @@ export function RoomsTab({
         {t("rooms.heading")}
       </h2>
 
-      <div className="space-y-4">
-        <RoomFiltersCard
-          nameFieldId="rooms-search"
-          nameLabel={t("rooms.name")}
-          searchPlaceholder={t("rooms.searchPlaceholder")}
-          searchValue={search}
-          onSearchChange={setSearch}
-          capacityBounds={capacityBounds}
-          capacityMin={capacityMin}
-          capacityMax={capacityMax}
-          onCapacityRangeChange={onCapacityRangeChange}
-          capacityDisabled={roomsIsFetching || rooms == null}
-          sort={sort}
-          onSortChange={setSort}
-          sortDisabled={false}
-        />
-      </div>
-
-      <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[1fr_minmax(17rem,22rem)] lg:items-start lg:gap-8">
-        <aside className="order-1 min-w-0 lg:order-2 lg:sticky lg:top-4 lg:self-start">
+      <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[1fr_minmax(17rem,22rem)] lg:items-start lg:gap-6">
+        <div className="min-w-0">
+          <RoomFiltersCard
+            nameFieldId="rooms-search"
+            nameLabel={t("rooms.name")}
+            searchPlaceholder={t("rooms.searchPlaceholder")}
+            searchValue={search}
+            onSearchChange={setSearch}
+            capacityBounds={capacityBounds}
+            capacityMin={capacityMin}
+            capacityMax={capacityMax}
+            onCapacityRangeChange={onCapacityRangeChange}
+            capacityDisabled={roomsIsFetching || rooms == null}
+            sort={sort}
+            onSortChange={setSort}
+            sortDisabled={false}
+          />
+        </div>
+        <aside className="min-w-0 lg:sticky lg:top-4 lg:self-start">
           {freeAtTimePanel}
         </aside>
+      </div>
 
-        <div className="order-2 min-w-0 space-y-4 lg:order-1">
-          {bookings?.bookingRules && (
-            <BookingRulesCallout rules={bookings.bookingRules} />
-          )}
+      <div className="space-y-4">
+        {bookings?.bookingRules && (
+          <BookingRulesCallout rules={bookings.bookingRules} />
+        )}
 
-      {roomsLoadPending ? (
-        <div className="space-y-4">
-          <p className="sr-only" role="status" aria-live="polite">
-            {t("rooms.loadingRooms")}
-          </p>
-          <div className={roomGridClass} aria-hidden>
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div
-                key={i}
-                className="border-te-border/80 bg-te-elevated/40 flex min-h-60 min-w-0 flex-col rounded-xl border p-4 sm:p-5"
-              >
-                <Skeleton className="h-3 w-16 rounded" />
-                <Skeleton className="mt-4 h-7 w-4/5 max-w-48 rounded-md" />
-                <Skeleton className="mt-5 h-10 w-20 rounded-md" />
-                <Skeleton className="mt-4 h-4 w-full max-w-56 rounded" />
-                <Skeleton className="mt-auto h-10 w-full rounded-lg" />
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className={`${roomGridClass} ${roomGridStaleClass}`}>
-          <div className="border-te-border bg-te-elevated/50 text-te-muted col-span-full rounded-xl border border-dashed px-4 py-12 text-center text-sm">
-            {slotFilterActive && crossesDayUi
-              ? t("rooms.emptyCrossesDay")
-              : slotFilterActive
-                ? t("rooms.emptySlotFilter")
-                : t("rooms.emptyNoMatch")}
-          </div>
-        </div>
-      ) : (
-        <div className={roomGridStaleClass}>
-          <VirtualizedWindowGrid
-          enabled={isTabActive}
-          items={filtered}
-          getItemKey={(r) => r.id}
-          minCardWidthPx={272}
-          estimateRowHeightPx={312}
-          gapPx={16}
-          renderItem={(room) => {
-            const rr = getRoomRating(room.name);
-            const betyg =
-              rr != null
-                ? rr.overall.toLocaleString(appLocaleBcp47(), {
-                    minimumFractionDigits: 1,
-                    maximumFractionDigits: 1,
-                  })
-                : null;
-            const fetchFailed = failedRoomIds.has(room.id);
-            return (
-              <article className="group border-te-border bg-te-elevated hover:border-te-accent/25 flex h-full min-h-60 min-w-0 flex-col rounded-xl border p-4 shadow-sm transition-shadow duration-200 hover:shadow-md sm:p-5">
-                <div className="min-h-0 min-w-0 flex-1 space-y-4">
-                  <header className="min-w-0">
-                    <h3 className="font-display text-te-text text-xl leading-[1.15] font-semibold tracking-tight sm:text-2xl">
-                      {room.name}
-                    </h3>
-                  </header>
-
-                  {fetchFailed && (
-                    <p className="text-te-danger text-xs font-medium">
-                      {t("rooms.fetchScheduleFailed")}
-                    </p>
-                  )}
-
-                  {slotFilterActive &&
-                    slotInterval &&
-                    !slotInterval.crossesDay &&
-                    !fetchFailed && (
-                      <p className="text-te-accent text-xs font-medium">
-                        {t("rooms.freeInterval", {
-                          start: slotAppliedStart,
-                          end: formatLocalTime(
-                            parseInstantOnDate(
-                              slotDate,
-                              slotAppliedEnd,
-                            ),
-                          ),
-                        })}
-                      </p>
-                    )}
-
-                  {rr != null && (
-                    <span
-                      className="font-display text-te-accent text-3xl leading-none font-semibold tabular-nums sm:text-[2.35rem]"
-                      title={rr.comment}
-                    >
-                      {betyg}
-                    </span>
-                  )}
-
-                  <p
-                    className="text-te-muted text-sm leading-snug"
-                    title={t("rooms.seatsTitle", {
-                      campus: room.campus,
-                      seats:
-                        room.capacity != null
-                          ? t("rooms.nSeats", { count: room.capacity })
-                          : "—",
-                    })}
-                  >
-                    <span className="text-te-text/95 font-medium">
-                      {room.campus}
-                    </span>
-                    <span
-                      aria-hidden
-                      className="bg-te-border mx-2 inline-block h-3 w-px translate-y-px align-middle"
-                    />
-                    <span className="tabular-nums">
-                      {room.capacity != null
-                        ? t("rooms.nSeats", { count: room.capacity })
-                        : "—"}
-                    </span>
-                  </p>
-                </div>
-
-                <Button
-                  variant="primary"
-                  className="mt-5 w-full touch-manipulation py-2.5 text-sm"
-                  disabled={!canBookRoom(room)}
-                  title={
-                    fetchFailed
-                      ? t("rooms.titleMissingSchedule")
-                      : !canBookRoom(room)
-                        ? slotFilterActive
-                          ? t("rooms.titleNotAvailableSlot")
-                          : t("rooms.titleNoFreeWeek")
-                        : undefined
-                  }
-                  onClick={() => {
-                    if (slotFilterActive && !crossesDayUi) {
-                      onBookRoom(room, {
-                        date: slotDate,
-                        startTime: slotStartTime,
-                        endTime: slotEndTime,
-                      });
-                      return;
-                    }
-                    onBookRoom(room);
-                  }}
+        {roomsLoadPending ? (
+          <div className="space-y-4">
+            <p className="sr-only" role="status" aria-live="polite">
+              {t("rooms.loadingRooms")}
+            </p>
+            <div className={roomGridClass} aria-hidden>
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="border-te-border/80 bg-te-elevated/40 flex min-h-60 min-w-0 flex-col rounded-xl border p-4 sm:p-5"
                 >
-                  {t("rooms.book")}
-                </Button>
-              </article>
-            );
-          }}
-        />
-        </div>
-      )}
-        </div>
+                  <Skeleton className="h-3 w-16 rounded" />
+                  <Skeleton className="mt-4 h-7 w-4/5 max-w-48 rounded-md" />
+                  <Skeleton className="mt-5 h-10 w-20 rounded-md" />
+                  <Skeleton className="mt-4 h-4 w-full max-w-56 rounded" />
+                  <Skeleton className="mt-auto h-10 w-full rounded-lg" />
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className={`${roomGridClass} ${roomGridStaleClass}`}>
+            <div className="border-te-border bg-te-elevated/50 text-te-muted col-span-full rounded-xl border border-dashed px-4 py-12 text-center text-sm">
+              {slotFilterActive && crossesDayUi
+                ? t("rooms.emptyCrossesDay")
+                : slotFilterActive
+                  ? t("rooms.emptySlotFilter")
+                  : t("rooms.emptyNoMatch")}
+            </div>
+          </div>
+        ) : (
+          <div className={roomGridStaleClass}>
+            <VirtualizedWindowGrid
+              enabled={isTabActive}
+              items={filtered}
+              getItemKey={(r) => r.id}
+              minCardWidthPx={272}
+              estimateRowHeightPx={312}
+              gapPx={16}
+              renderItem={(room) => {
+                const rr = getRoomRating(room.name);
+                const betyg =
+                  rr != null
+                    ? rr.overall.toLocaleString(appLocaleBcp47(), {
+                        minimumFractionDigits: 1,
+                        maximumFractionDigits: 1,
+                      })
+                    : null;
+                const fetchFailed = failedRoomIds.has(room.id);
+                return (
+                  <article className="group border-te-border bg-te-elevated hover:border-te-accent/25 flex h-full min-h-60 min-w-0 flex-col rounded-xl border p-4 shadow-sm transition-shadow duration-200 hover:shadow-md sm:p-5">
+                    <div className="min-h-0 min-w-0 flex-1 space-y-4">
+                      <header className="min-w-0">
+                        <h3 className="font-display text-te-text text-xl leading-[1.15] font-semibold tracking-tight sm:text-2xl">
+                          {room.name}
+                        </h3>
+                      </header>
+
+                      {fetchFailed && (
+                        <p className="text-te-danger text-xs font-medium">
+                          {t("rooms.fetchScheduleFailed")}
+                        </p>
+                      )}
+
+                      {slotFilterActive &&
+                        slotInterval &&
+                        !slotInterval.crossesDay &&
+                        !fetchFailed && (
+                          <p className="text-te-accent text-xs font-medium">
+                            {t("rooms.freeInterval", {
+                              start: slotAppliedStart,
+                              end: formatLocalTime(
+                                parseInstantOnDate(
+                                  slotDate,
+                                  slotAppliedEnd,
+                                ),
+                              ),
+                            })}
+                          </p>
+                        )}
+
+                      {rr != null && (
+                        <span
+                          className="font-display text-te-accent text-3xl leading-none font-semibold tabular-nums sm:text-[2.35rem]"
+                          title={rr.comment}
+                        >
+                          {betyg}
+                        </span>
+                      )}
+
+                      <p
+                        className="text-te-muted text-sm leading-snug"
+                        title={t("rooms.seatsTitle", {
+                          campus: room.campus,
+                          seats:
+                            room.capacity != null
+                              ? t("rooms.nSeats", { count: room.capacity })
+                              : "—",
+                        })}
+                      >
+                        <span className="text-te-text/95 font-medium">
+                          {room.campus}
+                        </span>
+                        <span
+                          aria-hidden
+                          className="bg-te-border mx-2 inline-block h-3 w-px translate-y-px align-middle"
+                        />
+                        <span className="tabular-nums">
+                          {room.capacity != null
+                            ? t("rooms.nSeats", { count: room.capacity })
+                            : "—"}
+                        </span>
+                      </p>
+                    </div>
+
+                    <Button
+                      variant="primary"
+                      className="mt-5 w-full touch-manipulation py-2.5 text-sm"
+                      disabled={!canBookRoom(room)}
+                      title={
+                        fetchFailed
+                          ? t("rooms.titleMissingSchedule")
+                          : !canBookRoom(room)
+                            ? slotFilterActive
+                              ? t("rooms.titleNotAvailableSlot")
+                              : t("rooms.titleNoFreeWeek")
+                            : undefined
+                      }
+                      onClick={() => {
+                        if (slotFilterActive && !crossesDayUi) {
+                          onBookRoom(room, {
+                            date: slotDate,
+                            startTime: slotStartTime,
+                            endTime: slotEndTime,
+                          });
+                          return;
+                        }
+                        onBookRoom(room);
+                      }}
+                    >
+                      {t("rooms.book")}
+                    </Button>
+                  </article>
+                );
+              }}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
