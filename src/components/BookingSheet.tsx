@@ -607,7 +607,7 @@ function BookingSheetForm({
           </div>
 
           {companionRoom && (
-            <label className="flex cursor-pointer items-start gap-3 select-none">
+            <label className="flex cursor-pointer items-baseline gap-3 select-none">
               <Checkbox
                 checked={bookCompanion}
                 onCheckedChange={(c) => {

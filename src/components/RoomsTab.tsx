@@ -210,7 +210,7 @@ export function RoomsTab({
       </h2>
 
       <div className={slotPanelClass}>
-        <label className="flex cursor-pointer items-start gap-3 select-none">
+        <label className="flex cursor-pointer items-baseline gap-3 select-none">
           <Checkbox
             checked={slotFilterActive}
             onCheckedChange={(c) => setSlotFilterActiveSynced(c === true)}
