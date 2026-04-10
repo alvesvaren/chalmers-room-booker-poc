@@ -6,21 +6,41 @@ const rootClass =
 
 const indicatorClass = "flex text-te-on-accent";
 
+type CheckboxProps = ComponentPropsWithoutRef<typeof CheckboxPrimitive.Root> & {
+  /** Keeps the checkmark in the DOM when unchecked; use with `data-[state=unchecked]:invisible` styling for stable layout. */
+  indicatorForceMount?: boolean;
+};
+
 /**
  * Radix Checkbox with app accent styling (no native blue). Use `onCheckedChange`
  * with a boolean guard when state is not indeterminate: `c === true`.
  */
 export const Checkbox = forwardRef<
   ElementRef<typeof CheckboxPrimitive.Root>,
-  ComponentPropsWithoutRef<typeof CheckboxPrimitive.Root>
->(function Checkbox({ className = "", children, ...props }, ref) {
+  CheckboxProps
+>(function Checkbox(
+  {
+    className = "",
+    children,
+    indicatorForceMount,
+    ...props
+  },
+  ref,
+) {
   return (
     <CheckboxPrimitive.Root
       ref={ref}
       className={`${rootClass} ${className}`.trim()}
       {...props}
     >
-      <CheckboxPrimitive.Indicator className={indicatorClass}>
+      <CheckboxPrimitive.Indicator
+        className={
+          indicatorForceMount
+            ? `${indicatorClass} data-[state=unchecked]:invisible`
+            : indicatorClass
+        }
+        forceMount={indicatorForceMount ? true : undefined}
+      >
         <svg
           viewBox="0 0 12 12"
           fill="none"
