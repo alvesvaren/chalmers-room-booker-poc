@@ -18,6 +18,7 @@ import {
   clampNum,
   clampToFreeGaps,
   dayDisplayBounds,
+  DURATION_CHIPS_MIN,
   isLocalStartInPast,
   MAX_BOOK_DURATION_MIN,
   MIN_BOOK_DURATION_MIN,
@@ -39,7 +40,6 @@ import {
   snapInstantMsToQuarterOnDate,
   type TimeInterval,
 } from "../lib/weekTimeline";
-import { DurationPickerSection } from "./DurationPickerSection";
 import { Button } from "./ui/Button";
 import { Checkbox } from "./ui/Checkbox";
 
@@ -755,11 +755,30 @@ function BookingSheetForm({
             )}
           </section>
 
-          <DurationPickerSection
-            valueMinutes={durationMin}
-            onChangeMinutes={applyDurationFromStart}
-            disabled={isPending}
-          />
+          <div className="grid gap-2">
+            <span className="text-te-text text-sm font-medium">
+              {t("booking.durationPresets")}
+            </span>
+            <div className="flex flex-wrap gap-2">
+              {DURATION_CHIPS_MIN.map((m) => {
+                const active = durationMin === m;
+                return (
+                  <button
+                    key={m}
+                    type="button"
+                    className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                      active
+                        ? "border-te-accent bg-te-accent-muted text-te-accent"
+                        : "border-te-border text-te-muted hover:border-te-accent/50"
+                    }`}
+                    onClick={() => applyDurationFromStart(m)}
+                  >
+                    {m} min
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
           <div className="grid min-w-0 gap-2 sm:grid-cols-2">
             <label className="grid min-w-0 gap-1 text-sm">
