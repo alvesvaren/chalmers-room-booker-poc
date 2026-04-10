@@ -31,10 +31,26 @@ export type RoomsTabFilters = {
   onCapacityRangeChange: (next: { min: number; max: number }) => void;
   roomSort: RoomSort;
   onRoomSortChange: (next: RoomSort) => void;
+  freeAtTime: FreeAtTimeFilterProps;
+};
+
+export type FreeAtTimeFilterProps = {
+  active: boolean;
+  onActiveChange: (active: boolean) => void;
+  minBookDate: string;
+  slotDate: string;
+  onSlotDateChange: (date: string) => void;
+  slotStartTime: string;
+  slotEndTime: string;
+  onSlotIntervalChange: (next: { startTime: string; endTime: string }) => void;
+  crossesDayUi: boolean;
+  bookingsWeekLabel: string;
+  showBookingsWeekFetching: boolean;
+  /** When set, only rooms free in this interval are shown (same calendar day as `slotDate`). */
+  filterInterval: { start: Date; end: Date } | null;
 };
 
 export type RoomsTabActions = {
-  onRoomsAvailabilityDateChange: (date: string | null) => void;
   onBookRoom: (
     room: Room,
     slot?: { date: string; startTime: string; endTime: string },
@@ -64,6 +80,7 @@ export type ScheduleTabFilters = {
   onCapacityRangeChange: (next: { min: number; max: number }) => void;
   roomSort: RoomSort;
   onRoomSortChange: (next: RoomSort) => void;
+  freeAtTime: FreeAtTimeFilterProps;
 };
 
 export type ScheduleTabBookings = {

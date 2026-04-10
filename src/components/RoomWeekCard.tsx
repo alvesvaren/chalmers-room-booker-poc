@@ -23,6 +23,7 @@ export function RoomWeekCard({
   onPickFree,
   onBookRoom,
   myBookings,
+  slotBookFilter,
 }: {
   room: RoomWithReservations;
   weekStart: Date;
@@ -30,6 +31,14 @@ export function RoomWeekCard({
   onPickFree: (room: RoomWithReservations, gap: TimeInterval) => void;
   onBookRoom: (room: RoomWithReservations) => void;
   myBookings: MyBooking[] | undefined;
+  /** When set, the header Book button books this interval if the room is free. */
+  slotBookFilter?: {
+    dateStr: string;
+    startTime: string;
+    endTime: string;
+    slotAvailable: boolean;
+    crossesDayUi: boolean;
+  };
 }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(true);
@@ -93,11 +102,27 @@ export function RoomWeekCard({
         <Button
           variant="primary"
           className="w-full shrink-0 touch-manipulation py-2.5 text-sm font-semibold sm:w-auto sm:px-5"
-          disabled={!nextBookableGap}
+          disabled={
+            slotBookFilter
+              ? slotBookFilter.crossesDayUi || !slotBookFilter.slotAvailable
+              : !nextBookableGap
+          }
           title={
-            !nextBookableGap ? t("roomWeek.noFreeWeek") : undefined
+            slotBookFilter
+              ? slotBookFilter.crossesDayUi
+                ? t("rooms.titleNotAvailableSlot")
+                : !slotBookFilter.slotAvailable
+                  ? t("rooms.titleNotAvailableSlot")
+                  : undefined
+              : !nextBookableGap
+                ? t("roomWeek.noFreeWeek")
+                : undefined
           }
           onClick={() => {
+            if (slotBookFilter && !slotBookFilter.crossesDayUi) {
+              if (slotBookFilter.slotAvailable) onBookRoom(room);
+              return;
+            }
             if (nextBookableGap) onBookRoom(room);
           }}
         >

@@ -2,9 +2,15 @@ import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { roomMatchesCapacityFilter } from "../lib/capacityBounds";
 import { appLocaleBcp47 } from "../lib/datetime/intlFormat";
-import { formatWeekRangeLabel, getWeekRange } from "../lib/weekTimeline";
 import { compareRoomsForSort } from "../lib/roomSort";
+import {
+  formatWeekRangeLabel,
+  getWeekRange,
+  roomAvailableForInterval,
+  weekOffsetForLocalDate,
+} from "../lib/weekTimeline";
 import { BookingRulesCallout } from "./BookingRulesCallout";
+import { FreeAtTimeFilterCard } from "./FreeAtTimeFilterCard";
 import { RoomFiltersCard } from "./RoomFiltersCard";
 import { RoomWeekCard } from "./RoomWeekCard";
 import { WorkspaceSuspenseFallback } from "./skeletons/ScheduleGridSkeleton";
@@ -29,6 +35,7 @@ export function ScheduleTab({
     onCapacityRangeChange,
     roomSort,
     onRoomSortChange,
+    freeAtTime,
   } = filters;
   const {
     bookings: bookingsData,
@@ -44,9 +51,15 @@ export function ScheduleTab({
   const { weekStart, weekEnd } = getWeekRange(weekOffset);
   const label = formatWeekRangeLabel(weekStart, weekEnd);
 
+  const { weekStart: slotBookingsWeekStart, weekEnd: slotBookingsWeekEnd } =
+    getWeekRange(weekOffsetForLocalDate(freeAtTime.slotDate));
+
   const hasBookings = bookingsData != null;
   const roomsSorted = useMemo(() => {
     if (!bookingsData) return [];
+    const failedRoomIds = new Set(
+      (bookingsData.errors ?? []).map((e) => e.roomId),
+    );
     const q = qFilter.trim().toLowerCase();
     const rooms = [...bookingsData.rooms].filter((r) =>
       roomMatchesCapacityFilter(r, capacityMin, capacityMax),
@@ -55,10 +68,32 @@ export function ScheduleTab({
       q.length === 0
         ? rooms
         : rooms.filter((r) => r.name.toLowerCase().includes(q));
-    nameFiltered.sort((a, b) =>
+
+    const availWeekStart = freeAtTime.active
+      ? slotBookingsWeekStart
+      : weekStart;
+    const availWeekEnd = freeAtTime.active ? slotBookingsWeekEnd : weekEnd;
+    const slotIv = freeAtTime.filterInterval;
+
+    const slotFiltered =
+      freeAtTime.active && slotIv
+        ? nameFiltered.filter((r) => {
+            if (failedRoomIds.has(r.id)) return false;
+            return roomAvailableForInterval(
+              r,
+              availWeekStart,
+              availWeekEnd,
+              freeAtTime.slotDate,
+              slotIv.start,
+              slotIv.end,
+            );
+          })
+        : nameFiltered;
+
+    slotFiltered.sort((a, b) =>
       compareRoomsForSort(a, b, roomSort, collatorLocale),
     );
-    return nameFiltered;
+    return slotFiltered;
   }, [
     bookingsData,
     qFilter,
@@ -66,6 +101,73 @@ export function ScheduleTab({
     capacityMax,
     collatorLocale,
     roomSort,
+    freeAtTime.active,
+    freeAtTime.slotDate,
+    freeAtTime.filterInterval,
+    weekStart,
+    weekEnd,
+    slotBookingsWeekStart,
+    slotBookingsWeekEnd,
+  ]);
+
+  const slotBookFilterByRoomId = useMemo(() => {
+    if (!bookingsData || !freeAtTime.active || freeAtTime.crossesDayUi) {
+      return null;
+    }
+    const failedRoomIds = new Set(
+      (bookingsData.errors ?? []).map((e) => e.roomId),
+    );
+    const slotIv = freeAtTime.filterInterval;
+    const map = new Map<
+      string,
+      {
+        dateStr: string;
+        startTime: string;
+        endTime: string;
+        slotAvailable: boolean;
+        crossesDayUi: boolean;
+      }
+    >();
+    for (const r of bookingsData.rooms) {
+      if (failedRoomIds.has(r.id)) {
+        map.set(r.id, {
+          dateStr: freeAtTime.slotDate,
+          startTime: freeAtTime.slotStartTime,
+          endTime: freeAtTime.slotEndTime,
+          slotAvailable: false,
+          crossesDayUi: freeAtTime.crossesDayUi,
+        });
+        continue;
+      }
+      const ok =
+        slotIv != null &&
+        roomAvailableForInterval(
+          r,
+          slotBookingsWeekStart,
+          slotBookingsWeekEnd,
+          freeAtTime.slotDate,
+          slotIv.start,
+          slotIv.end,
+        );
+      map.set(r.id, {
+        dateStr: freeAtTime.slotDate,
+        startTime: freeAtTime.slotStartTime,
+        endTime: freeAtTime.slotEndTime,
+        slotAvailable: ok,
+        crossesDayUi: freeAtTime.crossesDayUi,
+      });
+    }
+    return map;
+  }, [
+    bookingsData,
+    freeAtTime.active,
+    freeAtTime.crossesDayUi,
+    freeAtTime.slotDate,
+    freeAtTime.slotStartTime,
+    freeAtTime.slotEndTime,
+    freeAtTime.filterInterval,
+    slotBookingsWeekStart,
+    slotBookingsWeekEnd,
   ]);
 
   const scheduleGridClass =
@@ -110,26 +212,43 @@ export function ScheduleTab({
           </div>
         </div>
 
-        <div className="space-y-4">
-          <RoomFiltersCard
-            nameFieldId="schedule-room-search"
-            nameLabel={t("schedule.name")}
-            searchPlaceholder={t("schedule.searchPlaceholder")}
-            searchValue={qFilter}
-            onSearchChange={onQFilter}
-            capacityBounds={capacityBounds}
-            capacityMin={capacityMin}
-            capacityMax={capacityMax}
-            onCapacityRangeChange={onCapacityRangeChange}
-            capacityDisabled={bookingsIsFetching || !hasBookings}
-            sort={roomSort}
-            onSortChange={onRoomSortChange}
-            sortDisabled={bookingsIsFetching || !hasBookings}
-          />
+        <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[1fr_minmax(17rem,22rem)] lg:items-start lg:gap-6">
+          <div className="min-w-0 space-y-4">
+            <RoomFiltersCard
+              nameFieldId="schedule-room-search"
+              nameLabel={t("schedule.name")}
+              searchPlaceholder={t("schedule.searchPlaceholder")}
+              searchValue={qFilter}
+              onSearchChange={onQFilter}
+              capacityBounds={capacityBounds}
+              capacityMin={capacityMin}
+              capacityMax={capacityMax}
+              onCapacityRangeChange={onCapacityRangeChange}
+              capacityDisabled={bookingsIsFetching || !hasBookings}
+              sort={roomSort}
+              onSortChange={onRoomSortChange}
+              sortDisabled={bookingsIsFetching || !hasBookings}
+            />
 
-          {hasBookings && bookingsData.bookingRules && (
-            <BookingRulesCallout rules={bookingsData.bookingRules} />
-          )}
+            {hasBookings && bookingsData.bookingRules && (
+              <BookingRulesCallout rules={bookingsData.bookingRules} />
+            )}
+          </div>
+          <aside className="min-w-0 lg:sticky lg:top-4 lg:self-start">
+            <FreeAtTimeFilterCard
+              active={freeAtTime.active}
+              onActiveChange={freeAtTime.onActiveChange}
+              minBookDate={freeAtTime.minBookDate}
+              slotDate={freeAtTime.slotDate}
+              onSlotDateChange={freeAtTime.onSlotDateChange}
+              slotStartTime={freeAtTime.slotStartTime}
+              slotEndTime={freeAtTime.slotEndTime}
+              onSlotIntervalChange={freeAtTime.onSlotIntervalChange}
+              crossesDayUi={freeAtTime.crossesDayUi}
+              bookingsWeekLabel={freeAtTime.bookingsWeekLabel}
+              showBookingsWeekFetching={freeAtTime.showBookingsWeekFetching}
+            />
+          </aside>
         </div>
 
         {hasBookings &&
@@ -150,7 +269,11 @@ export function ScheduleTab({
         {hasBookings && roomsSorted.length === 0 && (
           <div className={scheduleGridClass}>
             <div className="border-te-border bg-te-elevated/50 text-te-muted col-span-full rounded-xl border border-dashed px-4 py-12 text-center text-sm">
-              {t("schedule.emptyFilter")}
+              {freeAtTime.active && freeAtTime.crossesDayUi
+                ? t("rooms.emptyCrossesDay")
+                : freeAtTime.active
+                  ? t("rooms.emptySlotFilter")
+                  : t("schedule.emptyFilter")}
             </div>
           </div>
         )}
@@ -169,6 +292,17 @@ export function ScheduleTab({
                 onPickFree={onPickFree}
                 onBookRoom={onBookRoom}
                 myBookings={myBookings ?? []}
+                slotBookFilter={
+                  slotBookFilterByRoomId
+                    ? (slotBookFilterByRoomId.get(room.id) ?? {
+                        dateStr: freeAtTime.slotDate,
+                        startTime: freeAtTime.slotStartTime,
+                        endTime: freeAtTime.slotEndTime,
+                        slotAvailable: false,
+                        crossesDayUi: freeAtTime.crossesDayUi,
+                      })
+                    : undefined
+                }
               />
             )}
           />
