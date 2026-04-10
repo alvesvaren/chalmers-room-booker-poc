@@ -295,7 +295,7 @@ export function DayIntervalTimeline({
 
   return (
     <section
-      className={`space-y-2 ${disabled ? "pointer-events-none opacity-50" : ""}`}
+      className={`space-y-2 ${disabled ? "pointer-events-none" : ""}`}
       aria-label={sectionAriaLabel ?? undefined}
       aria-disabled={disabled || undefined}
     >
@@ -311,7 +311,11 @@ export function DayIntervalTimeline({
               {summaryLeftLabel}
             </span>
           ) : null}
-          <span className="break-anywhere text-te-text min-w-0 font-mono text-xs tabular-nums sm:text-right">
+          <span
+            className={`break-anywhere min-w-0 font-mono text-xs tabular-nums sm:text-right ${
+              disabled ? "text-te-muted" : "text-te-text"
+            }`}
+          >
             {startTime}–{endTime}
             <span className="text-te-muted ml-2">
               {t("booking.minutesSuffix", { count: durationMin })}
@@ -412,10 +416,18 @@ export function DayIntervalTimeline({
             style={{ right: "100%" }}
             onPointerDown={(e) => onPointerDownBar("resize-start", e)}
           >
-            <span className="bg-te-accent pointer-events-none h-[62%] w-px rounded-full shadow-[0_0_0_1px_rgba(0,0,0,0.07)]" />
+            <span
+              className={`pointer-events-none h-[62%] w-px rounded-full shadow-[0_0_0_1px_rgba(0,0,0,0.06)] ${
+                disabled ? "bg-te-border" : "bg-te-accent"
+              }`}
+            />
           </button>
           <div
-            className="te-booking-preview-bar border-te-accent/35 bg-te-free-hover flex h-full min-h-0 w-full min-w-0 cursor-grab touch-manipulation items-center justify-center rounded-md border px-1 select-none active:cursor-grabbing"
+            className={
+              disabled
+                ? "flex h-full min-h-0 w-full min-w-0 cursor-default touch-manipulation items-center justify-center rounded-md border border-te-border/60 bg-te-surface/70 px-1 select-none"
+                : "te-booking-preview-bar border-te-accent/35 bg-te-free-hover flex h-full min-h-0 w-full min-w-0 cursor-grab touch-manipulation items-center justify-center rounded-md border px-1 select-none active:cursor-grabbing"
+            }
             onPointerDown={(e) => onPointerDownBar("move", e)}
             aria-label={
               barGrabAriaLabel ??
@@ -439,7 +451,11 @@ export function DayIntervalTimeline({
             style={{ left: "100%" }}
             onPointerDown={(e) => onPointerDownBar("resize-end", e)}
           >
-            <span className="bg-te-accent pointer-events-none h-[62%] w-px rounded-full shadow-[0_0_0_1px_rgba(0,0,0,0.07)]" />
+            <span
+              className={`pointer-events-none h-[62%] w-px rounded-full shadow-[0_0_0_1px_rgba(0,0,0,0.06)] ${
+                disabled ? "bg-te-border" : "bg-te-accent"
+              }`}
+            />
           </button>
         </div>
       </div>

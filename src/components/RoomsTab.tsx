@@ -278,13 +278,13 @@ export function RoomsTab({
 
       <fieldset
         disabled={!slotFilterActive}
-        className="border-te-border/60 mt-4 min-w-0 space-y-4 border-0 border-t p-0 pt-4"
+        className="group border-te-border/60 mt-4 min-w-0 space-y-4 border-0 border-t p-0 pt-4"
       >
         <label className="flex min-w-0 flex-col gap-1 text-sm">
           <span className="text-te-muted font-medium">{t("rooms.day")}</span>
           <input
             type="date"
-            className={fieldClass}
+            className={`${fieldClass} group-disabled:cursor-not-allowed group-disabled:opacity-60`}
             min={minBookDate}
             value={slotDate}
             onChange={(e) => setSlotDateSynced(e.target.value)}
@@ -322,10 +322,10 @@ export function RoomsTab({
                 <button
                   key={m}
                   type="button"
-                  className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                  className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors disabled:pointer-events-none ${
                     active
-                      ? "border-te-accent bg-te-accent-muted text-te-accent"
-                      : "border-te-border text-te-muted hover:border-te-accent/50"
+                      ? "border-te-accent bg-te-accent-muted text-te-accent group-disabled:border-te-border group-disabled:bg-te-elevated group-disabled:text-te-muted"
+                      : "border-te-border text-te-muted enabled:hover:border-te-accent/40"
                   }`}
                   onClick={() => {
                     const { start: w0, end: w1 } = dayDisplayBounds(slotDate);
