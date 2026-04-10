@@ -23,6 +23,7 @@ import { RoomFiltersCard } from "./RoomFiltersCard";
 import { VirtualizedWindowGrid } from "./VirtualizedWindowGrid";
 import type { RoomsTabProps } from "./workspaceTabProps";
 import { Button } from "./ui/Button";
+import { Checkbox } from "./ui/Checkbox";
 import { Skeleton } from "./ui/Skeleton";
 
 export function RoomsTab({
@@ -210,9 +211,7 @@ export function RoomsTab({
 
       <div className={slotPanelClass}>
         <label className="flex cursor-pointer items-start gap-3 select-none">
-          <input
-            type="checkbox"
-            className="border-te-border text-te-accent focus:ring-te-accent/30 mt-1 size-4 shrink-0 rounded"
+          <Checkbox
             checked={slotFilterActive}
             onChange={(e) => setSlotFilterActiveSynced(e.target.checked)}
           />
