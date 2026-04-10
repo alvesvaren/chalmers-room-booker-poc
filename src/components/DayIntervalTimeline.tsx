@@ -9,6 +9,7 @@ import {
   MAX_BOOK_DURATION_MIN,
   MIN_BOOK_DURATION_MIN,
 } from "../lib/bookingSheetMath";
+import { lockBodyTouchActionForPointerDrag } from "../lib/bodyTouchActionLock";
 import {
   formatLocalTime,
   intervalToPercent,
@@ -92,6 +93,7 @@ export function DayIntervalTimeline({
     startMs: number;
     endMs: number;
     pointerId: number;
+    releaseBodyTouchAction: () => void;
   } | null>(null);
 
   const { start: displayStart, end: displayEnd } = dayDisplayBounds(dateStr);
@@ -181,6 +183,7 @@ export function DayIntervalTimeline({
   function endDragPointer() {
     const d = dragRef.current;
     if (!d) return;
+    d.releaseBodyTouchAction();
     const el = trackRef.current;
     if (el) {
       try {
@@ -205,6 +208,7 @@ export function DayIntervalTimeline({
       startMs,
       endMs,
       pointerId: e.pointerId,
+      releaseBodyTouchAction: lockBodyTouchActionForPointerDrag(),
     };
     const el = trackRef.current;
     if (el) {
@@ -325,7 +329,7 @@ export function DayIntervalTimeline({
       )}
       <div
         ref={trackRef}
-        className="relative h-11 min-h-11 w-full cursor-default overflow-visible"
+        className="relative h-11 min-h-11 w-full cursor-default touch-none overflow-visible"
         onPointerDownCapture={(e) => {
           if (disabled) return;
           if (!clickToReposition) return;
@@ -402,7 +406,7 @@ export function DayIntervalTimeline({
         </div>
         <div
           data-day-interval-preview-root
-          className={`absolute z-10 ${trackBarInset}`}
+          className={`absolute z-10 touch-none ${trackBarInset}`}
           style={{
             left: `${leftPct}%`,
             width: `${previewWidthPct}%`,
@@ -412,7 +416,7 @@ export function DayIntervalTimeline({
             type="button"
             disabled={disabled}
             aria-label={t("booking.adjustStart")}
-            className="absolute top-0 bottom-0 z-20 flex w-3 cursor-ew-resize touch-manipulation items-center justify-end bg-transparent pr-px disabled:cursor-not-allowed"
+            className="absolute top-0 bottom-0 z-20 flex w-3 cursor-ew-resize touch-none items-center justify-end bg-transparent pr-px disabled:cursor-not-allowed"
             style={{ right: "100%" }}
             onPointerDown={(e) => onPointerDownBar("resize-start", e)}
           >
@@ -425,8 +429,8 @@ export function DayIntervalTimeline({
           <div
             className={
               disabled
-                ? "flex h-full min-h-0 w-full min-w-0 cursor-default touch-manipulation items-center justify-center rounded-md border border-te-border/60 bg-te-surface/70 px-1 select-none"
-                : "te-booking-preview-bar border-te-accent/35 bg-te-free-hover flex h-full min-h-0 w-full min-w-0 cursor-grab touch-manipulation items-center justify-center rounded-md border px-1 select-none active:cursor-grabbing"
+                ? "flex h-full min-h-0 w-full min-w-0 cursor-default touch-none items-center justify-center rounded-md border border-te-border/60 bg-te-surface/70 px-1 select-none"
+                : "te-booking-preview-bar border-te-accent/35 bg-te-free-hover flex h-full min-h-0 w-full min-w-0 cursor-grab touch-none items-center justify-center rounded-md border px-1 select-none active:cursor-grabbing"
             }
             onPointerDown={(e) => onPointerDownBar("move", e)}
             aria-label={
@@ -447,7 +451,7 @@ export function DayIntervalTimeline({
             type="button"
             disabled={disabled}
             aria-label={t("booking.adjustEnd")}
-            className="absolute top-0 bottom-0 z-20 flex w-3 cursor-ew-resize touch-manipulation items-center justify-start bg-transparent pl-px disabled:cursor-not-allowed"
+            className="absolute top-0 bottom-0 z-20 flex w-3 cursor-ew-resize touch-none items-center justify-start bg-transparent pl-px disabled:cursor-not-allowed"
             style={{ left: "100%" }}
             onPointerDown={(e) => onPointerDownBar("resize-end", e)}
           >
