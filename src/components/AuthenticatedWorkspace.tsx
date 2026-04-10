@@ -1,4 +1,10 @@
-import { useCallback, useMemo, useState, useTransition } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  useTransition,
+} from "react";
 import { useTranslation } from "react-i18next";
 import type {
   CreateBookingRequest,
@@ -9,13 +15,23 @@ import { TOAST_DURATION_MS } from "../config/api";
 import { useAutoDismiss } from "../hooks/useUiEffects";
 import { useWorkspaceBookingsMutations } from "../hooks/useWorkspaceBookingsMutations";
 import { useWorkspaceServerData } from "../hooks/useWorkspaceServerData";
+import {
+  clampIntervalToDayWindow,
+  dayDisplayBounds,
+  defaultAvailabilityFilterStartTime,
+} from "../lib/bookingSheetMath";
 import { CAPACITY_SLIDER_FALLBACK_MAX } from "../lib/capacityBounds";
 import { findAbRoomCompanion } from "../lib/abRoomPair";
+import type { RoomSort } from "../lib/roomSort";
 import { errorMessage } from "../lib/errors";
 import { roomWithBookingsFor } from "../lib/roomSchedule";
 import type { TimeInterval } from "../lib/weekTimeline";
 import {
+  addMinutes,
   firstFreeGapInWeek,
+  formatLocalDate,
+  formatLocalTime,
+  formatWeekRangeLabel,
   getWeekRange,
   parseInstantOnDate,
   roomAvailableForInterval,
@@ -29,6 +45,7 @@ import { QueryErrorBoundary } from "./QueryErrorBoundary";
 import { RoomsTab } from "./RoomsTab";
 import { ScheduleTab } from "./ScheduleTab";
 import type {
+  FreeAtTimeFilterProps,
   MyBookingsTabProps,
   RoomsTabProps,
   ScheduleTabProps,
@@ -42,6 +59,10 @@ export function AuthenticatedWorkspace() {
 
   const [weekOffset, setWeekOffset] = useState(0);
   const [qFilter, setQFilter] = useState("");
+  const [roomSort, setRoomSort] = useState<RoomSort>({
+    mode: "rating",
+    invert: false,
+  });
   const [capacityRange, setCapacityRange] = useState({
     min: 1,
     max: CAPACITY_SLIDER_FALLBACK_MAX,
@@ -51,14 +72,37 @@ export function AuthenticatedWorkspace() {
   const [bookingInitial, setBookingInitial] =
     useState<BookingSheetInitial | null>(null);
   const [toast, setToast] = useState<string | null>(null);
-  const [roomsAvailabilityDate, setRoomsAvailabilityDate] = useState<
-    string | null
-  >(null);
+  const [slotFilterActive, setSlotFilterActive] = useState(false);
+  const [slotDate, setSlotDate] = useState(() => formatLocalDate(new Date()));
+  const [slotStartTime, setSlotStartTime] = useState(() =>
+    defaultAvailabilityFilterStartTime(formatLocalDate(new Date())),
+  );
+  const [slotEndTime, setSlotEndTime] = useState(() => {
+    const d = formatLocalDate(new Date());
+    const st = defaultAvailabilityFilterStartTime(d);
+    const { start: w0, end: w1 } = dayDisplayBounds(d);
+    const sMs = parseInstantOnDate(d, st).getTime();
+    const eMs = addMinutes(new Date(sMs), 120).getTime();
+    const [, b] = clampIntervalToDayWindow(sMs, eMs, d, w0, w1);
+    return formatLocalTime(new Date(b));
+  });
+  const [slotAppliedStart, setSlotAppliedStart] = useState(slotStartTime);
+  const [slotAppliedEnd, setSlotAppliedEnd] = useState(slotEndTime);
 
-  const effectiveBookingsWeekOffset =
-    roomsAvailabilityDate != null
-      ? weekOffsetForLocalDate(roomsAvailabilityDate)
-      : weekOffset;
+  const SLOT_FILTER_DEBOUNCE_MS = 200;
+
+  useEffect(() => {
+    if (!slotFilterActive) return undefined;
+    const id = window.setTimeout(() => {
+      setSlotAppliedStart(slotStartTime);
+      setSlotAppliedEnd(slotEndTime);
+    }, SLOT_FILTER_DEBOUNCE_MS);
+    return () => window.clearTimeout(id);
+  }, [slotFilterActive, slotStartTime, slotEndTime, slotDate]);
+
+  const effectiveBookingsWeekOffset = slotFilterActive
+    ? weekOffsetForLocalDate(slotDate)
+    : weekOffset;
 
   const bookingsRequestQuery = useMemo(() => {
     const q = qFilter.trim();
@@ -84,6 +128,104 @@ export function AuthenticatedWorkspace() {
 
   const { weekStart, weekEnd } = getWeekRange(effectiveBookingsWeekOffset);
 
+  const minBookDate = formatLocalDate(new Date());
+
+  const applyDefaultSlotIntervalForDate = useCallback((dateStr: string) => {
+    const st = defaultAvailabilityFilterStartTime(dateStr);
+    const { start: w0, end: w1 } = dayDisplayBounds(dateStr);
+    const sMs = parseInstantOnDate(dateStr, st).getTime();
+    const eMs = addMinutes(new Date(sMs), 120).getTime();
+    const [a, b] = clampIntervalToDayWindow(sMs, eMs, dateStr, w0, w1);
+    const startStr = formatLocalTime(new Date(a));
+    const endStr = formatLocalTime(new Date(b));
+    setSlotStartTime(startStr);
+    setSlotEndTime(endStr);
+    setSlotAppliedStart(startStr);
+    setSlotAppliedEnd(endStr);
+  }, []);
+
+  const setSlotFilterActiveSynced = useCallback(
+    (checked: boolean) => {
+      setSlotFilterActive(checked);
+      if (checked) {
+        applyDefaultSlotIntervalForDate(slotDate);
+      } else {
+        setSlotAppliedStart(slotStartTime);
+        setSlotAppliedEnd(slotEndTime);
+      }
+    },
+    [
+      applyDefaultSlotIntervalForDate,
+      slotDate,
+      slotStartTime,
+      slotEndTime,
+    ],
+  );
+
+  const setSlotDateSynced = useCallback(
+    (nextDate: string) => {
+      setSlotDate(nextDate);
+      applyDefaultSlotIntervalForDate(nextDate);
+    },
+    [applyDefaultSlotIntervalForDate],
+  );
+
+  const crossesDayUi = useMemo(() => {
+    if (!slotFilterActive) return false;
+    const start = parseInstantOnDate(slotDate, slotStartTime);
+    const end = parseInstantOnDate(slotDate, slotEndTime);
+    return (
+      formatLocalDate(end) !== slotDate || end.getTime() <= start.getTime()
+    );
+  }, [slotFilterActive, slotDate, slotStartTime, slotEndTime]);
+
+  const slotIntervalForFilter = useMemo(() => {
+    if (!slotFilterActive) return null;
+    const start = parseInstantOnDate(slotDate, slotAppliedStart);
+    const end = parseInstantOnDate(slotDate, slotAppliedEnd);
+    const crossesDay =
+      formatLocalDate(end) !== slotDate || end.getTime() <= start.getTime();
+    if (crossesDay) return null;
+    return { start, end };
+  }, [slotFilterActive, slotDate, slotAppliedStart, slotAppliedEnd]);
+
+  const bookingsWeekLabel = formatWeekRangeLabel(weekStart, weekEnd);
+
+  const freeAtTimeFilter: FreeAtTimeFilterProps = useMemo(
+    () => ({
+      active: slotFilterActive,
+      onActiveChange: setSlotFilterActiveSynced,
+      minBookDate,
+      slotDate,
+      onSlotDateChange: setSlotDateSynced,
+      slotStartTime,
+      slotEndTime,
+      onSlotIntervalChange: ({ startTime: st, endTime: et }) => {
+        setSlotStartTime(st);
+        setSlotEndTime(et);
+      },
+      crossesDayUi,
+      bookingsWeekLabel,
+      showBookingsWeekFetching:
+        slotFilterActive && bookingsGrid == null && bookingsQuery.isFetching,
+      filterInterval: slotIntervalForFilter,
+    }),
+    [
+      slotFilterActive,
+      setSlotFilterActiveSynced,
+      minBookDate,
+      slotDate,
+      setSlotDateSynced,
+      slotStartTime,
+      slotEndTime,
+      crossesDayUi,
+      bookingsWeekLabel,
+      bookingsGrid,
+      bookingsQuery.isFetching,
+      slotIntervalForFilter,
+    ],
+  );
+
   const runBookingsFilterUpdate = useCallback(
     (update: () => void) => {
       startFilterTransition(update);
@@ -93,6 +235,11 @@ export function AuthenticatedWorkspace() {
 
   const setQFilterTransitioned = useCallback(
     (v: string) => runBookingsFilterUpdate(() => setQFilter(v)),
+    [runBookingsFilterUpdate],
+  );
+
+  const setRoomSortTransitioned = useCallback(
+    (next: RoomSort) => runBookingsFilterUpdate(() => setRoomSort(next)),
     [runBookingsFilterUpdate],
   );
 
@@ -114,11 +261,44 @@ export function AuthenticatedWorkspace() {
 
   const handleBookRoomFromSchedule = useCallback(
     (room: RoomWithReservations) => {
+      if (slotFilterActive && !crossesDayUi) {
+        const start = parseInstantOnDate(slotDate, slotStartTime);
+        const end = parseInstantOnDate(slotDate, slotEndTime);
+        if (
+          !roomAvailableForInterval(
+            room,
+            weekStart,
+            weekEnd,
+            slotDate,
+            start,
+            end,
+          )
+        ) {
+          return;
+        }
+        openBookingSheet({
+          roomId: room.id,
+          roomName: room.name,
+          date: slotDate,
+          startTime: slotStartTime,
+          endTime: slotEndTime,
+        });
+        return;
+      }
       const gap = firstFreeGapInWeek(room, weekStart, weekEnd);
       if (!gap) return;
       openBookingSheet(toBookingDraft(room.id, room.name, gap));
     },
-    [openBookingSheet, weekStart, weekEnd],
+    [
+      openBookingSheet,
+      weekStart,
+      weekEnd,
+      slotFilterActive,
+      crossesDayUi,
+      slotDate,
+      slotStartTime,
+      slotEndTime,
+    ],
   );
 
   const handleBookRoomFromDirectory = useCallback(
@@ -195,13 +375,32 @@ export function AuthenticatedWorkspace() {
     (room: Room) => {
       if (!bookingsGrid) return false;
       const rw = roomWithBookingsFor(room, bookingsGrid.rooms);
+      if (slotFilterActive) {
+        if (!slotIntervalForFilter || crossesDayUi) return false;
+        return roomAvailableForInterval(
+          rw,
+          weekStart,
+          weekEnd,
+          slotDate,
+          slotIntervalForFilter.start,
+          slotIntervalForFilter.end,
+        );
+      }
       return firstFreeGapInWeek(rw, weekStart, weekEnd) != null;
     },
-    [bookingsGrid, weekStart, weekEnd],
+    [
+      bookingsGrid,
+      weekStart,
+      weekEnd,
+      slotFilterActive,
+      slotIntervalForFilter,
+      crossesDayUi,
+      slotDate,
+    ],
   );
 
   const onWeekNavigate = useCallback((next: number) => {
-    setRoomsAvailabilityDate(null);
+    setSlotFilterActive(false);
     setWeekOffset(next);
   }, []);
 
@@ -276,13 +475,17 @@ export function AuthenticatedWorkspace() {
         bookingsUiStale,
       },
       filters: {
+        qFilter,
+        onQFilter: setQFilterTransitioned,
         capacityBounds,
         capacityMin: capacityDisplay.min,
         capacityMax: capacityDisplay.max,
         onCapacityRangeChange: setCapacityRange,
+        roomSort,
+        onRoomSortChange: setRoomSortTransitioned,
+        freeAtTime: freeAtTimeFilter,
       },
       actions: {
-        onRoomsAvailabilityDateChange: setRoomsAvailabilityDate,
         onBookRoom: handleBookRoomFromDirectory,
         isRoomBookable,
       },
@@ -297,22 +500,24 @@ export function AuthenticatedWorkspace() {
       roomsUiStale,
       bookingsQuery.isFetching,
       bookingsUiStale,
+      qFilter,
+      setQFilterTransitioned,
+      roomSort,
+      setRoomSortTransitioned,
       capacityBounds,
       capacityDisplay.min,
       capacityDisplay.max,
       handleBookRoomFromDirectory,
       isRoomBookable,
       activeTab,
+      freeAtTimeFilter,
     ],
   );
-
-  const scheduleWeekOffset =
-    roomsAvailabilityDate != null ? effectiveBookingsWeekOffset : weekOffset;
 
   const scheduleTabProps: ScheduleTabProps = useMemo(
     () => ({
       week: {
-        weekOffset: scheduleWeekOffset,
+        weekOffset,
         onWeekOffsetChange: onWeekNavigate,
       },
       filters: {
@@ -322,6 +527,9 @@ export function AuthenticatedWorkspace() {
         capacityMin: capacityDisplay.min,
         capacityMax: capacityDisplay.max,
         onCapacityRangeChange: setCapacityRange,
+        roomSort,
+        onRoomSortChange: setRoomSortTransitioned,
+        freeAtTime: freeAtTimeFilter,
       },
       bookings: {
         bookings: bookingsGrid,
@@ -338,13 +546,16 @@ export function AuthenticatedWorkspace() {
       isTabActive: activeTab === "schedule",
     }),
     [
-      scheduleWeekOffset,
+      weekOffset,
       onWeekNavigate,
       qFilter,
       setQFilterTransitioned,
+      roomSort,
+      setRoomSortTransitioned,
       capacityBounds,
       capacityDisplay.min,
       capacityDisplay.max,
+      freeAtTimeFilter,
       bookingsGrid,
       bookingsQuery.isFetching,
       bookingsQuery.isError,
