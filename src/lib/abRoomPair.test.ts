@@ -3,6 +3,7 @@ import {
   abRoomCompanionName,
   abRoomCompanionSuffix,
   findAbRoomCompanion,
+  isEgAbPairRoomName,
 } from "./abRoomPair";
 import type { Room } from "../client/types.gen";
 
@@ -30,6 +31,13 @@ describe("abRoomCompanionName", () => {
   });
 });
 
+describe("isEgAbPairRoomName", () => {
+  it("is true only for EG- prefix", () => {
+    expect(isEgAbPairRoomName("EG-3211A")).toBe(true);
+    expect(isEgAbPairRoomName("ED-3211A")).toBe(false);
+  });
+});
+
 describe("findAbRoomCompanion", () => {
   const rooms: Room[] = [
     room("1", "EG-3211A"),
@@ -44,5 +52,10 @@ describe("findAbRoomCompanion", () => {
 
   it("returns null when companion is missing from list", () => {
     expect(findAbRoomCompanion(room("x", "EG-9999A"), [room("x", "EG-9999A")])).toBeNull();
+  });
+
+  it("does not pair non-EG A/B rooms", () => {
+    const ed: Room[] = [room("a", "ED-100A"), room("b", "ED-100B")];
+    expect(findAbRoomCompanion(ed[0], ed)).toBeNull();
   });
 });

@@ -116,9 +116,8 @@ function BookingSheetForm({
   const [title, setTitle] = useState("");
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [clientError, setClientError] = useState<string | null>(null);
-  const [bookCompanion, setBookCompanion] = useState(
-    () => Boolean(initial.companionRoomId),
-  );
+  /** Default on when the EG A/B companion UI applies (user can turn off). */
+  const [bookCompanion, setBookCompanion] = useState(true);
   const minBookDate = formatLocalDate(new Date());
 
   const primaryRoom = useMemo(
