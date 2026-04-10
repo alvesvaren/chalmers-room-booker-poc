@@ -17,7 +17,8 @@ import {
 
 export const MIN_BOOK_DURATION_MIN = 15;
 export const MAX_BOOK_DURATION_MIN = 240;
-export const DURATION_CHIPS_MIN = [15, 30, 60, 90, 120, 240] as const;
+/** Quick-select chip lengths (minutes). Booking can still be 15+ via slider/manual edit. */
+export const DURATION_CHIPS_MIN = [30, 60, 90, 120, 240] as const;
 
 /**
  * Next quarter-hour start on `dateStr` relative to `now` (local).

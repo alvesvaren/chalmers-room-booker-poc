@@ -4,10 +4,7 @@ import type { Room } from "../client/types.gen";
 import { roomMatchesCapacityFilter } from "../lib/capacityBounds";
 import { compareRoomsForSort, type RoomSort } from "../lib/roomSort";
 import { appLocaleBcp47 } from "../lib/datetime/intlFormat";
-import {
-  defaultAvailabilityFilterStartTime,
-  DURATION_CHIPS_MIN,
-} from "../lib/bookingSheetMath";
+import { defaultAvailabilityFilterStartTime } from "../lib/bookingSheetMath";
 import { roomWithBookingsFor } from "../lib/roomSchedule";
 import { getRoomRating } from "../lib/roomRatings";
 import {
@@ -18,6 +15,7 @@ import {
   parseInstantOnDate,
   roomAvailableForInterval,
 } from "../lib/weekTimeline";
+import { DurationPickerSection } from "./DurationPickerSection";
 import { BookingRulesCallout } from "./BookingRulesCallout";
 import { RoomFiltersCard } from "./RoomFiltersCard";
 import { VirtualizedWindowGrid } from "./VirtualizedWindowGrid";
@@ -65,7 +63,7 @@ export function RoomsTab({
   const [slotStartTime, setSlotStartTime] = useState(() =>
     defaultAvailabilityFilterStartTime(formatLocalDate(new Date())),
   );
-  const [slotDurationMin, setSlotDurationMin] = useState(60);
+  const [slotDurationMin, setSlotDurationMin] = useState(120);
 
   const minBookDate = formatLocalDate(new Date());
 
@@ -221,90 +219,58 @@ export function RoomsTab({
         </label>
 
         {slotFilterActive && (
-          <div className="border-te-border/60 mt-4 grid min-w-0 gap-3 border-t pt-4 sm:grid-cols-2 lg:grid-cols-4">
-            <label className="flex min-w-0 flex-col gap-1 text-sm">
-              <span className="text-te-muted font-medium">
-                {t("rooms.day")}
-              </span>
-              <input
-                type="date"
-                className={fieldClass}
-                min={minBookDate}
-                value={slotDate}
-                onChange={(e) => setSlotDateSynced(e.target.value)}
-              />
-            </label>
-            <label className="flex min-w-0 flex-col gap-1 text-sm">
-              <span className="text-te-muted font-medium">
-                {t("rooms.start")}
-              </span>
-              <input
-                type="time"
-                className={fieldClass}
-                value={slotStartTime}
-                onChange={(e) => setSlotStartTime(e.target.value)}
-              />
-            </label>
-            <label className="flex min-w-0 flex-col gap-1 text-sm">
-              <span className="text-te-muted font-medium">
-                {t("rooms.durationMin")}
-              </span>
-              <input
-                type="number"
-                min={15}
-                max={240}
-                step={15}
-                className={fieldClass}
-                value={slotDurationMin}
-                onChange={(e) =>
-                  setSlotDurationMin(
-                    Math.max(15, Math.min(240, Number(e.target.value))),
-                  )
-                }
-              />
-            </label>
-            <div className="flex min-w-0 flex-col justify-end gap-1 text-sm">
-              <span className="text-te-muted font-medium">
-                {t("rooms.interval")}
-              </span>
-              <p className="border-te-border/80 bg-te-surface/80 text-te-text rounded-lg border border-dashed px-3 py-2.5 tabular-nums sm:py-2">
-                {slotInterval && !slotInterval.crossesDay ? (
-                  <>
-                    {slotStartTime} – {slotInterval.endTime}
-                  </>
-                ) : slotInterval?.crossesDay ? (
-                  <span className="text-te-danger text-xs">
-                    {t("rooms.crossesMidnight")}
-                  </span>
-                ) : (
-                  "—"
-                )}
-              </p>
-            </div>
-            <div className="flex min-w-0 flex-col gap-2 sm:col-span-2 lg:col-span-4">
-              <span className="text-te-muted font-medium">
-                {t("rooms.durationPresets")}
-              </span>
-              <div className="flex flex-wrap gap-2">
-                {DURATION_CHIPS_MIN.map((m) => {
-                  const active = slotDurationMin === m;
-                  return (
-                    <button
-                      key={m}
-                      type="button"
-                      className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
-                        active
-                          ? "border-te-accent bg-te-accent-muted text-te-accent"
-                          : "border-te-border text-te-muted hover:border-te-accent/50"
-                      }`}
-                      onClick={() => setSlotDurationMin(m)}
-                    >
-                      {m} min
-                    </button>
-                  );
-                })}
+          <div className="border-te-border/60 mt-4 min-w-0 space-y-5 border-t pt-4">
+            <div className="grid min-w-0 gap-4 sm:grid-cols-2">
+              <label className="flex min-w-0 flex-col gap-1 text-sm">
+                <span className="text-te-muted font-medium">
+                  {t("rooms.day")}
+                </span>
+                <input
+                  type="date"
+                  className={fieldClass}
+                  min={minBookDate}
+                  value={slotDate}
+                  onChange={(e) => setSlotDateSynced(e.target.value)}
+                />
+              </label>
+              <label className="flex min-w-0 flex-col gap-1 text-sm">
+                <span className="text-te-muted font-medium">
+                  {t("rooms.start")}
+                </span>
+                <input
+                  type="time"
+                  className={fieldClass}
+                  value={slotStartTime}
+                  onChange={(e) => setSlotStartTime(e.target.value)}
+                />
+              </label>
+              <div className="flex min-w-0 flex-col gap-1 text-sm sm:col-span-2">
+                <span className="text-te-muted font-medium">
+                  {t("rooms.interval")}
+                </span>
+                <p className="border-te-border/80 bg-te-surface/80 text-te-text rounded-lg border border-dashed px-3 py-2.5 font-mono text-sm tabular-nums sm:py-2.5">
+                  {slotInterval && !slotInterval.crossesDay ? (
+                    <>
+                      {slotStartTime} – {slotInterval.endTime}
+                    </>
+                  ) : slotInterval?.crossesDay ? (
+                    <span className="text-te-danger text-xs font-sans">
+                      {t("rooms.crossesMidnight")}
+                    </span>
+                  ) : (
+                    "—"
+                  )}
+                </p>
               </div>
             </div>
+
+            <DurationPickerSection
+              valueMinutes={slotDurationMin}
+              onChangeMinutes={setSlotDurationMin}
+              durationSummaryLabel={t("rooms.durationSummary")}
+              presetsHeading={t("rooms.durationPresets")}
+              sliderAriaLabel={t("rooms.durationSliderAria")}
+            />
           </div>
         )}
 
