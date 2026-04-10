@@ -107,6 +107,9 @@
     "creating": "Bokar…",
     "submit": "Skapa bokning",
     "createdToast": "Bokning skapad · {{id}}",
+    "createdToastDual": "Båda halvorna bokade · {{idA}} · {{idB}}",
+    "bookOtherHalf": "Boka även {{name}}",
+    "companionScheduleMissing": "Schemat för den andra halvan saknas — avmarkera för att bara boka detta rum, eller ladda om.",
     "confirmCancel": "Avboka denna reservation?"
   },
   "roomWeek": {

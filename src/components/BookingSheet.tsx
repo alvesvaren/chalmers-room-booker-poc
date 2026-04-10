@@ -10,8 +10,10 @@ import { createPortal } from "react-dom";
 import type {
   CreateBookingRequest,
   MyBooking,
+  Room,
   RoomWithReservations,
 } from "../client/types.gen";
+import { findAbRoomCompanion } from "../lib/abRoomPair";
 import {
   clampNum,
   clampToFreeGaps,
@@ -24,6 +26,7 @@ import {
 import { errorMessage } from "../lib/errors";
 import { useClampBookingToFreeGaps } from "../hooks/useClampBookingToFreeGaps";
 import { useEscapeKey } from "../hooks/useUiEffects";
+import { mergeIntervals } from "../lib/timeline/intervals";
 import {
   formatLocalDate,
   formatLocalTime,
@@ -44,13 +47,47 @@ type DragKind = "move" | "resize-start" | "resize-end";
 export type BookingSheetInitial = {
   roomId: string;
   roomName?: string;
+  /** When set, dual-room mode starts enabled (e.g. reopened draft). */
+  companionRoomId?: string;
+  companionRoomName?: string;
   date: string;
   startTime: string;
   endTime: string;
 };
 
+type BusyClipped = {
+  start: Date;
+  end: Date;
+  label?: string;
+  reservationId?: string;
+};
+
+function busyClippedForRoom(
+  scheduleRooms: RoomWithReservations[] | undefined,
+  forRoomId: string,
+  displayStart: Date,
+  displayEnd: Date,
+): BusyClipped[] {
+  const slots = scheduleRooms?.find((r) => r.id === forRoomId)?.bookings ?? [];
+  return slots
+    .map((slot) => {
+      const { start: a, end: b } = parseApiInterval(slot.interval);
+      const t0 = Math.max(a.getTime(), displayStart.getTime());
+      const t1 = Math.min(b.getTime(), displayEnd.getTime());
+      if (t1 <= t0) return null;
+      return {
+        start: new Date(t0),
+        end: new Date(t1),
+        label: slot.label,
+        reservationId: slot.id,
+      };
+    })
+    .filter((x): x is NonNullable<typeof x> => x != null);
+}
+
 function BookingSheetForm({
   initial,
+  allRooms,
   scheduleRooms,
   myBookings,
   onClose,
@@ -59,10 +96,14 @@ function BookingSheetForm({
   error,
 }: {
   initial: BookingSheetInitial;
+  allRooms: Room[] | undefined;
   scheduleRooms: RoomWithReservations[] | undefined;
   myBookings: MyBooking[] | undefined;
   onClose: () => void;
-  onSubmit: (body: CreateBookingRequest) => void;
+  onSubmit: (
+    primary: CreateBookingRequest,
+    companion?: CreateBookingRequest,
+  ) => void;
   isPending: boolean;
   error: unknown | null;
 }) {
@@ -75,7 +116,44 @@ function BookingSheetForm({
   const [title, setTitle] = useState("");
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [clientError, setClientError] = useState<string | null>(null);
+  /** Default on when the EG A/B companion UI applies (user can turn off). */
+  const [bookCompanion, setBookCompanion] = useState(true);
   const minBookDate = formatLocalDate(new Date());
+
+  const primaryRoom = useMemo(
+    () => allRooms?.find((r) => r.id === initial.roomId),
+    [allRooms, initial.roomId],
+  );
+
+  const companionFromList = useMemo(
+    () =>
+      primaryRoom ? findAbRoomCompanion(primaryRoom, allRooms) : null,
+    [primaryRoom, allRooms],
+  );
+
+  const companionRoom = useMemo((): Room | null => {
+    if (initial.companionRoomId && initial.companionRoomName) {
+      return {
+        id: initial.companionRoomId,
+        name: initial.companionRoomName,
+        capacity: companionFromList?.capacity ?? null,
+        equipment: companionFromList?.equipment ?? "",
+        campus: companionFromList?.campus ?? "",
+      };
+    }
+    return companionFromList;
+  }, [
+    companionFromList,
+    initial.companionRoomId,
+    initial.companionRoomName,
+  ]);
+
+  const companionInSchedule =
+    companionRoom != null &&
+    Boolean(scheduleRooms?.some((r) => r.id === companionRoom.id));
+
+  const bookBothHalves =
+    companionRoom != null && bookCompanion && companionInSchedule;
 
   const trackRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{
@@ -88,28 +166,30 @@ function BookingSheetForm({
 
   const { start: displayStart, end: displayEnd } = dayDisplayBounds(date);
 
-  const busyClipped = useMemo(() => {
-    const slots = scheduleRooms?.find((r) => r.id === roomId)?.bookings ?? [];
-    return slots
-      .map((slot) => {
-        const { start: a, end: b } = parseApiInterval(slot.interval);
-        const t0 = Math.max(a.getTime(), displayStart.getTime());
-        const t1 = Math.min(b.getTime(), displayEnd.getTime());
-        if (t1 <= t0) return null;
-        return {
-          start: new Date(t0),
-          end: new Date(t1),
-          label: slot.label,
-          reservationId: slot.id,
-        };
-      })
-      .filter((x): x is NonNullable<typeof x> => x != null);
-  }, [scheduleRooms, roomId, displayStart, displayEnd]);
-
-  const busyForConstraints: TimeInterval[] = useMemo(
-    () => busyClipped.map((b) => ({ start: b.start, end: b.end })),
-    [busyClipped],
+  const busyPrimary = useMemo(
+    () => busyClippedForRoom(scheduleRooms, roomId, displayStart, displayEnd),
+    [scheduleRooms, roomId, displayStart, displayEnd],
   );
+
+  const busySecondary = useMemo(() => {
+    if (!bookBothHalves || !companionRoom) return [];
+    return busyClippedForRoom(
+      scheduleRooms,
+      companionRoom.id,
+      displayStart,
+      displayEnd,
+    );
+  }, [bookBothHalves, companionRoom, scheduleRooms, displayStart, displayEnd]);
+
+  const busyForConstraints: TimeInterval[] = useMemo(() => {
+    if (!bookBothHalves) {
+      return busyPrimary.map((b) => ({ start: b.start, end: b.end }));
+    }
+    return mergeIntervals([
+      ...busyPrimary.map((b) => ({ start: b.start, end: b.end })),
+      ...busySecondary.map((b) => ({ start: b.start, end: b.end })),
+    ]);
+  }, [bookBothHalves, busyPrimary, busySecondary]);
 
   const freeGaps = useMemo(
     () => freeSlotsInWindow(displayStart, displayEnd, busyForConstraints),
@@ -239,10 +319,12 @@ function BookingSheetForm({
     const d = dragRef.current;
     if (!d) return;
     const el = trackRef.current;
-    try {
-      el?.releasePointerCapture(d.pointerId);
-    } catch {
-      /* ignore */
+    if (el) {
+      try {
+        el.releasePointerCapture(d.pointerId);
+      } catch {
+        /* ignore */
+      }
     }
     dragRef.current = null;
   }
@@ -261,7 +343,13 @@ function BookingSheetForm({
       pointerId: e.pointerId,
     };
     const el = trackRef.current;
-    el?.setPointerCapture(e.pointerId);
+    if (el) {
+      try {
+        el.setPointerCapture(e.pointerId);
+      } catch {
+        /* ignore */
+      }
+    }
 
     const onMove = (ev: PointerEvent) => {
       clearClientError();
@@ -342,6 +430,57 @@ function BookingSheetForm({
   const inputClass =
     "min-w-0 max-w-full w-full rounded-lg border border-te-border bg-te-elevated px-3 py-2 text-base text-te-text outline-none transition-shadow placeholder:text-te-muted/70 focus:border-te-accent focus:ring-2 focus:ring-te-accent/20 sm:text-sm";
 
+  const busyAtClick = useMemo(() => {
+    if (!bookBothHalves) return busyPrimary;
+    return [...busyPrimary, ...busySecondary];
+  }, [bookBothHalves, busyPrimary, busySecondary]);
+
+  function renderBusyLayer(
+    busy: BusyClipped[],
+    forRoomId: string,
+    zBase: number,
+  ) {
+    return busy.map((b, i) => {
+      const { leftPct: bl, widthPct: bw } = intervalToPercent(
+        { start: b.start, end: b.end },
+        displayStart,
+        displayEnd,
+      );
+      const mine = isMyCalendarBusy(b, forRoomId, myBookings);
+      const slotTitle = mine
+        ? b.label
+          ? t("booking.slotTitleMineLabeled", { label: b.label })
+          : t("booking.slotTitleMine")
+        : b.label
+          ? t("booking.slotTitleBusyLabeled", { label: b.label })
+          : t("booking.slotTitleBusy");
+      return (
+        <div
+          key={`${forRoomId}-busy-${b.start.getTime()}-${i}`}
+          title={slotTitle}
+          className={`absolute top-4 bottom-1 flex items-center justify-center overflow-hidden rounded-sm px-0.5 shadow-inner ${
+            mine ? "bg-te-mine-busy/85" : "bg-te-busy-strong/85"
+          }`}
+          style={{
+            left: `${bl}%`,
+            width: `${Math.max(bw, 0.5)}%`,
+            zIndex: zBase,
+          }}
+        >
+          {b.label && (
+            <span
+              className={`font-display truncate text-center text-[0.55rem] leading-tight font-semibold sm:text-[0.6rem] ${
+                mine ? "text-te-mine-busy-text" : "text-white drop-shadow-sm"
+              }`}
+            >
+              {b.label}
+            </span>
+          )}
+        </div>
+      );
+    });
+  }
+
   return (
     <div
       className="fixed inset-0 z-100 flex min-h-0 items-end justify-center overflow-x-hidden overflow-y-auto sm:items-center sm:p-6"
@@ -414,11 +553,26 @@ function BookingSheetForm({
               setClientError(t("booking.startInPast"));
               return;
             }
-            onSubmit({
+            const interval = formatCreateBookingInterval(
+              date,
+              startNorm,
+              endNorm,
+            );
+            const titleOpt = title.trim() || undefined;
+            const primaryBody: CreateBookingRequest = {
               roomId,
-              interval: formatCreateBookingInterval(date, startNorm, endNorm),
-              title: title.trim() || undefined,
-            });
+              interval,
+              title: titleOpt,
+            };
+            if (bookBothHalves && companionRoom) {
+              onSubmit(primaryBody, {
+                roomId: companionRoom.id,
+                interval,
+                title: titleOpt,
+              });
+              return;
+            }
+            onSubmit(primaryBody);
           }}
         >
           <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 md:items-start">
@@ -451,6 +605,30 @@ function BookingSheetForm({
             </label>
           </div>
 
+          {companionRoom && (
+            <label className="flex cursor-pointer items-start gap-3 select-none">
+              <input
+                type="checkbox"
+                className="border-te-border text-te-accent focus:ring-te-accent/30 mt-1 size-4 shrink-0 rounded"
+                checked={bookCompanion}
+                onChange={(e) => {
+                  clearClientError();
+                  setBookCompanion(e.target.checked);
+                }}
+              />
+              <span className="text-te-text min-w-0 text-sm leading-snug">
+                <span className="font-medium">
+                  {t("booking.bookOtherHalf", { name: companionRoom.name })}
+                </span>
+                {bookCompanion && !companionInSchedule && (
+                  <span className="text-te-muted mt-1 block text-xs">
+                    {t("booking.companionScheduleMissing")}
+                  </span>
+                )}
+              </span>
+            </label>
+          )}
+
           <section
             className="space-y-2"
             aria-label={t("booking.previewAria")}
@@ -482,7 +660,7 @@ function BookingSheetForm({
                   date,
                 );
                 if (
-                  busyClipped.some(
+                  busyAtClick.some(
                     (b) =>
                       clicked >= b.start.getTime() && clicked < b.end.getTime(),
                   )
@@ -499,46 +677,7 @@ function BookingSheetForm({
                   <span>13</span>
                   <span>22</span>
                 </div>
-                {busyClipped.map((b, i) => {
-                  const { leftPct: bl, widthPct: bw } = intervalToPercent(
-                    { start: b.start, end: b.end },
-                    displayStart,
-                    displayEnd,
-                  );
-                  const mine = isMyCalendarBusy(b, roomId, myBookings);
-                  const slotTitle = mine
-                    ? b.label
-                      ? t("booking.slotTitleMineLabeled", { label: b.label })
-                      : t("booking.slotTitleMine")
-                    : b.label
-                      ? t("booking.slotTitleBusyLabeled", { label: b.label })
-                      : t("booking.slotTitleBusy");
-                  return (
-                    <div
-                      key={`busy-${b.start.getTime()}-${i}`}
-                      title={slotTitle}
-                      className={`absolute top-4 bottom-1 z-1 flex items-center justify-center overflow-hidden rounded-sm px-0.5 shadow-inner ${
-                        mine ? "bg-te-mine-busy/85" : "bg-te-busy-strong/85"
-                      }`}
-                      style={{
-                        left: `${bl}%`,
-                        width: `${Math.max(bw, 0.5)}%`,
-                      }}
-                    >
-                      {b.label && (
-                        <span
-                          className={`font-display truncate text-center text-[0.55rem] leading-tight font-semibold sm:text-[0.6rem] ${
-                            mine
-                              ? "text-te-mine-busy-text"
-                              : "text-white drop-shadow-sm"
-                          }`}
-                        >
-                          {b.label}
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
+                {renderBusyLayer(busyPrimary, roomId, 1)}
               </div>
               <div
                 data-booking-preview-root
@@ -585,6 +724,36 @@ function BookingSheetForm({
                 </button>
               </div>
             </div>
+
+            {bookBothHalves && companionRoom && (
+              <div className="space-y-1 pt-1">
+                <p className="text-te-muted text-xs font-medium">
+                  {companionRoom.name}
+                </p>
+                <div className="relative h-11 min-h-11 w-full overflow-hidden rounded-lg">
+                  <div className="bg-te-border/25 pointer-events-none absolute inset-0 overflow-hidden rounded-lg">
+                    <div className="text-te-muted/80 absolute inset-x-0 top-0 flex justify-between px-1 pt-1 text-[9px] font-medium tracking-wider uppercase">
+                      <span>07</span>
+                      <span>13</span>
+                      <span>22</span>
+                    </div>
+                    {renderBusyLayer(
+                      busySecondary,
+                      companionRoom.id,
+                      1,
+                    )}
+                  </div>
+                  <div
+                    className="border-te-accent/40 pointer-events-none absolute top-4 bottom-1 z-10 rounded-md border border-dashed"
+                    style={{
+                      left: `${leftPct}%`,
+                      width: `${previewWidthPct}%`,
+                    }}
+                    aria-hidden
+                  />
+                </div>
+              </div>
+            )}
           </section>
 
           <div className="grid gap-2">
@@ -702,6 +871,7 @@ export function BookingSheet({
   open,
   onClose,
   initial,
+  allRooms,
   scheduleRooms,
   myBookings,
   onSubmit,
@@ -711,9 +881,13 @@ export function BookingSheet({
   open: boolean;
   onClose: () => void;
   initial: BookingSheetInitial | null;
+  allRooms: Room[] | undefined;
   scheduleRooms: RoomWithReservations[] | undefined;
   myBookings: MyBooking[] | undefined;
-  onSubmit: (body: CreateBookingRequest) => void;
+  onSubmit: (
+    primary: CreateBookingRequest,
+    companion?: CreateBookingRequest,
+  ) => void;
   isPending: boolean;
   error: unknown | null;
 }) {
@@ -723,6 +897,7 @@ export function BookingSheet({
     <BookingSheetForm
       key={`${initial.roomId}-${initial.date}-${initial.startTime}-${initial.endTime}`}
       initial={initial}
+      allRooms={allRooms}
       scheduleRooms={scheduleRooms}
       myBookings={myBookings}
       onClose={onClose}
