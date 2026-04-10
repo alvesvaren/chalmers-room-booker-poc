@@ -12,6 +12,7 @@ export type RoomsTabData = {
   bookings: AllRoomsBookings | undefined;
   bookingsWeekStart: Date;
   bookingsWeekEnd: Date;
+  myBookings: MyBooking[] | undefined;
 };
 
 export type RoomsTabStatus = {

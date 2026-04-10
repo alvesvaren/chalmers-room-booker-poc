@@ -268,6 +268,7 @@ export function AuthenticatedWorkspace() {
         bookings: bookingsGrid,
         bookingsWeekStart: weekStart,
         bookingsWeekEnd: weekEnd,
+        myBookings: myBookingsQuery.data,
       },
       status: {
         roomsIsFetching: roomsQuery.isFetching,
@@ -294,6 +295,7 @@ export function AuthenticatedWorkspace() {
       bookingsGrid,
       weekStart,
       weekEnd,
+      myBookingsQuery.data,
       roomsUiStale,
       bookingsQuery.isFetching,
       bookingsUiStale,
