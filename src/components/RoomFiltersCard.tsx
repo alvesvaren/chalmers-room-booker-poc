@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import { CapacityRangeSlider } from "./ui/CapacityRangeSlider";
 import { SortModeControl } from "./SortModeControl";
 import type { RoomSort } from "../lib/roomSort";
@@ -23,8 +22,6 @@ export type RoomFiltersCardProps = {
   sort: RoomSort;
   onSortChange: (sort: RoomSort) => void;
   sortDisabled: boolean;
-  /** Extra block after sort (e.g. free-at-time timeline on desktop) */
-  footer?: ReactNode;
 };
 
 export function RoomFiltersCard({
@@ -41,7 +38,6 @@ export function RoomFiltersCard({
   sort,
   onSortChange,
   sortDisabled,
-  footer,
 }: RoomFiltersCardProps) {
   return (
     <div className="border-te-border/80 bg-te-surface/40 overflow-hidden rounded-xl border shadow-sm dark:bg-te-surface/20">
@@ -75,9 +71,6 @@ export function RoomFiltersCard({
             disabled={sortDisabled}
           />
         </div>
-        {footer != null ? (
-          <div className="px-4 py-4 sm:px-5 sm:py-4">{footer}</div>
-        ) : null}
       </div>
     </div>
   );

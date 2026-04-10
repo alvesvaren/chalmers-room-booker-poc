@@ -264,40 +264,122 @@ export function RoomsTab({
     bookingsWeekEnd,
   );
 
+  const freeAtTimePanel = (
+    <div className={slotPanelClass}>
+      <label className="flex cursor-pointer items-baseline gap-3 select-none">
+        <Checkbox
+          checked={slotFilterActive}
+          onCheckedChange={(c) => setSlotFilterActiveSynced(c === true)}
+        />
+        <span className="font-display text-te-text text-sm font-semibold">
+          {t("rooms.freeAtTime")}
+        </span>
+      </label>
+
+      {slotFilterActive && (
+        <div className="border-te-border/60 mt-4 min-w-0 space-y-4 border-t pt-4">
+          <label className="flex min-w-0 flex-col gap-1 text-sm">
+            <span className="text-te-muted font-medium">{t("rooms.day")}</span>
+            <input
+              type="date"
+              className={fieldClass}
+              min={minBookDate}
+              value={slotDate}
+              onChange={(e) => setSlotDateSynced(e.target.value)}
+            />
+          </label>
+          <DayIntervalTimeline
+            dateStr={slotDate}
+            startTime={slotStartTime}
+            endTime={slotEndTime}
+            onIntervalChange={({ startTime: st, endTime: et }) => {
+              setSlotStartTime(st);
+              setSlotEndTime(et);
+            }}
+            busySegments={[]}
+            roomIdForMineCheck=""
+            sectionAriaLabel={t("rooms.slotFilterPreviewAria")}
+            summaryLeftLabel=""
+            showBusyOverlay={false}
+            showTrackLabels={false}
+            barGrabAriaLabel={t("rooms.slotFilterGrabAria")}
+          />
+          <div>
+            <span className="text-te-muted mb-2 block text-xs font-medium">
+              {t("rooms.durationPresets")}
+            </span>
+            <div className="flex flex-wrap gap-2">
+              {DURATION_CHIPS_MIN.map((m) => {
+                const dur =
+                  (parseInstantOnDate(slotDate, slotEndTime).getTime() -
+                    parseInstantOnDate(slotDate, slotStartTime).getTime()) /
+                  60_000;
+                const active = Math.round(dur) === m;
+                return (
+                  <button
+                    key={m}
+                    type="button"
+                    className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                      active
+                        ? "border-te-accent bg-te-accent-muted text-te-accent"
+                        : "border-te-border text-te-muted hover:border-te-accent/50"
+                    }`}
+                    onClick={() => {
+                      const { start: w0, end: w1 } = dayDisplayBounds(slotDate);
+                      const sMs = parseInstantOnDate(
+                        slotDate,
+                        slotStartTime,
+                      ).getTime();
+                      const eMs = addMinutes(new Date(sMs), m).getTime();
+                      const [a, b] = clampIntervalToDayWindow(
+                        sMs,
+                        eMs,
+                        slotDate,
+                        w0,
+                        w1,
+                      );
+                      setSlotStartTime(formatLocalTime(new Date(a)));
+                      setSlotEndTime(formatLocalTime(new Date(b)));
+                    }}
+                  >
+                    {m} min
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          {crossesDayUi && (
+            <p className="text-te-danger text-xs font-medium">
+              {t("rooms.crossesMidnight")}
+            </p>
+          )}
+        </div>
+      )}
+
+      {slotBookingsInitialLoad && (
+        <div
+          className="border-te-border/60 mt-4 space-y-3 border-t pt-4"
+          role="status"
+          aria-live="polite"
+          aria-busy="true"
+        >
+          <p className="sr-only">
+            {t("rooms.fetchingBookingsWeek", { week: bookingsWeekLabel })}
+          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <Skeleton className="h-2.5 w-full max-w-40 rounded-full sm:max-w-56" />
+            <Skeleton className="hidden h-2.5 w-16 rounded-full sm:block" />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div className="te-reveal te-reveal-delay-1 space-y-6">
       <h2 className="font-display text-te-text text-xl font-semibold">
         {t("rooms.heading")}
       </h2>
-
-      <div className={slotPanelClass}>
-        <label className="flex cursor-pointer items-baseline gap-3 select-none">
-          <Checkbox
-            checked={slotFilterActive}
-            onCheckedChange={(c) => setSlotFilterActiveSynced(c === true)}
-          />
-          <span className="font-display text-te-text text-sm font-semibold">
-            {t("rooms.freeAtTime")}
-          </span>
-        </label>
-
-        {slotBookingsInitialLoad && (
-          <div
-            className="border-te-border/60 mt-4 space-y-3 border-t pt-4"
-            role="status"
-            aria-live="polite"
-            aria-busy="true"
-          >
-            <p className="sr-only">
-              {t("rooms.fetchingBookingsWeek", { week: bookingsWeekLabel })}
-            </p>
-            <div className="flex flex-wrap items-center gap-3">
-              <Skeleton className="h-2.5 w-full max-w-40 rounded-full sm:max-w-56" />
-              <Skeleton className="hidden h-2.5 w-16 rounded-full sm:block" />
-            </div>
-          </div>
-        )}
-      </div>
 
       <div className="space-y-4">
         <RoomFiltersCard
@@ -313,108 +395,19 @@ export function RoomsTab({
           capacityDisabled={roomsIsFetching || rooms == null}
           sort={sort}
           onSortChange={setSort}
-          sortDisabled={slotFilterActive}
-          footer={
-            slotFilterActive ? (
-              <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,11rem)_1fr] lg:items-end">
-                <label className="flex min-w-0 flex-col gap-1 text-sm">
-                  <span className="text-te-muted font-medium">
-                    {t("rooms.day")}
-                  </span>
-                  <input
-                    type="date"
-                    className={fieldClass}
-                    min={minBookDate}
-                    value={slotDate}
-                    onChange={(e) => setSlotDateSynced(e.target.value)}
-                  />
-                </label>
-                <div className="min-w-0 space-y-3">
-                  <DayIntervalTimeline
-                    dateStr={slotDate}
-                    startTime={slotStartTime}
-                    endTime={slotEndTime}
-                    onIntervalChange={({ startTime: st, endTime: et }) => {
-                      setSlotStartTime(st);
-                      setSlotEndTime(et);
-                    }}
-                    busySegments={[]}
-                    roomIdForMineCheck=""
-                    sectionAriaLabel={t("rooms.slotFilterPreviewAria")}
-                    summaryLeftLabel=""
-                    showBusyOverlay={false}
-                    showTrackLabels={false}
-                    barGrabAriaLabel={t("rooms.slotFilterGrabAria")}
-                  />
-                  <div>
-                    <span className="text-te-muted mb-2 block text-xs font-medium">
-                      {t("rooms.durationPresets")}
-                    </span>
-                    <div className="flex flex-wrap gap-2">
-                      {DURATION_CHIPS_MIN.map((m) => {
-                        const dur =
-                          (parseInstantOnDate(
-                            slotDate,
-                            slotEndTime,
-                          ).getTime() -
-                            parseInstantOnDate(
-                              slotDate,
-                              slotStartTime,
-                            ).getTime()) /
-                          60_000;
-                        const active = Math.round(dur) === m;
-                        return (
-                          <button
-                            key={m}
-                            type="button"
-                            className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
-                              active
-                                ? "border-te-accent bg-te-accent-muted text-te-accent"
-                                : "border-te-border text-te-muted hover:border-te-accent/50"
-                            }`}
-                            onClick={() => {
-                              const { start: w0, end: w1 } =
-                                dayDisplayBounds(slotDate);
-                              const sMs = parseInstantOnDate(
-                                slotDate,
-                                slotStartTime,
-                              ).getTime();
-                              const eMs = addMinutes(
-                                new Date(sMs),
-                                m,
-                              ).getTime();
-                              const [a, b] = clampIntervalToDayWindow(
-                                sMs,
-                                eMs,
-                                slotDate,
-                                w0,
-                                w1,
-                              );
-                              setSlotStartTime(formatLocalTime(new Date(a)));
-                              setSlotEndTime(formatLocalTime(new Date(b)));
-                            }}
-                          >
-                            {m} min
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                  {crossesDayUi && (
-                    <p className="text-te-danger text-xs font-medium">
-                      {t("rooms.crossesMidnight")}
-                    </p>
-                  )}
-                </div>
-              </div>
-            ) : null
-          }
+          sortDisabled={false}
         />
-
-        {bookings?.bookingRules && (
-          <BookingRulesCallout rules={bookings.bookingRules} />
-        )}
       </div>
+
+      <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[1fr_minmax(17rem,22rem)] lg:items-start lg:gap-8">
+        <aside className="order-1 min-w-0 lg:order-2 lg:sticky lg:top-4 lg:self-start">
+          {freeAtTimePanel}
+        </aside>
+
+        <div className="order-2 min-w-0 space-y-4 lg:order-1">
+          {bookings?.bookingRules && (
+            <BookingRulesCallout rules={bookings.bookingRules} />
+          )}
 
       {roomsLoadPending ? (
         <div className="space-y-4">
@@ -564,6 +557,8 @@ export function RoomsTab({
         />
         </div>
       )}
+        </div>
+      </div>
     </div>
   );
 }
