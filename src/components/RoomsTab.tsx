@@ -213,7 +213,7 @@ export function RoomsTab({
         <label className="flex cursor-pointer items-start gap-3 select-none">
           <Checkbox
             checked={slotFilterActive}
-            onChange={(e) => setSlotFilterActiveSynced(e.target.checked)}
+            onCheckedChange={(c) => setSlotFilterActiveSynced(c === true)}
           />
           <span className="font-display text-te-text text-sm font-semibold">
             {t("rooms.freeAtTime")}

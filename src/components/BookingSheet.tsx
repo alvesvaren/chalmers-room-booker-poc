@@ -610,9 +610,9 @@ function BookingSheetForm({
             <label className="flex cursor-pointer items-start gap-3 select-none">
               <Checkbox
                 checked={bookCompanion}
-                onChange={(e) => {
+                onCheckedChange={(c) => {
                   clearClientError();
-                  setBookCompanion(e.target.checked);
+                  setBookCompanion(c === true);
                 }}
               />
               <span className="text-te-text min-w-0 text-sm leading-snug">
