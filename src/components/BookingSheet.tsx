@@ -41,6 +41,7 @@ import {
   type TimeInterval,
 } from "../lib/weekTimeline";
 import { Button } from "./ui/Button";
+import { Checkbox } from "./ui/Checkbox";
 
 type DragKind = "move" | "resize-start" | "resize-end";
 
@@ -606,14 +607,12 @@ function BookingSheetForm({
           </div>
 
           {companionRoom && (
-            <label className="flex cursor-pointer items-start gap-3 select-none">
-              <input
-                type="checkbox"
-                className="border-te-border text-te-accent focus:ring-te-accent/30 mt-1 size-4 shrink-0 rounded"
+            <label className="flex cursor-pointer items-baseline gap-3 select-none">
+              <Checkbox
                 checked={bookCompanion}
-                onChange={(e) => {
+                onCheckedChange={(c) => {
                   clearClientError();
-                  setBookCompanion(e.target.checked);
+                  setBookCompanion(c === true);
                 }}
               />
               <span className="text-te-text min-w-0 text-sm leading-snug">
