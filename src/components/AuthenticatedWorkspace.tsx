@@ -225,13 +225,11 @@ export function AuthenticatedWorkspace() {
       companion?: CreateBookingRequest,
     ) => {
       try {
-        const first = await createBookingMutation.mutateAsync({
-          body: primary,
-        });
         if (companion) {
-          const second = await createBookingMutation.mutateAsync({
-            body: companion,
-          });
+          const [first, second] = await Promise.all([
+            createBookingMutation.mutateAsync({ body: primary }),
+            createBookingMutation.mutateAsync({ body: companion }),
+          ]);
           closeBookingSheet();
           showBookingToast(
             t("booking.createdToastDual", {
@@ -241,6 +239,9 @@ export function AuthenticatedWorkspace() {
           );
           return;
         }
+        const first = await createBookingMutation.mutateAsync({
+          body: primary,
+        });
         closeBookingSheet();
         showBookingToast(
           t("booking.createdToast", { id: first.booking.id }),
