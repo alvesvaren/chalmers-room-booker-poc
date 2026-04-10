@@ -213,7 +213,6 @@ export function RoomsTab({
         <label className="flex cursor-pointer items-baseline gap-3 select-none">
           <Checkbox
             checked={slotFilterActive}
-            indicatorForceMount
             onCheckedChange={(c) => setSlotFilterActiveSynced(c === true)}
           />
           <span className="font-display text-te-text text-sm font-semibold">
